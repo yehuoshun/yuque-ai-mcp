@@ -197,6 +197,8 @@ npx yuque-mcp install --token=YOUR_TOKEN --client=cursor
 | `candidates_limit` | 搜索候选数，LLM Rerank 前的候选文档数，默认 20 |
 | `top_k` | Rerank 后获取全文的文档数，默认 5 |
 
+索引子文档上限为 **200KB**（约 50000 字），接近 180KB 时自动新建子文档，避免单次 API POST 超时。
+
 ## AI 问答原理
 
 ### 为什么要构建索引？
