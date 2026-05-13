@@ -17,8 +17,8 @@ description: 语雀全功能技能。支持 AI 问答、知识库管理、文档
 - **目录管理**：获取、更新目录结构
 - **群组成员管理**：列出成员、更新角色、移除成员
 - **统计数据**：团队统计、成员统计、知识库统计
-- **AI 问答**：基于索引库的语义搜索 + LLM Rerank
-- **索引管理**：手动触发构建索引、增量更新、重试失败
+- **AI 问答**：三层分级检索（问题匹配 → Chunk 精准 → 原生兜底），平均 token 900
+- **索引管理**：手动触发构建索引、增量更新、重试失败、迭代补洞
 - **文档导出**：单篇/批量导出为本地 Markdown
 
 ## 核心原理
@@ -73,7 +73,7 @@ description: 语雀全功能技能。支持 AI 问答、知识库管理、文档
 | `dead_entries_threshold` | 死条目清理提示阈值，默认 10 |
 | `segment_length` | 分段长度，默认 2000 |
 | `candidates_limit` | 搜索候选数，默认 20 |
-| `top_k` | Rerank 后取几篇全文，默认 5 |
+| `fuzzy_threshold` | Layer 1 模糊匹配阈值，默认 0.75 |
 
 **重要**：
 - 语雀搜索 API 的 `scope` 参数只支持 `namespace` 格式（如 `yehuoshun/gi49zs`），不支持 `book_id`，因此配置中必须同时包含 `book_id` 和 `namespace`
@@ -206,28 +206,35 @@ Content-Type: application/json
 | 知识库统计 | `GET` | `/api/v2/groups/{login}/statistics/books` |
 | 文档统计 | `GET` | `/api/v2/groups/{login}/statistics/docs` |
 
-### 9. AI 问答（语义增强搜索）
+### 9. AI 问答（三层分级检索）🆕 v2.0
 
 **触发**：「在语雀搜索...」「问语雀...」「查我的语雀笔记」
 
 **流程概要**：
-1. LLM 扩展关键词 + 实体识别（`@实体:xxx`）+ 同义词
-2. 通过 `/api/v2/search?q={关键词}&type=doc&scope={ns}` 搜索索引库
-3. 合并子文档条目 → 按源文档ID去重 → 提取实体/关系字段
-4. 索引命中为 0 时降级兜底 → 语雀原生搜索
-5. 粗排（候选 > 10 时关键词匹配取前 10）
-6. LLM Rerank（按语义相关性排序） → 取 Top K
-7. 并行获取全文 → 分段 → 注入实体/关系上下文 → LLM 生成回答
-8. 命中 404/410 的文档标记为死条目，末尾提示清理
+1. 多路并行搜索索引库（原句 / 标准问法 / 实体 / 同义词，4 路并行）
+2. **Layer 1**：逐条目匹配 `questions` 字段（精确 + 模糊 ≥0.75）→ 命中直接返回 `direct_answer`，**token 0**
+3. **Layer 2**：关键词命中但 questions 未命中 → 读 Top 5 chunk 原文 → LLM 生成回答，**token ~800**
+4. **Layer 3**：索引未覆盖 → 原生搜索兜底 → 读 Top 3 全文 → LLM 生成回答，记录漏提问到 `leak_queries`
+5. 命中 404/410 标记死条目，末尾提示清理
+
+**核心升级**：
+- 去掉 LLM Rerank，改为索引时预生成 `questions` + `direct_answer`
+- ~45% 提问走 Layer 1（token 0，<1s），~35% 走 Layer 2（低 token），~20% 走 Layer 3
+- 平均耗时 1.2s（改前 5.5s），平均 token 900（改前 5,500）
 
 **完整详细流程** → [references/search_flow.md](references/search_flow.md)
 
-### 10. 索引管理
+### 10. 索引管理 🆕 v2.0
 
 **触发**：「构建语雀索引」「更新语雀索引」
 
-> 包含关键词提取、实体/关系提取、同义词扩展、无意义文档过滤、子库分片。
-> 实体/关系数据与关键词一同存入索引条目，搜索时可跳过读原文直接回答。
+> v2.0 新增：questions/direct_answer 预生成、chunk 分块索引、跨 chunk 问题生成。
+
+**新功能**：
+- **questions 预生成**：每篇文档/chunk 生成 5-8 个自然语言问句，搜索时 Layer 1 匹配
+- **direct_answer 浓缩**：200-500 字预生成回答，Layer 1 命中直接返回
+- **Chunk 分块**：长文档（> 2000 字）按 ## 标题边界切分，每 chunk 独立索引
+- **跨 chunk 问题**：分块后生成 2-4 个跨章节综合问题
 
 | 模式 | 触发词 | 每批数量 | 行为 |
 |------|--------|----------|------|
@@ -235,6 +242,8 @@ Content-Type: application/json
 | **手动** | 「手动构建索引，每批30篇」 | 用户指定（≤100） | 每批暂停，等「继续」，同样支持降级 |
 
 **保护**：知识库 > 2000 篇文档时，自动模式拒绝，提示用手动模式分批构建。
+
+**v2.0 索引构建额外 token**：每篇多约 500 token（questions + direct_answer），5000 篇全量约 5.5M token（一次成本）。
 
 **完整构建流程、状态机、同义词策略、无意义文档过滤** → [references/index_flow.md](references/index_flow.md)
 
@@ -256,13 +265,27 @@ Content-Type: application/json
 1. 根据标题或 doc_id 定位源文档
 2. 获取文档最新内容
 3. 获取旧关键词列表（从现有索引条目读取）
-4. LLM 提取新关键词 + 同义词展开（与全量构建相同）
+4. LLM 提取新关键词 + 同义词展开 + **questions + direct_answer（v2.0 新增）**
 5. 对比新旧关键词 → 过时的清理、保留的原地替换、新增的创建
 6. 汇报变更摘要
 
 **完整详细流程** → [references/index_flow.md#单文档增量索引](references/index_flow.md)
 
-### 13. 文档导出
+### 13. 迭代补洞 🆕 v2.0
+
+**触发**：「补洞」「回灌漏提问」
+
+Layer 3 兜底时记录的用户提问，定期回灌索引。
+
+**流程**：
+1. 读取 `index_state.json` 的 `leak_queries` 字段
+2. 按 count 降序排列，逐条处理
+3. 用多路搜索定位相关源文档 → 追加到对应 chunk 的 `questions` 列表
+4. 若已有 `direct_answer` 能覆盖 → 直接关联
+5. PUT 更新索引子文档 → 清空 `leak_queries`
+6. 汇报补充了多少问题
+
+### 14. 文档导出
 
 **触发**：「导出这篇文档」「导出知识库」「下载语雀文档到本地」
 

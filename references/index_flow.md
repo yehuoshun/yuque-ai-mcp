@@ -206,45 +206,53 @@
 - 技术术语：HTTP/2、IPv6、5G、4K、MP3、JSON
 - 有语义编号：Windows 11、iPhone 15
 
-## 关键词 + 实体/关系提取（索引阶段）
+## 关键词 + 实体/关系 + 问题 + 回答提取（索引阶段）🆕 v2.0
 
-LLM 对每篇文档**一次调用**同时提取关键词、实体和关系：
+LLM 对每篇文档（或 chunk）**一次调用**同时提取关键词、实体、关系、预生成问题、浓缩回答：
 
 ```
-源文档「亿级流量系统架构设计」（节选）
-> 张三是亿级流量系统的架构师。系统采用 Redis 做缓存层，QPS 峰值 50 万。张三是 Redis 专家，负责核心缓存模块。
+源文档/chunk「Spring Boot 自动配置原理」（≤2000 字）
 
-LLM 提取结果：
+LLM 提取结果（v2.0 新增 questions / direct_answer）：
 {
   "keywords": [
-    {"keyword": "亿级流量", "synonyms": ["高并发"]},
-    {"keyword": "Redis", "synonyms": ["缓存"]},
-    {"keyword": "QPS", "synonyms": ["吞吐量"]},
-    {"keyword": "@实体:张三", "synonyms": []},
-    {"keyword": "@实体:Redis", "synonyms": []},
-    {"keyword": "@实体:亿级流量系统", "synonyms": []}
+    {"keyword": "Spring Boot", "synonyms": ["SpringBoot"]},
+    {"keyword": "自动配置", "synonyms": ["AutoConfiguration"]},
+    {"keyword": "@EnableAutoConfiguration", "synonyms": []},
+    {"keyword": "@实体:EnableAutoConfiguration", "synonyms": []}
   ],
   "entities": [
-    {"name": "张三", "type": "人物"},
-    {"name": "Redis", "type": "技术/中间件"},
-    {"name": "亿级流量系统", "type": "项目"}
+    {"name": "EnableAutoConfiguration", "type": "技术/注解"},
+    {"name": "AutoConfigurationImportSelector", "type": "技术/类"}
   ],
   "relations": [
-    "张三→负责→亿级流量系统",
-    "Redis→用于→亿级流量系统",
-    "Redis→达到→50万QPS"
-  ]
+    "@EnableAutoConfiguration→触发→AutoConfigurationImportSelector",
+    "AutoConfigurationImportSelector→读取→spring.factories"
+  ],
+  "questions": [
+    "Spring Boot 自动配置是怎么工作的？",
+    "@EnableAutoConfiguration 注解的作用是什么？",
+    "Spring Boot 如何扫描 spring.factories？",
+    "如何自定义一个自动配置类？",
+    "自动配置和条件注解是什么关系？"
+  ],
+  "direct_answer": "Spring Boot 自动配置通过 @EnableAutoConfiguration 注解触发，核心流程：1) 启动时触发 AutoConfigurationImportSelector，2) 读取 META-INF/spring.factories 中的类列表，3) 结合 @Conditional 系列注解按条件过滤，4) 将符合条件的配置类注入 Spring 容器。"
 }
 
 展开后的索引词列表：
-  亿级流量, 高并发, Redis, 缓存, QPS, 吞吐量, @实体:张三, @实体:Redis, @实体:亿级流量系统
+  Spring Boot, SpringBoot, 自动配置, AutoConfiguration, @EnableAutoConfiguration, @实体:EnableAutoConfiguration
 ```
 
-**实体/关系提取规则**：
+**新增字段规则**：
+- `questions`：5-8 个自然语言问句，覆盖不同角度（是什么 / 怎么用 / 为什么 / 配合什么 / 常见问题）。从原文生成，不臆造
+- `direct_answer`：200-500 字浓缩回答，基于原文准确提炼。用于 Layer 1 直接返回，不经过 LLM 二次加工
+- `questions` 和 `direct_answer` 都基于该 chunk/文档的原文生成，不跨文档
+
+**实体/关系提取规则**（不变）：
 - 实体类型：人物、技术/中间件、项目/产品、公司/组织、概念/术语
 - 关系格式：`主体→谓语→客体`，从文档正文中提取明确陈述的关系，不臆造
 - `@实体:xxx` 作为特殊关键词存入索引，前缀用于搜索端识别实体查询
-- 实体的同义词（如 Redis → 缓存）仍走普通关键词路径
+- 实体的同义词仍走普通关键词路径
 - 无明确实体或关系的文档，`entities`/`relations` 为空数组，不影响索引构建
 
 ### 同义词类型
@@ -320,6 +328,86 @@ LLM 提取结果：
 共 3 篇待确认。回复「全部跳过」/「全部索引」/「跳过1和3，索引2」
 ```
 
+## 文档分块索引（Chunk）🆕 v2.0
+
+长文档（> 2000 字）按章节边界拆分为多个 chunk，每个 chunk 独立索引。
+
+### 分块规则
+
+| 文档大小 | 处理方式 |
+|---------|---------|
+| ≤ 2000 字 | 不分块，`chunk_index=null` |
+| > 2000 字 | 按 `##` / `###` 标题边界切分，每 chunk ≤ 2000 字 |
+
+- 切在完整段落边界（不在句子中间断）
+- 每 chunk 独立走 LLM 提取流程（keywords + questions + direct_answer）
+- chunk 条目含 `source_range`（原文锚点），搜索命中后按锚点截取
+
+### 分块示例
+
+```
+源文档：Spring Boot 核心原理（8000 字）
+  ## 自动配置原理 (2100字) → chunk 1/4
+  ## 条件注解机制 (1800字)   → chunk 2/4
+  ## Starter 机制 (1500字)    → chunk 3/4
+  ## 外部化配置 (2600字)      → chunk 4/4
+
+→ 4 个 chunk，各自独立索引，各自对应一条索引条目
+```
+
+### 与普通索引条目的区别
+
+| 字段 | 普通条目 | Chunk 条目 |
+|------|---------|-----------|
+| `chunk_index` | null | `"2/4"` |
+| `title` | 源文档标题 | `源文档标题 § 章节标题` |
+| `source_range` | 无 | `"## 条件注解机制"` |
+| 其他字段 | 相同 | 相同 |
+
+## 跨 Chunk 问题生成 🆕 v2.0
+
+文档分块后，额外生成跨 chunk 的综合问题，存入文档级总索引条目。
+
+### 生成方式
+
+取所有 chunk 标题列表 → LLM 一次调用生成 2-4 个跨 chunk 问题：
+
+```
+输入：Chunk 标题 ["自动配置原理", "条件注解机制", "Starter 机制", "外部化配置"]
+输出：
+  cross_chunk_questions: [
+    "自动配置和条件注解是怎么配合的？",
+    "一个 Starter 的自动配置是怎么触发的？",
+    "条件注解在 Starter 中扮演什么角色？"
+  ]
+```
+
+### 存储方式
+
+跨 chunk 问题存入文档级索引条目（`chunk_index=null`）的 `questions` 字段，排在 chunk 自身问题之后。命中时走 Layer 2（读取多个关联 chunk）。
+
+## 迭代补洞（leak_queries）🆕 v2.0
+
+Layer 3 兜底搜索时记录用户提问，定期回灌到索引。
+
+### 状态文件新增字段
+
+```json
+{
+  "leak_queries": [
+    {
+      "query": "spring.factories 里能配占位符吗",
+      "timestamp": "2026-05-13T10:00:00+08:00",
+      "count": 3
+    }
+  ]
+}
+```
+
+### 补洞触发
+
+用户说「补洞」或「回灌漏提问」→ 读取 `leak_queries` → 反查定位源文档 → 追加到对应 chunk 的 `questions` → PUT 更新 → 清空记录。
+
 ## 总文档格式（存放在 `index_master_book`）
 
 标题：`[索引] {关键词}`
@@ -364,21 +452,33 @@ LLM 提取结果：
 ## 文档索引
 
 ### Java JUC 线程池详解
+- **chunk_index**: null
 - **摘要**: 深入分析 Java 线程池的实现原理...
 - **关键词**: Java, JUC, 线程池, ThreadPoolExecutor
 - **实体**: @实体:Java(语言), @实体:ThreadPoolExecutor(技术)
 - **关系**: Java→包含→ThreadPoolExecutor
+- **questions**:
+  - `Java 线程池的核心参数有哪些？`
+  - `ThreadPoolExecutor 的工作原理？`
+- **direct_answer**: ThreadPoolExecutor 通过核心线程数、最大线程数、工作队列、拒绝策略四个参数控制线程池行为...
 - **源文档ID**: 205935051
 - **源知识库ID**: 60455024
 - **Namespace**: yehuoshun/gi49zs
 - **Slug**: abc123
 - **链接**: https://www.yuque.com/yehuoshun/gi49zs/abc123
 
-### Python 线程池实践
-- **摘要**: Python concurrent.futures 线程池使用...
-- **关键词**: Python, 线程池, concurrent.futures
-- **实体**: @实体:Python(语言)
-- **关系**: --
+### Spring Boot 核心原理 § 条件注解机制
+- **chunk_index**: 2/4
+- **source_range**: "## 条件注解机制"
+- **摘要**: 条件注解是自动配置核心机制，通过@ConditionalOnClass控制配置类加载...
+- **关键词**: @ConditionalOnClass, @ConditionalOnMissingBean, 条件注解
+- **实体**: @实体:ConditionalOnClass(注解)
+- **关系**: @ConditionalOnClass→控制→自动配置加载
+- **questions**:
+  - `@ConditionalOnClass 注解怎么用？`
+  - `条件注解和自动配置怎么配合？`
+  - `@ConditionalOnMissingBean 的作用？`
+- **direct_answer**: @ConditionalOnClass 要求 classpath 中存在指定类时才加载配置类。配合 @Configuration 使用，是自动配置的条件入口...
 - **源文档ID**: 205935052
 - **源知识库ID**: 60455024
 - **Namespace**: yehuoshun/gi49zs
