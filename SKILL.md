@@ -30,7 +30,10 @@ description: 语雀全功能技能。支持 AI 问答、知识库管理、文档
 - **基地址**：`https://www.yuque.com/api/v2`
 - **方式**：Python `urllib.request`（禁止 pip install），简单请求可用 curl
 - **超时**：所有请求 `timeout=30`
-- **并发**：批量场景 `ThreadPoolExecutor`，并发 ≤ 5
+- **并发**：按操作类型分级
+  - **API 轨**（列表/搜索/文档 CRUD/目录/导出）：初始 5，每批后读 `X-RateLimit-Remaining`，>500 则 +3（上限 20），<200 则 -2（下限 2）
+  - **LLM 轨**（索引构建/补洞/AI 问答 Layer 2~3）：`LLM并发 = clamp(1, floor(可用内存MB / 1024), 3)`，即 ≥3GB→3, ≥2GB→2, <2GB→1。耗时兜底：连续 3 次 >10s 降 1 级，>30s 暂停
+  - 混合场景自动切换：拉文档走 API 轨、过 LLM 走 LLM 轨，两轨不互阻
 - **速率**：每批次请求后检查 `X-RateLimit-Remaining`，<200 暂停等整点；429 区分 5000/h（暂停）和 100/s（等1s重试×3）
 - **scope**：搜索 API 用 namespace 格式（`group/book_slug`），不支持 book_id
 
