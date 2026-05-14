@@ -13,7 +13,7 @@ description: 语雀全功能技能。支持 AI 问答、知识库管理、文档
 
 ## 配置
 
-从 `MEMORY.md` 语雀章节读取配置文件路径，加载 `yuque-config.json`。
+默认从 skill 目录下 `config/yuque-config.json` 读取，支持自定义路径。
 
 ```json
 {
