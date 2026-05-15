@@ -70,26 +70,10 @@ Python 3.8+，无外部依赖。
 
 ### 2. 配置
 
-复制示例配置并填写：
-
 ```bash
 cp config/yuque-config.example.json config/yuque-config.json
+# 编辑填入 token、group、default_book，详见下方「配置说明」
 ```
-
-编辑 `config/yuque-config.json`：
-
-```json
-{
-  "token": "你的语雀 API Token",
-  "group": "你的语雀用户名",
-  "default_book": {
-    "book_id": 0,
-    "namespace": "用户名/book_slug"
-  }
-}
-```
-
-> Token 在[语雀开放平台](https://www.yuque.com/settings/tokens)创建，需 `doc:read` `doc:write` `repo:read` `repo:write` 权限。
 
 ### 3. 使用
 
@@ -112,16 +96,15 @@ cp config/yuque-config.example.json config/yuque-config.json
 - `repo:read` — 读取知识库
 - `repo:write` — 修改知识库目录
 
-### 配置文件结构
+### 完整字段
 
 ```json
 {
   "token": "语雀 API Token",
   "group": "用户名",
-  "default_book": {
-    "book_id": 0,
-    "namespace": ""
-  }
+  "default_book": { "book_id": 0, "namespace": "" },
+  "index_master_book": { "book_id": 0, "namespace": "" },
+  "index_books": [{ "book_id": 0, "namespace": "" }]
 }
 ```
 
@@ -131,6 +114,10 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `group` | 语雀用户名/login（必填） |
 | `default_book.book_id` | 默认知识库 ID，不指定目标时自动使用 |
 | `default_book.namespace` | 默认知识库 namespace，如 `yehuoshun/my-book` |
+| `index_master_book.book_id` |（可选）索引总库 ID，问答功能使用 |
+| `index_master_book.namespace` |（可选）索引总库 namespace |
+| `index_books[].book_id` |（可选）索引子库 ID 列表 |
+| `index_books[].namespace` |（可选）索引子库 namespace 列表 |
 
 ### 速率限制
 
