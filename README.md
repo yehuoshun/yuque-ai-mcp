@@ -95,6 +95,8 @@ cp config/yuque-config.example.json config/yuque-config.json
   "default_book": { "book_id": 0, "namespace": "" },
   "index_master_book": { "book_id": 0, "namespace": "" },
   "index_books": [{ "book_id": 0, "namespace": "" }],
+  "search_cache_enabled": false,
+  "incremental_index_enabled": false,
   "search_report_enabled": false
 }
 ```
@@ -109,6 +111,8 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `index_master_book.namespace` |（可选）索引总库 namespace |
 | `index_books[].book_id` |（可选）索引子库 ID 列表 |
 | `index_books[].namespace` |（可选）索引子库 namespace 列表 |
+| `search_cache_enabled` |（可选）搜索结果缓存，默认 false |
+| `incremental_index_enabled` |（可选）增量索引，默认 false |
 | `search_report_enabled` |（可选）搜索报告开关，默认 false |
 
 ### 速率限制

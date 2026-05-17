@@ -4,5 +4,7 @@
   "default_book": { "book_id": 0, "namespace": "" },
   "index_master_book": { "book_id": 0, "namespace": "" },
   "index_books": [{ "book_id": 0, "namespace": "" }],
+  "search_cache_enabled": false,
+  "incremental_index_enabled": false,
   "search_report_enabled": false
 }
