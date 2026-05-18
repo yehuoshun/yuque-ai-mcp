@@ -274,16 +274,33 @@ class SearchPipeline:
         master_routes = self.search_master(keywords)
         sub_entries = self.search_and_parse_sub(keywords)
 
-        # 合并去重，总库路由优先
         seen = set()
         all_unique = []
 
-        # 总库路由 → 通过子库引用间接得到源文档
+        # 1) 总库路由 → 读子库索引文档 → 解析 source_entries
         for route in master_routes:
-            # route 指向子库索引文档，不是源文档。先不展开，保留路由信息
-            pass
+            sub_book_id = route.get("sub_book_id")
+            sub_doc_id = route.get("sub_doc_id")
+            if not sub_book_id or not sub_doc_id:
+                continue
+            try:
+                body = self.api.get_doc_body(sub_book_id, sub_doc_id)
+                entries = parse_sub_index_body(body)
+                for e in entries:
+                    did = e.get("doc_id")
+                    if did and did not in seen:
+                        seen.add(did)
+                        all_unique.append({
+                            "doc_id": did,
+                            "title": e.get("title", ""),
+                            "namespace": e.get("namespace", ""),
+                            "book_id": e.get("book_id"),
+                            "source": "master_route",
+                        })
+            except Exception:
+                continue
 
-        # 子库直搜 → 直接得到源文档
+        # 2) 子库直搜 → 补充未覆盖的
         for e in sub_entries:
             did = e.get("doc_id")
             if did and did not in seen:
