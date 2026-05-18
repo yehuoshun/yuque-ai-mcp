@@ -7,3 +7,4 @@ config.json
 !config.example.json
 !yuque-config.example.json
 .DS_Store
+*.db

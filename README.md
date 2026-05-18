@@ -123,7 +123,7 @@ yuque-ai-skill/
 ├── README.md             # 本文件
 ├── yuque_api.py          # 核心 API 封装（纯标准库，820行）
 ├── yuque_search.py       # 搜索管线（两级索引+降级+跨库读取）
-├── yuque_index.py        # 索引构建器（全量/增量/SQLite状态）
+├── yuque_index.py        # 索引构建器（全量/增量，JSON格式）
 ├── config/               # 配置文件目录
 │   ├── yuque-config.example.json # 配置模板
 │   └── yuque-config.json         # 实际配置（不入库）
@@ -154,12 +154,12 @@ python3 yuque_api.py search "Java 面试" "yehuoshun/dil9w3"
 
 # 搜索管线
 python3 yuque_search.py combined "Python" "列表"
-python3 yuque_search.py degraded "Java 面试" "yehuoshun/dil9w3"
+python3 yuque_search.py degraded "Java 面试"
 
 # 索引构建
 python3 yuque_index.py list 70910909
 python3 yuque_index.py read 70910909 240965425
-python3 yuque_index.py state 70910909
+python3 yuque_index.py changed 70910909 "2026-01-01T00:00:00+08:00"
 ```
 
 ## API 参考
