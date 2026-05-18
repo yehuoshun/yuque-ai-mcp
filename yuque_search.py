@@ -31,7 +31,6 @@ import re
 import sys
 import time
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from yuque_api import YuqueAPI
 
 
@@ -380,9 +379,8 @@ class SearchPipeline:
 
     def combined_search(self, keywords, max_results=20):
         """
-        双路并行搜索：总库路由 + 子库直搜，合并去重。
+        顺序搜索：先总库路由定位子库 → 再搜索子库索引 → 合并去重。
 
-        search_master() 和 search_and_parse_sub() 并发执行，减少串行等待。
         每次调用自动重置 LLM 轨超时降级状态。
 
         Returns:
@@ -394,12 +392,9 @@ class SearchPipeline:
         """
         self._llm_tracker.reset()
 
-        # 双路并行：总库路由 + 子库直搜
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            master_future = executor.submit(self.search_master, keywords)
-            sub_future = executor.submit(self.search_and_parse_sub, keywords)
-            master_routes = master_future.result()
-            sub_entries = sub_future.result()
+        # 先搜总库路由，拿到子库 namespace 后再搜子库
+        master_routes = self.search_master(keywords)
+        sub_entries = self.search_and_parse_sub(keywords)
 
         seen = set()
         all_unique = []

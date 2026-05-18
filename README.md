@@ -233,64 +233,68 @@ yuque-ai-skill/
 
 ```mermaid
 flowchart TD
-    Q["用户提问"] --> S0{"指定了文档名?"}
-    S0 -->|"✅ 是"| S0a["全库搜索"]
-    S0a --> S0b["读原文"]
-    S0b --> S0c["LLM 总结答案"]
-    S0c --> END["✅ 完成"]
+    Q["👤 用户提问"] --> S0{"[0] 前置: 指定了文档名?"}
+    S0 -->|"✅ 是"| S0a["全库搜索 → 读原文"]
+    S0a --> S0b["LLM 总结答案"]
+    S0b --> END["✅ 完成"]
 
-    S0 -->|"❌ 否"| S1["LLM 生成 3-4 组关键词"]
+    S0 -->|"❌ 否"| S1["[1] Agent LLM 生成 3-4 组关键词"]
 
-    S1 --> PARALLEL["combined_search() 双路并行"]
+    S1 --> M1["[1a] 搜索引总库<br/>batch_search(scope=总库ns)"]
+    M1 --> M2["命中路由文档标题列表"]
+    M2 --> M3["🔸 LLM 挑 3-5 个最相关"]
+    M3 --> M4["读取路由文档全文"]
+    M4 --> M5["parse_master_body"]
+    M5 --> M6["提取 sub_docs<br/>{doc_id, book_id, namespace}"]
 
-    PARALLEL --> M1["[1a] 搜索引总库"]
-    PARALLEL --> S1b["[1b] 搜索引子库"]
+    M6 --> S2a["[2] 搜索引子库<br/>用 sub_docs 中的 namespace"]
+    S2a --> S2b["命中索引文档标题列表"]
+    S2b --> S2c["🔸 LLM 挑 3-5 个最相关"]
+    S2c --> S2d["读取索引文档全文"]
+    S2d --> S2e["parse_sub_index_body"]
+    S2e --> S2f["提取 source_entries<br/>{doc_id, title, content_segment}"]
 
-    M1 --> M2["命中路由文档标题"]
-    M2 --> M3["LLM 挑 3-5 个最相关"]
-    M3 --> M4["读路由文档全文"]
-    M4 --> M5["parse_master_body → sub_docs"]
+    S2f --> MERGE["[3] 合并去重 (按 doc_id)"]
 
-    S1b --> S2a["命中索引文档标题"]
-    S2a --> S2b["LLM 挑 3-5 个最相关"]
-    S2b --> S2c["读索引文档全文"]
-    S2c --> S2d["parse_sub_index_body → source_entries"]
+    MERGE --> C3["[4] 提取 content_segment"]
+    C3 --> C3a{"有内容段?"}
+    C3a -->|"✅"| C3b["送入 LLM"]
+    C3a -->|"❌ Lake 卡片"| C3c["标注「仅标题匹配」<br/>尝试读原文"]
+    C3b --> C4
+    C3c --> C4
 
-    M5 --> MERGE["合并去重 (按 doc_id)"]
-    S2d --> MERGE
-
-    MERGE --> C3["提取 content_segment"]
-    C3 --> C4{"内容段充足?"}
-    C4 -->|"✅"| C6["LLM 生成答案 + 引用出处"]
+    C4{"[5] LLM 判断充足?"} -->|"✅"| C6["[6] LLM 生成答案 + 引用出处"]
     C4 -->|"❌ 不足"| C5["read_source_docs_across_books()<br/>跨库并发读原文"]
     C5 --> C6
     C6 --> END
 
     MERGE --> C8{"命中数 = 0?"}
     C8 -->|"✅"| D1["降级: degraded_search()<br/>无 scope 搜全库"]
-    D1 --> D2{"命中?"}
+    D1 --> D2{"有命中?"}
     D2 -->|"✅"| C3
-    D2 -->|"❌"| D3["返回「未找到相关内容<br/>请尝试换个问法」"]
+    D2 -->|"❌"| D3["返回「未找到相关内容」"]
 
-    style PARALLEL fill:#339af0,color:#fff
+    style M1 fill:#339af0,color:#fff
+    style S2a fill:#339af0,color:#fff
     style M3 fill:#ffd43b,color:#333
-    style S2b fill:#ffd43b,color:#333
+    style S2c fill:#ffd43b,color:#333
+    style M6 fill:#51cf66,color:#fff
     style MERGE fill:#fcc419,color:#333
     style D1 fill:#ff6b6b,color:#fff
     style END fill:#51cf66,color:#fff
 ```
 
-**6 步流程**（对应 SKILL.md）：
+**流程说明**（先总库定位 → 再子库搜索，顺序执行）：
 
-| 步骤 | 操作 | 执行者 |
-|------|------|--------|
-| [0] | 前置检查：用户是否指定文档名 → 是则短路 | Agent |
-| [1] | 搜索引总库 → LLM 挑 3-5 → 读全文 → 提取 sub_docs | Python + Agent |
-| [2] | 搜索引子库 → LLM 挑 3-5 → 读全文 → 提取 source_entries | Python + Agent |
-| [3] | 合并去重（按 doc_id） | combined_search() |
-| [4] | 提取 content_segment；Lake 卡片标注「仅标题匹配」 | Agent |
-| [5] | LLM 判断是否充足 → 不足则 read_source_docs_across_books | Agent |
-| [6] | LLM 生成答案 + 引用出处 | Agent |
+| 步骤 | 说明 |
+|------|------|
+| [0] 前置 | Agent LLM 判断用户是否指定文档名 → 是则短路搜全库 |
+| [1] 总库路由 | 搜索引总库 → LLM 挑 3-5 → 读全文 → 拿到子库 namespace |
+| [2] 子库搜索 | 用总库拿到的 namespace 搜索引子库 → LLM 挑 3-5 → 读全文 → 提取 source_entries |
+| [3] 合并去重 | 按 doc_id 去重 |
+| [4] 内容段提取 | 有 content_segment → 直接用；Lake 卡片 → 标注「仅标题匹配」 |
+| [5] 充足判断 | LLM 判断 → 不足则跨库并发读原文 |
+| [6] 生成答案 | LLM 生成答案 + 引用出处（doc_name + doc_link） |
 
 > 📄 完整细节 → [SKILL.md#一知识库问答系统](./SKILL.md#一知识库问答系统)
 
