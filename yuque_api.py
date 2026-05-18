@@ -776,7 +776,7 @@ class YuqueAPI:
 
         Returns:
             dict: {
-                "token": {"ok": True, "message": "..."},
+                "token": {"ok": True, "message": "..."} 或 {"ok": False, "error": "..."},
                 "repos": {
                     "default_book": {"ok": True, "name": "...", "doc_count": N, ...},
                     "index_books[0]": {...},
