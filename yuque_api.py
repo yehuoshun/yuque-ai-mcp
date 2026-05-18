@@ -843,7 +843,11 @@ class YuqueAPI:
         base = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
         if not base:
             base = "repo"
-        return f"{base}-{int(time.time())}"
+        # 毫秒级时间戳 + 4位随机后缀，防止同秒冲突
+        ts = int(time.time() * 1000) % 100000
+        import random
+        suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=4))
+        return f"{base}-{ts}{suffix}"
 
     def _resolve_config_path(self):
         """解析配置文件路径（优先用户传入，否则自动查找）"""
