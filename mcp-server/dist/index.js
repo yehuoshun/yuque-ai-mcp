@@ -11,6 +11,7 @@ import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";
 import { healthCheck, getUser } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
+import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
@@ -351,6 +352,68 @@ const tools = [
             required: ["login", "id"],
         },
     },
+    // --- 统计（需 statistic:read 权限）---
+    {
+        name: "yuque_get_group_stats",
+        description: "获取团队整体统计数据（需 statistic:read 权限）",
+        inputSchema: {
+            type: "object",
+            properties: { login: { type: "string", description: "团队 Login 或 ID" } },
+            required: ["login"],
+        },
+    },
+    {
+        name: "yuque_get_member_stats",
+        description: "获取团队成员统计数据（支持筛选/排序/分页）",
+        inputSchema: {
+            type: "object",
+            properties: {
+                login: { type: "string", description: "团队 Login 或 ID" },
+                name: { type: "string", description: "成员名筛选（可选）" },
+                range: { type: "number", enum: [0, 30, 365], description: "时间范围：0=全部 30=30天 365=一年" },
+                page: { type: "number", description: "页码（默认 1）" },
+                limit: { type: "number", description: "分页数量（默认 10，最大 20）" },
+                sortField: { type: "string", enum: ["write_doc_count", "write_count", "read_count", "like_count"], description: "排序字段" },
+                sortOrder: { type: "string", enum: ["desc", "asc"], description: "排序方向（默认 desc）" },
+            },
+            required: ["login"],
+        },
+    },
+    {
+        name: "yuque_get_book_stats",
+        description: "获取团队知识库统计数据（支持筛选/排序/分页）",
+        inputSchema: {
+            type: "object",
+            properties: {
+                login: { type: "string", description: "团队 Login 或 ID" },
+                name: { type: "string", description: "知识库名筛选（可选）" },
+                range: { type: "number", enum: [0, 30, 365], description: "时间范围：0=全部 30=30天 365=一年" },
+                page: { type: "number", description: "页码（默认 1）" },
+                limit: { type: "number", description: "分页数量（默认 10，最大 20）" },
+                sortField: { type: "string", enum: ["content_updated_at_ms", "word_count", "post_count", "read_count", "like_count", "watch_count", "comment_count"], description: "排序字段" },
+                sortOrder: { type: "string", enum: ["desc", "asc"], description: "排序方向（默认 desc）" },
+            },
+            required: ["login"],
+        },
+    },
+    {
+        name: "yuque_get_doc_stats",
+        description: "获取团队文档统计数据（支持筛选/排序/分页）",
+        inputSchema: {
+            type: "object",
+            properties: {
+                login: { type: "string", description: "团队 Login 或 ID" },
+                bookId: { type: "number", description: "指定知识库 ID（可选）" },
+                name: { type: "string", description: "文档名筛选（可选）" },
+                range: { type: "number", enum: [0, 30, 365], description: "时间范围：0=全部 30=30天 365=一年" },
+                page: { type: "number", description: "页码（默认 1）" },
+                limit: { type: "number", description: "分页数量（默认 10，最大 20）" },
+                sortField: { type: "string", enum: ["content_updated_at", "word_count", "read_count", "like_count", "comment_count", "created_at"], description: "排序字段" },
+                sortOrder: { type: "string", enum: ["desc", "asc"], description: "排序方向（默认 desc）" },
+            },
+            required: ["login"],
+        },
+    },
 ];
 // ---- handler map ----
 const handlers = {
@@ -383,6 +446,10 @@ const handlers = {
     yuque_list_group_users: (a) => listGroupUsers(a),
     yuque_update_group_user: (a) => updateGroupUser(a),
     yuque_remove_group_user: (a) => removeGroupUser(a),
+    yuque_get_group_stats: (a) => getGroupStats(a),
+    yuque_get_member_stats: (a) => getMemberStats(a),
+    yuque_get_book_stats: (a) => getBookStats(a),
+    yuque_get_doc_stats: (a) => getDocStats(a),
 };
 // ---- server ----
 const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
