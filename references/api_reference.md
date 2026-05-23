@@ -186,20 +186,41 @@ GET /api/v2/repos/{book_id}/docs/{doc_id}?raw=1
 **支持格式**：
 - `markdown`：标准 Markdown
 - `lake`：语雀原生 JSON 格式，`body` / `body_lake` 返回 Lake JSON。支持 Mermaid 图表等增强语法
+- `html`：HTML 标准格式
+- `lakesheet`：语雀表格
 
 **返回字段**：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | int | 文档 ID |
+| `book_id` | int | 所属知识库 ID |
 | `title` | string | 标题 |
+| `slug` | string | 文档路径 |
+| `description` | string | 摘要 |
+| `format` | string | 格式：`markdown` / `lake` / `html` / `lakesheet` |
+| `public` | int | 0=私有 / 1=公开 |
+| `status` | int | 文档状态 |
 | `body` | string | 正文（markdown/Lake 源码） |
+| `body_draft` | string | 草稿内容 |
 | `body_html` | string | HTML 内容 |
 | `body_lake` | string | Lake 格式内容 |
+| `body_sheet` | string | 电子表格内容（lakesheet 格式） |
+| `body_table` | string | 表格内容 |
+| `word_count` | int | 字数 |
+| `read_count` | int | 阅读数 |
+| `likes_count` | int | 点赞数 |
+| `comments_count` | int | 评论数 |
 | `created_at` | string | 创建时间 |
-| `updated_at` | string | 更新时间 |
+| `updated_at` | string | 最后操作时间 |
+| `content_updated_at` | string | 内容最后修改时间 |
+| `published_at` | string | 发布时间 |
+| `first_published_at` | string | 首次发布时间 |
+| `latest_version_id` | int | 最新已发版本 ID |
 | `creator` | object | 创建者信息 |
-| `book` | object | 所属知识库信息 |
+| `user` | object | 最后操作者信息 |
+| `book` | object | 所属知识库（含 id/name/namespace） |
+| `tags` | array | 标签列表 |
 
 ### 创建文档
 
