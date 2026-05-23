@@ -5,17 +5,25 @@
 ## 安装
 
 ```bash
-npx yuque-mcp-server
+npm install -g yuque-mcp-server
+# 或
+npx yuque-mcp
 ```
 
-或在 Claude Desktop / OpenClaw 等 MCP 客户端中配置：
+## 配置
 
 ```json
 {
   "mcpServers": {
     "yuque-mcp": {
       "command": "npx",
-      "args": ["yuque-mcp-server"]
+      "args": ["yuque-mcp"],
+      "env": {
+        "YUQUE_TOKEN": "<你的API Token>",
+        "YUQUE_GROUP": "<用户名>",
+        "YUQUE_DEFAULT_BOOK_ID": "123456",
+        "YUQUE_INDEX_BOOK_ID": "789012"
+      }
     }
   }
 }
@@ -23,25 +31,51 @@ npx yuque-mcp-server
 
 ## 环境变量
 
-| 变量 | 说明 |
-|------|------|
-| `YUQUE_TOKEN` | 语雀 API Token（必填） |
-| `YUQUE_GROUP` | 用户名/团队名 |
-| `YUQUE_DEFAULT_BOOK_ID` | 默认知识库 ID |
-| `YUQUE_INDEX_BOOK_ID` | 索引知识库 ID |
-| `YUQUE_CONFIG_PATH` | 配置文件路径（可选，优先读环境变量） |
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `YUQUE_TOKEN` | ✅ | 语雀 API Token |
+| `YUQUE_GROUP` | ✅ | 用户名/团队名 |
+| `YUQUE_DEFAULT_BOOK_ID` | | 默认知识库 ID |
+| `YUQUE_DEFAULT_BOOK_NS` | | 默认知识库 namespace |
+| `YUQUE_INDEX_BOOK_ID` | | 索引知识库 ID |
+| `YUQUE_INDEX_BOOK_NS` | | 索引知识库 namespace |
+| `YUQUE_COOKIE` | | 登录 Cookie（上传附件用） |
+| `YUQUE_CTOKEN` | | CSRF Token |
+| `YUQUE_USER_ID` | | 用户 ID |
+| `YUQUE_CONFIG_PATH` | | 配置文件路径（覆盖环境变量） |
+
+> 也可用配置文件：创建 `yuque-config.json`，通过 `YUQUE_CONFIG_PATH` 指定路径。
 
 ## Tools (34)
 
-详见 [`references/api_reference.md`](references/api_reference.md)
+### 知识库
+- `yuque_list_repos` · `yuque_get_repo` · `yuque_create_repo` · `yuque_update_repo` · `yuque_delete_repo`
 
-- 知识库 CRUD ×5
-- 文档 CRUD ×5 + 版本 ×2
-- 目录 TOC ×3
-- 小记 ×6
-- 搜索 ×1
-- 批量获取 ×1
-- 导入/上传 ×2
-- 用户/健康 ×2
-- 群组 ×3
-- 统计 ×4
+### 文档
+- `yuque_list_docs` · `yuque_get_doc` · `yuque_create_doc` · `yuque_update_doc` · `yuque_delete_doc`
+- `yuque_list_doc_versions` · `yuque_get_doc_version`
+
+### 目录
+- `yuque_list_toc` · `yuque_update_toc` · `yuque_remove_toc_node`
+
+### 小记
+- `yuque_list_notes` · `yuque_get_note` · `yuque_create_note` · `yuque_update_note` · `yuque_delete_note` · `yuque_restore_note`
+
+### 搜索 & 批量
+- `yuque_search` · `yuque_batch_get_docs_body`
+
+### 导入 & 上传
+- `yuque_import_doc` · `yuque_upload_attachment`
+
+### 用户 & 健康
+- `yuque_health_check` · `yuque_get_user`
+
+### 群组
+- `yuque_list_group_users` · `yuque_update_group_user` · `yuque_remove_group_user`
+
+### 统计
+- `yuque_get_group_stats` · `yuque_get_member_stats` · `yuque_get_book_stats` · `yuque_get_doc_stats`
+
+## 许可证
+
+MIT
