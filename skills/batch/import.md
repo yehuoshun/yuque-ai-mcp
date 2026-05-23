@@ -233,8 +233,21 @@ Prompt：
    逐文件 yuque_upload_attachment(type="attachment")
    → 创建索引文档「📎 附件清单」列出所有附件
 
-6. 建目录：
-   按原文件夹结构 → yuque_update_toc 挂 TOC 节点（最多 3 级）
+6. 建目录（按原文件夹结构，最多 3 级）：
+
+   6a. 创建分组 TITLE 节点：
+       yuque_update_toc(action=appendNode, action_mode=sibling, type=TITLE, title=文件夹名, target_uuid={任一已有节点uuid})
+       ⚠️ target_uuid 必填，拿 TOC 中最后一个节点的 uuid 即可
+
+   6b. 将文档挂到分组下（两步操作）：
+       ① removeNode：yuque_update_toc(action=removeNode, action_mode=sibling, node_uuid={DOC的TOC uuid})
+       ② appendNode child：yuque_update_toc(action=appendNode, action_mode=child, type=DOC, doc_ids=[{doc_id}], target_uuid={TITLE uuid})
+       ⚠️ DOC 已在 TOC 中时不能直接用 appendNode child，必须先 removeNode
+
+   6c. 子分组嵌套（如 开发/前端）：
+       ① 创建父 TITLE "开发"
+       ② 创建子 TITLE "前端"：appendNode child + target_uuid=父TITLE的uuid
+       ③ 文档挂到子 TITLE 下（同 6b）
 
 7. TOC 优化：
    深度 > 3 级 → 调 batch/rebuild-toc 智能扁平化
@@ -346,5 +359,16 @@ Prompt：
 | 格式适配 | LLM（本 Agent） |
 | 上传附件 | `yuque_upload_attachment` |
 | 创建文档 | `yuque_create_doc` |
-| 建目录 | `yuque_update_toc` |
+| 建 TITLE 分组 | `yuque_update_toc` (appendNode sibling) |
+| 挂文档到分组 | `yuque_update_toc` (removeNode → appendNode child) |
 | TOC 优化 | batch/rebuild-toc（技能联动） |
+
+## TOC 操作速查
+
+| 操作 | action | action_mode | 关键字段 |
+|------|--------|-------------|---------|
+| 创建根级 TITLE | appendNode | sibling | type:TITLE + title + target_uuid:{任一节点uuid} |
+| 创建子级 TITLE | appendNode | child | type:TITLE + title + target_uuid:{父TITLE uuid} |
+| 文档挂分组 | removeNode(sibling) → appendNode | child | node_uuid → doc_ids + target_uuid |
+| 删除节点 | removeNode | sibling | node_uuid |
+| 重命名节点 | editNode | sibling | node_uuid + title + type |

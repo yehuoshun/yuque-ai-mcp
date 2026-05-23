@@ -24,6 +24,9 @@ export function loadConfig() {
         group: raw.group || "",
         default_book: normalizeBook(raw.default_book),
         index_book: normalizeBook(raw.index_book),
+        cookie: raw.cookie || undefined,
+        ctoken: raw.ctoken || undefined,
+        user_id: raw.user_id || undefined,
     };
     if (!cached.token || !cached.group) {
         throw new Error("config/yuque-config.json 缺少 token 或 group");

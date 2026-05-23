@@ -614,14 +614,19 @@ GET /api/v2/repos/{book_id}/toc
 
 **返回字段**：
 
-| 字段 | 说明 |
-|------|------|
-| `uuid` | 节点唯一标识 |
-| `type` | `DOC`（文档）/ `TITLE`（分组）/ `LINK`（外链） |
-| `title` | 标题 |
-| `doc_id` | 文档 ID（仅 DOC 类型） |
-| `parent_uuid` | 父节点 UUID |
-| `children` | 子节点列表 |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `uuid` | string | 节点唯一 ID |
+| `type` | string | `DOC`（文档）/ `TITLE`（分组）/ `LINK`（外链） |
+| `title` | string | 节点名称 |
+| `url` | string | 节点 URL（LINK 类型） |
+| `doc_id` | int | 文档 ID（仅 DOC 类型） |
+| `level` | int | 节点层级（0=根级，1=一级子节点，2=二级子节点，以此类推） |
+| `parent_uuid` | string | 父节点 UUID（根级为 null） |
+| `child_uuid` | string | 子级第一个节点 UUID（无子节点为 null） |
+| `prev_uuid` | string | 同级前一个节点 UUID |
+| `sibling_uuid` | string | 同级后一个节点 UUID |
+| `visible` | int | 是否可见（0=隐藏 / 1=可见） |
 
 ### 更新目录
 
@@ -638,14 +643,19 @@ Content-Type: application/json
 }
 ```
 
+> **⚠️ 字段语义区分**：
+> - `target_uuid` — 目标位置（appendNode/prependNode 时指定插入到哪个节点旁边，创建 TITLE 必填否则静默忽略）
+> - `node_uuid` — 操作对象（editNode/removeNode 时指定要编辑/删除的节点 UUID，移动时表示要移动的节点）
+> - 创建 DOC 用 `doc_ids`，创建 TITLE 用 `title` + `type:TITLE`
+
 **action 说明**：
 
 | 值 | 说明 |
 |---|------|
-| `appendNode` | 尾插 |
-| `prependNode` | 头插 |
-| `editNode` | 编辑节点 |
-| `removeNode` | 删除节点（不删除关联文档） |
+| `appendNode` | 尾插（创建节点、接受 `target_uuid`） |
+| `prependNode` | 头插（创建/移动节点，接受 `target_uuid` + `node_uuid`） |
+| `editNode` | 编辑节点（改名等，需 `node_uuid`） |
+| `removeNode` | 删除节点（不删除关联文档，需 `node_uuid` + `action_mode`） |
 
 **action_mode 说明**：
 
@@ -653,6 +663,36 @@ Content-Type: application/json
 |---|------|
 | `sibling` | 与 target_uuid 同级 |
 | `child` | 作为 target_uuid 的子节点 |
+
+**常用操作速查**：
+
+| 操作 | action | action_mode | 关键字段 |
+|------|--------|-------------|---------|
+| 创建根级 TITLE | appendNode | sibling | type:TITLE + title + target_uuid |
+| 创建子级 TITLE | appendNode | child | type:TITLE + title + target_uuid |
+| 文档挂分组 | removeNode → appendNode | sibling → child | node_uuid → doc_ids + target_uuid |
+| 删除节点 | removeNode | sibling | node_uuid |
+| 重命名节点 | editNode | sibling | node_uuid + title + type |
+
+**请求体字段**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `action` | string | ✅ | `appendNode`（尾插）/ `prependNode`（头插）/ `editNode`（编辑）/ `removeNode`（删除） |
+| `action_mode` | string | ✅ | `sibling`（同级）/ `child`（子级）。prependNode 创建时不支持 sibling |
+| `target_uuid` | string | 创建 TITLE 时必填 | 目标节点 UUID，指定插入位置。不填默认根节点（但实际创建 TITLE 时不填会静默忽略） |
+| `node_uuid` | string | 移动/更新/删除必填 | 操作节点 UUID，指向要移动/编辑/删除的已有 TOC 节点 |
+| `doc_ids` | int[] | 创建 DOC 必填 | 文档 ID 数组 |
+| `type` | string | 创建必填 | `DOC`（文档）/ `TITLE`（分组）/ `LINK`（外链） |
+| `title` | string | 创建/编辑 TITLE 必填 | 节点名称 |
+| `url` | string | 创建外链必填 | 外链 URL |
+| `open_window` | int | 外链选填 | 0=当前页打开 / 1=新窗口打开 |
+| `visible` | int | 选填 | 0=不可见 / 1=可见（默认 1） |
+
+**注意**：
+- `appendNode` 不接受 `node_uuid`（会返回 `invalid action`），移动已有节点到子级请用 `prependNode` + `child` + `node_uuid` + `target_uuid`
+- DOC 已在 TOC 中时不能直接 `appendNode child`，必须先 `removeNode` 再 `appendNode child`
+- 删除 TITLE 分组时 `action_mode=sibling` 仅删分组，`action_mode=child` 会尝试级联删子节点
 
 ## 文档导出
 

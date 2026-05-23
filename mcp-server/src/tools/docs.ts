@@ -193,6 +193,7 @@ export async function updateToc(params: {
   type?: "DOC" | "TITLE" | "LINK";
   doc_ids?: number[];
   target_uuid?: string;
+  node_uuid?: string;
   title?: string;
 }): Promise<string> {
   const payload: Record<string, any> = {
@@ -201,7 +202,17 @@ export async function updateToc(params: {
     type: params.type || "DOC",
   };
   if (params.doc_ids) payload.doc_ids = params.doc_ids;
-  if (params.target_uuid) payload.target_uuid = params.target_uuid;
+  if (params.node_uuid) payload.node_uuid = params.node_uuid;
+  // appendNode/prependNode 用 target_uuid 表示插入位置
+  // editNode/removeNode 用 node_uuid 表示操作对象
+  if (params.target_uuid) {
+    const action = params.action || "appendNode";
+    if (action === "editNode" || action === "removeNode") {
+      payload.node_uuid = params.node_uuid || params.target_uuid;
+    } else {
+      payload.target_uuid = params.target_uuid;
+    }
+  }
   if (params.title) payload.title = params.title;
 
   await put(`/repos/${params.book_id}/toc`, payload);
@@ -217,7 +228,8 @@ export async function removeTocNode(params: {
 }): Promise<string> {
   await put(`/repos/${params.book_id}/toc`, {
     action: "removeNode",
-    target_uuid: params.target_uuid,
+    action_mode: "sibling",
+    node_uuid: params.target_uuid,
   });
   return `✅ 节点已从目录移除: ${params.target_uuid}`;
 }

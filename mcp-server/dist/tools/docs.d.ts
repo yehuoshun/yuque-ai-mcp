@@ -74,6 +74,7 @@ export declare function updateToc(params: {
     type?: "DOC" | "TITLE" | "LINK";
     doc_ids?: number[];
     target_uuid?: string;
+    node_uuid?: string;
     title?: string;
 }): Promise<string>;
 /**

@@ -60,7 +60,13 @@ export async function uploadAttachment(params: {
   const body = Buffer.concat(parts);
 
   try {
-    const userId = "25689388";
+    const userId = config.user_id;
+    if (!userId) {
+      return JSON.stringify({
+        error: "MISSING_USER_ID",
+        message: "请在 config/yuque-config.json 中配置 user_id 字段。获取方式：调用 yuque_get_user 查看 id 字段，或从浏览器 Cookie 中解析。",
+      });
+    }
     const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
 
     const controller = new AbortController();

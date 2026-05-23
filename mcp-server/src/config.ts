@@ -16,6 +16,7 @@ export interface YuqueConfig {
   index_book: YuqueBook;
   cookie?: string;
   ctoken?: string;
+  user_id?: string;
 }
 
 function resolveConfigPath(): string {
@@ -45,6 +46,9 @@ export function loadConfig(): YuqueConfig {
     group: raw.group || "",
     default_book: normalizeBook(raw.default_book),
     index_book: normalizeBook(raw.index_book),
+    cookie: raw.cookie || undefined,
+    ctoken: raw.ctoken || undefined,
+    user_id: raw.user_id || undefined,
   };
 
   if (!cached.token || !cached.group) {

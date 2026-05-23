@@ -2,7 +2,8 @@
   "token": "在此填入语雀 API Token",
   "group": "在此填入语雀用户名",
   "default_book": { "book_id": 0, "namespace": "" },
-  "index_books": [
-    { "book_id": 0, "namespace": "" }
-  ]
+  "index_book": { "book_id": 0, "namespace": "" },
+  "user_id": "在此填入用户 ID（调用 yuque_get_user 获取，用于文件上传）",
+  "cookie": "可选，用于文件上传。浏览器登录后 F12 → Application → Cookies → 复制完整 Cookie 字符串",
+  "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值"
 }

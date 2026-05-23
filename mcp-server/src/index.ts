@@ -85,17 +85,18 @@ const tools: Tool[] = [
   },
   {
     name: "yuque_update_toc",
-    description: "更新知识库目录（挂载/编辑/移除节点）",
+    description: "更新知识库目录（创建 TITLE/DOC 分组、移动/编辑/删除节点）。创建根级 TITLE 用 appendNode+sibling+type:TITLE+title+target_uuid；创建子 TITLE 用 appendNode+child+target_uuid；移动 DOC 到分组下需先 removeNode 再 appendNode child+doc_ids+target_uuid；编辑用 editNode+sibling+node_uuid+title；删除用 removeNode+sibling+node_uuid",
     inputSchema: {
       type: "object",
       properties: {
         book_id: { type: "number", description: "知识库 ID" },
         action: { type: "string", enum: ["appendNode", "prependNode", "editNode", "removeNode"], description: "操作类型" },
         action_mode: { type: "string", enum: ["sibling", "child"], description: "sibling=同级 child=子节点" },
-        type: { type: "string", enum: ["DOC", "TITLE", "LINK"], description: "节点类型" },
-        doc_ids: { type: "array", items: { type: "number" }, description: "文档 ID 列表" },
-        target_uuid: { type: "string", description: "目标节点 UUID" },
-        title: { type: "string", description: "新标题（editNode 时）" },
+        type: { type: "string", enum: ["DOC", "TITLE", "LINK"], description: "节点类型（创建时必填）" },
+        doc_ids: { type: "array", items: { type: "number" }, description: "文档 ID 列表（创建 DOC 时必填）" },
+        target_uuid: { type: "string", description: "目标节点 UUID（appendNode/prependNode 时指定位置，创建 TITLE 必填）" },
+        node_uuid: { type: "string", description: "操作节点 UUID（移动/编辑/删除时必填，表示要操作的已有 TOC 节点）" },
+        title: { type: "string", description: "节点名称（创建 TITLE 或 editNode 改名时必填）" },
       },
       required: ["book_id"],
     },

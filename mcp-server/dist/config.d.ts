@@ -9,6 +9,7 @@ export interface YuqueConfig {
     index_book: YuqueBook;
     cookie?: string;
     ctoken?: string;
+    user_id?: string;
 }
 export declare function loadConfig(): YuqueConfig;
 export declare function updateConfig(updates: Partial<YuqueConfig>): void;
