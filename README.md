@@ -63,13 +63,32 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ### 3. 在 MCP 客户端配置
 
+**方式一：npm 安装（推荐）**
+
 ```json
 {
   "mcpServers": {
-    "yuque": {
+    "yuque-mcp": {
+      "command": "npx",
+      "args": ["yuque-mcp"],
+      "env": {
+        "YUQUE_TOKEN": "<Token>",
+        "YUQUE_GROUP": "<用户名>"
+      }
+    }
+  }
+}
+```
+
+**方式二：本地开发**
+
+```json
+{
+  "mcpServers": {
+    "yuque-mcp": {
       "command": "node",
       "args": ["mcp-server/dist/index.js"],
-      "cwd": "/path/to/yuque-ai-skill"
+      "cwd": "/path/to/yuque-ai-mcp"
     }
   }
 }
@@ -215,7 +234,7 @@ flowchart TD
 ## 项目结构
 
 ```
-yuque-ai-skill/
+yuque-ai-mcp/
 ├── SKILL.md              # AI Agent 执行规范
 ├── README.md             # 本文件
 ├── skills/               # 业务 Skills（14 个）
