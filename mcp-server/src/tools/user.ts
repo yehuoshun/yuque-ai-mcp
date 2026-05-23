@@ -18,5 +18,6 @@ export async function getUser(): Promise<string> {
     following_count: u.following_count,
     public: u.public,
     created_at: u.created_at,
+    updated_at: u.updated_at,
   }, null, 2);
 }
