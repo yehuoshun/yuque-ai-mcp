@@ -194,7 +194,7 @@ flowchart TD
 | [batch-classify](skills/batch-classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
 | [batch-format](skills/batch-format.md) | 批量格式标准化（预设风格 / 参考文档 / 自定义规则，三种格式来源） |
 | [batch-toc-rebuild](skills/batch-toc-rebuild.md) | 目录智能重构（保留意图优化现有结构） |
-| batch-rename | 批量重命名（待开发） |
+| [batch-rename](skills/batch-rename.md) | 批量重命名（前缀/后缀/序号/查找替换/正则/模板/移除七种方式） |
 
 ---
 
@@ -209,6 +209,7 @@ yuque-ai-skill/
 │   ├── batch-classify.md # 智能分类打标
 │   ├── batch-format.md   # 批量格式标准化
 │   └── batch-toc-rebuild.md # 目录智能重构
+│   └── batch-rename.md      # 批量重命名
 ├── mcp-server/           # MCP Server (TypeScript)
 │   ├── src/
 │   │   ├── index.ts      # Server 入口（注册 32 个 tools）
