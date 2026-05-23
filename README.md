@@ -20,7 +20,7 @@
 ## 架构
 
 ```
-yuque-mcp (MCP Server)     ← 管理操作：32 个 tools（CRUD、搜索、批量获取、导入、统计、群组、健康检查）
+yuque-mcp (MCP Server)     ← 管理操作：34 个 tools（CRUD、搜索、批量获取、导入、统计、群组、健康检查）
     ↓
 业务 Skills                ← 17 个 skill：batch/ 运维 · write/ 写作 · map/ 分析 · 翻译 · 同步 · 导入
     ↓
@@ -216,7 +216,7 @@ flowchart TD
 
 ## 业务 Skills
 
-基于 MCP 32 tools 的高层业务能力。全部遵循先预览后确认、单篇隔离不传染。
+基于 MCP 34 tools 的高层业务能力。全部遵循先预览后确认、单篇隔离不传染。
 
 | Skill | 说明 |
 |-------|------|
@@ -269,7 +269,7 @@ yuque-ai-mcp/
 │       └── knowledge.md   # 文档关联图谱
 ├── mcp-server/           # MCP Server (TypeScript)
 │   ├── src/
-│   │   ├── index.ts      # Server 入口（注册 32 个 tools）
+│   │   ├── index.ts      # Server 入口（注册 34 个 tools）
 │   │   ├── client.ts     # 语雀 HTTP 客户端
 │   │   ├── config.ts     # 配置读取
 │   │   ├── tools/        # Tool 实现
