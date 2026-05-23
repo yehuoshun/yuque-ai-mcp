@@ -136,9 +136,10 @@ const tools = [
             properties: {
                 book_id: { type: "number", description: "知识库 ID（默认使用 config 中的 default_book）" },
                 title: { type: "string", description: "文档标题" },
-                body: { type: "string", description: "文档正文（Markdown）" },
-                format: { type: "string", enum: ["markdown", "lake"], description: "格式（默认 markdown）" },
-                slug: { type: "string", description: "文档 slug（可选）" },
+                body: { type: "string", description: "文档正文" },
+                format: { type: "string", enum: ["markdown", "html", "lake"], description: "内容格式（默认 markdown）" },
+                slug: { type: "string", description: "文档路径（可选）" },
+                public: { type: "number", enum: [0, 1, 2], description: "0=私密 1=公开 2=企业内公开（不填继承知识库）" },
             },
             required: ["title", "body"],
         },

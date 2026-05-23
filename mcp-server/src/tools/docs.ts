@@ -71,8 +71,9 @@ export async function createDoc(params: {
   book_id: number;
   title: string;
   body: string;
-  format?: "markdown" | "lake";
+  format?: "markdown" | "html" | "lake";
   slug?: string;
+  public?: 0 | 1 | 2;
 }): Promise<string> {
   const { default_book } = loadConfig();
   const bookId = params.book_id || default_book.book_id;
@@ -84,6 +85,7 @@ export async function createDoc(params: {
     format: params.format || "markdown",
   };
   if (params.slug) payload.slug = params.slug;
+  if (params.public !== undefined) payload.public = params.public;
 
   const data = await post(`/repos/${bookId}/docs`, payload);
   const doc = (data as any).data || data;

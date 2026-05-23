@@ -73,6 +73,8 @@ export async function createDoc(params) {
     };
     if (params.slug)
         payload.slug = params.slug;
+    if (params.public !== undefined)
+        payload.public = params.public;
     const data = await post(`/repos/${bookId}/docs`, payload);
     const doc = data.data || data;
     const docId = doc.id;

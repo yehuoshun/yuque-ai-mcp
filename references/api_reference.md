@@ -244,9 +244,8 @@ Content-Type: application/json
 | `title` | 标题（必填） | - |
 | `format` | 格式：`markdown` / `html` / `lake` | `markdown` |
 | `body` | 正文内容（必填） | - |
-| `public` | 0=私有 / 1=公开 | 0 |
-
-⚠️ `slug` 由语雀自动生成，不要手动指定。
+| `public` | 0=私密 / 1=公开 / 2=企业内公开（不填继承知识库） | 继承 |
+| `slug` | 文档路径（可选） | 自动生成 |
 
 ⚠️ **重要**：创建文档后**必须添加到目录**，否则文档不会显示在知识库目录中。使用目录 API：
 ```http

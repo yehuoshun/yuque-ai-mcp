@@ -23,8 +23,9 @@ export declare function createDoc(params: {
     book_id: number;
     title: string;
     body: string;
-    format?: "markdown" | "lake";
+    format?: "markdown" | "html" | "lake";
     slug?: string;
+    public?: 0 | 1 | 2;
 }): Promise<string>;
 /**
  * 更新文档
