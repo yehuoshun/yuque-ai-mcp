@@ -9,8 +9,8 @@ import {
 import { YuqueAPIError } from "./shared/types.js";
 
 // ---- tools ----
-import { listRepos, getRepo, createRepo, deleteRepo, listToc, updateToc } from "./tools/repos.js";
-import { listDocs, getDoc, createDoc, updateDoc, deleteDoc } from "./tools/docs.js";
+import { listRepos, getRepo, createRepo, deleteRepo } from "./tools/repos.js";
+import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";

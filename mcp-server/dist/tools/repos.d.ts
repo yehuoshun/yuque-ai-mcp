@@ -21,17 +21,3 @@ export declare function createRepo(params: {
 export declare function deleteRepo(params: {
     id_or_namespace: string;
 }): Promise<string>;
-/**
- * 列出知识库目录
- */
-export declare function listToc(params: {
-    book_id: number;
-}): Promise<string>;
-/**
- * 更新知识库目录（挂载文档）
- */
-export declare function updateToc(params: {
-    book_id: number;
-    action?: "appendNode" | "prependNode";
-    doc_ids: number[];
-}): Promise<string>;

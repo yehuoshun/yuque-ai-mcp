@@ -65,7 +65,7 @@ export async function updateDoc(params) {
         payload.title = params.title;
     if (params.body !== undefined)
         payload.body = params.body;
-    const data = await put(`/repos/${params.book_id}/docs/${params.doc_id}`, payload);
+    await put(`/repos/${params.book_id}/docs/${params.doc_id}`, payload);
     return `✅ 文档已更新: id=${params.doc_id}`;
 }
 /**
@@ -74,5 +74,26 @@ export async function updateDoc(params) {
 export async function deleteDoc(params) {
     await del(`/repos/${params.book_id}/docs/${params.doc_id}`);
     return `✅ 文档已删除: id=${params.doc_id}`;
+}
+// ---------- 目录（TOC）----------
+/**
+ * 列出知识库目录
+ */
+export async function listToc(params) {
+    const data = await get(`/repos/${params.book_id}/toc`);
+    const toc = data.data || data;
+    return JSON.stringify(toc, null, 2);
+}
+/**
+ * 更新知识库目录（挂载文档）
+ */
+export async function updateToc(params) {
+    await put(`/repos/${params.book_id}/toc`, {
+        action: params.action || "appendNode",
+        action_mode: "sibling",
+        type: "DOC",
+        doc_ids: params.doc_ids,
+    });
+    return `✅ 目录已更新`;
 }
 //# sourceMappingURL=docs.js.map

@@ -1,4 +1,4 @@
-import { get, post, put, del } from "../client.js";
+import { get, post, del } from "../client.js";
 import { loadConfig } from "../config.js";
 
 /**
@@ -44,36 +44,8 @@ export async function createRepo(params: { name: string; slug?: string }): Promi
  * 删除知识库
  */
 export async function deleteRepo(params: { id_or_namespace: string }): Promise<string> {
-  const data = await del(`/repos/${params.id_or_namespace}`);
+  await del(`/repos/${params.id_or_namespace}`);
   return `✅ 知识库已删除: ${params.id_or_namespace}`;
-}
-
-// ---------- 目录操作 ----------
-
-/**
- * 列出知识库目录
- */
-export async function listToc(params: { book_id: number }): Promise<string> {
-  const data = await get(`/repos/${params.book_id}/toc`);
-  const toc = (data as any).data || data;
-  return JSON.stringify(toc, null, 2);
-}
-
-/**
- * 更新知识库目录（挂载文档）
- */
-export async function updateToc(params: {
-  book_id: number;
-  action?: "appendNode" | "prependNode";
-  doc_ids: number[];
-}): Promise<string> {
-  const data = await put(`/repos/${params.book_id}/toc`, {
-    action: params.action || "appendNode",
-    action_mode: "sibling",
-    type: "DOC",
-    doc_ids: params.doc_ids,
-  });
-  return `✅ 目录已更新`;
 }
 
 // ---------- 工具 ----------
