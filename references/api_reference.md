@@ -170,6 +170,10 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}
 ### 获取文档详情
 
 ```http
+# 获取完整 JSON（推荐）
+GET /api/v2/repos/{book_id}/docs/{doc_id}
+
+# 或获取纯文本（仅 markdown 格式文档有效）
 GET /api/v2/repos/{book_id}/docs/{doc_id}?raw=1
 ```
 
@@ -177,7 +181,7 @@ GET /api/v2/repos/{book_id}/docs/{doc_id}?raw=1
 
 | 参数 | 说明 |
 |------|------|
-| `raw` | `1` = 返回 markdown 原文。不传则返回语雀格式的 HTML |
+| `raw` | `1` = 返回文档原文。**仅限 markdown 格式文档**返回纯 Markdown。不传时返回完整 JSON（含 `body`/`body_html`/`body_lake`/`format`）。lake/html 格式文档应不传 raw，按 format 选择对应字段读取 |
 
 **支持格式**：
 - `markdown`：标准 Markdown
@@ -189,7 +193,7 @@ GET /api/v2/repos/{book_id}/docs/{doc_id}?raw=1
 |------|------|------|
 | `id` | int | 文档 ID |
 | `title` | string | 标题 |
-| `body` | string | 正文（markdown 或 HTML，取决于 `raw` 参数） |
+| `body` | string | 正文（markdown/Lake 源码） |
 | `body_html` | string | HTML 内容 |
 | `body_lake` | string | Lake 格式内容 |
 | `created_at` | string | 创建时间 |
