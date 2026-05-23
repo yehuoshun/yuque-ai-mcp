@@ -16,6 +16,16 @@ export declare function createRepo(params: {
     slug?: string;
 }): Promise<string>;
 /**
+ * 更新知识库
+ */
+export declare function updateRepo(params: {
+    id_or_namespace: string;
+    name?: string;
+    slug?: string;
+    description?: string;
+    public?: 0 | 1 | 2;
+}): Promise<string>;
+/**
  * 删除知识库
  */
 export declare function deleteRepo(params: {

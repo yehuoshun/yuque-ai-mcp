@@ -1,4 +1,4 @@
-import { get, post, del } from "../client.js";
+import { get, post, put, del } from "../client.js";
 import { loadConfig } from "../config.js";
 /**
  * 列出用户的所有知识库
@@ -27,6 +27,22 @@ export async function createRepo(params) {
     const data = await post(`/users/${group}/repos`, { name: params.name, slug });
     const r = data.data || data;
     return `✅ 知识库已创建: ${r.name} (id=${r.id}, namespace=${group}/${slug})`;
+}
+/**
+ * 更新知识库
+ */
+export async function updateRepo(params) {
+    const payload = {};
+    if (params.name)
+        payload.name = params.name;
+    if (params.slug)
+        payload.slug = params.slug;
+    if (params.description !== undefined)
+        payload.description = params.description;
+    if (params.public !== undefined)
+        payload.public = params.public;
+    await put(`/repos/${params.id_or_namespace}`, payload);
+    return `✅ 知识库已更新: ${params.id_or_namespace}`;
 }
 /**
  * 删除知识库

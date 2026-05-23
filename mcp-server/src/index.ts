@@ -9,7 +9,7 @@ import {
 import { YuqueAPIError } from "./shared/types.js";
 
 // ---- tools ----
-import { listRepos, getRepo, createRepo, deleteRepo } from "./tools/repos.js";
+import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
@@ -43,6 +43,21 @@ const tools: Tool[] = [
         slug: { type: "string", description: "知识库 slug（可选，自动生成）" },
       },
       required: ["name"],
+    },
+  },
+  {
+    name: "yuque_update_repo",
+    description: "更新语雀知识库（名称/描述/可见性等）",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id_or_namespace: { type: "string", description: "知识库 ID 或 namespace" },
+        name: { type: "string", description: "新名称（可选）" },
+        slug: { type: "string", description: "新 slug（可选）" },
+        description: { type: "string", description: "新描述（可选）" },
+        public: { type: "number", enum: [0, 1, 2], description: "0=私有 1=公开 2=团队内公开" },
+      },
+      required: ["id_or_namespace"],
     },
   },
   {
@@ -266,6 +281,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_list_repos: () => listRepos(),
   yuque_get_repo: (a) => getRepo(a),
   yuque_create_repo: (a) => createRepo(a),
+  yuque_update_repo: (a) => updateRepo(a),
   yuque_delete_repo: (a) => deleteRepo(a),
   yuque_list_toc: (a) => listToc(a),
   yuque_update_toc: (a) => updateToc(a),

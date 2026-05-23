@@ -1,4 +1,4 @@
-import { get, post, del } from "../client.js";
+import { get, post, put, del } from "../client.js";
 import { loadConfig } from "../config.js";
 
 /**
@@ -38,6 +38,26 @@ export async function createRepo(params: { name: string; slug?: string }): Promi
   const data = await post(`/users/${group}/repos`, { name: params.name, slug });
   const r = (data as any).data || data;
   return `✅ 知识库已创建: ${r.name} (id=${r.id}, namespace=${group}/${slug})`;
+}
+
+/**
+ * 更新知识库
+ */
+export async function updateRepo(params: {
+  id_or_namespace: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  public?: 0 | 1 | 2;
+}): Promise<string> {
+  const payload: Record<string, any> = {};
+  if (params.name) payload.name = params.name;
+  if (params.slug) payload.slug = params.slug;
+  if (params.description !== undefined) payload.description = params.description;
+  if (params.public !== undefined) payload.public = params.public;
+
+  await put(`/repos/${params.id_or_namespace}`, payload);
+  return `✅ 知识库已更新: ${params.id_or_namespace}`;
 }
 
 /**
