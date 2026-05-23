@@ -17,7 +17,6 @@ export async function listDocs(params) {
         id: d.id,
         slug: d.slug,
         title: d.title,
-        format: d.format,
         public: d.public,
         word_count: d.word_count,
         updated_at: d.updated_at,
