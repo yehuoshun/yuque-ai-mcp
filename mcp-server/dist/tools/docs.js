@@ -105,15 +105,33 @@ export async function listToc(params) {
     return JSON.stringify(toc, null, 2);
 }
 /**
- * 更新知识库目录（挂载文档）
+ * 更新知识库目录
+ * action: appendNode=尾插 prependNode=头插 editNode=编辑节点 removeNode=删除节点
+ * action_mode: sibling=同级 child=子节点
  */
 export async function updateToc(params) {
-    await put(`/repos/${params.book_id}/toc`, {
+    const payload = {
         action: params.action || "appendNode",
-        action_mode: "sibling",
-        type: "DOC",
-        doc_ids: params.doc_ids,
+        action_mode: params.action_mode || "sibling",
+        type: params.type || "DOC",
+    };
+    if (params.doc_ids)
+        payload.doc_ids = params.doc_ids;
+    if (params.target_uuid)
+        payload.target_uuid = params.target_uuid;
+    if (params.title)
+        payload.title = params.title;
+    await put(`/repos/${params.book_id}/toc`, payload);
+    return `✅ 目录已更新 (action=${payload.action})`;
+}
+/**
+ * 从目录中移除节点（不删除文档）
+ */
+export async function removeTocNode(params) {
+    await put(`/repos/${params.book_id}/toc`, {
+        action: "removeNode",
+        target_uuid: params.target_uuid,
     });
-    return `✅ 目录已更新`;
+    return `✅ 节点已从目录移除: ${params.target_uuid}`;
 }
 //# sourceMappingURL=docs.js.map

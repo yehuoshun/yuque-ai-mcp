@@ -59,10 +59,23 @@ export declare function listToc(params: {
     book_id: number;
 }): Promise<string>;
 /**
- * 更新知识库目录（挂载文档）
+ * 更新知识库目录
+ * action: appendNode=尾插 prependNode=头插 editNode=编辑节点 removeNode=删除节点
+ * action_mode: sibling=同级 child=子节点
  */
 export declare function updateToc(params: {
     book_id: number;
-    action?: "appendNode" | "prependNode";
-    doc_ids: number[];
+    action?: "appendNode" | "prependNode" | "editNode" | "removeNode";
+    action_mode?: "sibling" | "child";
+    type?: "DOC" | "TITLE" | "LINK";
+    doc_ids?: number[];
+    target_uuid?: string;
+    title?: string;
+}): Promise<string>;
+/**
+ * 从目录中移除节点（不删除文档）
+ */
+export declare function removeTocNode(params: {
+    book_id: number;
+    target_uuid: string;
 }): Promise<string>;
