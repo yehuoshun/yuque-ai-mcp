@@ -78,7 +78,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ---
 
-## MCP Tools 全览
+## MCP Tools 全览（32 个）
 
 ### 知识库
 
@@ -87,19 +87,28 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `yuque_list_repos` | 列出所有知识库 |
 | `yuque_get_repo` | 获取知识库详情 |
 | `yuque_create_repo` | 创建知识库 |
+| `yuque_update_repo` | 更新知识库（名称/描述/可见性） |
 | `yuque_delete_repo` | ⚠️ 硬删除知识库 |
-| `yuque_list_toc` | 列出目录结构 |
-| `yuque_update_toc` | 挂载文档到目录 |
 
 ### 文档
 
 | Tool | 说明 |
 |------|------|
 | `yuque_list_docs` | 列出文档 |
-| `yuque_get_doc` | 获取文档（默认 Markdown） |
+| `yuque_get_doc` | 获取文档（JSON 多格式，raw=true 纯文本） |
 | `yuque_create_doc` | 创建文档 + 自动挂 TOC |
 | `yuque_update_doc` | 更新文档 |
 | `yuque_delete_doc` | ⚠️ 硬删除文档 |
+| `yuque_list_doc_versions` | 文档版本历史 |
+| `yuque_get_doc_version` | 文档版本详情 |
+
+### 目录
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_toc` | 列出目录结构 |
+| `yuque_update_toc` | 更新目录（append/prepend/edit/remove + sibling/child） |
+| `yuque_remove_toc_node` | 移除目录节点（不删文档） |
 
 ### 小记
 
@@ -112,13 +121,31 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `yuque_delete_note` | 删除小记（软删除） |
 | `yuque_restore_note` | 恢复小记 |
 
-### 搜索 & 导出 & 健康检查
+### 群组
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_group_users` | 列出群组成员 |
+| `yuque_update_group_user` | 变更成员角色 |
+| `yuque_remove_group_user` | ⚠️ 移除成员 |
+
+### 统计（需 statistic:read 权限）
+
+| Tool | 说明 |
+|------|------|
+| `yuque_get_group_stats` | 团队整体统计 |
+| `yuque_get_member_stats` | 团队成员统计 |
+| `yuque_get_book_stats` | 团队知识库统计 |
+| `yuque_get_doc_stats` | 团队文档统计 |
+
+### 搜索 & 导出 & 元信息
 
 | Tool | 说明 |
 |------|------|
 | `yuque_search` | 搜索（支持 scope 限定范围） |
 | `yuque_export_doc` | 导出单篇 Markdown |
 | `yuque_list_docs_for_export` | 批量导出前预览文档列表 |
+| `yuque_get_user` | 当前 Token 用户详情 |
 | `yuque_health_check` | 健康检查（Token + 知识库） |
 
 ---
