@@ -13,7 +13,7 @@ import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
-import { exportDoc, listDocsForExport } from "./tools/export.js";
+import { batchGetDocsBody } from "./tools/export.js";
 import { healthCheck, getUser } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
@@ -289,30 +289,27 @@ const tools: Tool[] = [
     },
   },
 
-  // --- 导出 ---
+  // --- 批量导出 ---
   {
-    name: "yuque_export_doc",
-    description: "导出单篇语雀文档为 Markdown",
+    name: "yuque_batch_get_docs_body",
+    description: "批量获取多篇文档的 Markdown 正文（并发 5，底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
     inputSchema: {
       type: "object",
       properties: {
-        book_id: { type: "number", description: "知识库 ID" },
-        doc_id: { type: "number", description: "文档 ID" },
+        docs: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              book_id: { type: "number", description: "知识库 ID" },
+              doc_id: { type: "number", description: "文档 ID" },
+            },
+            required: ["book_id", "doc_id"],
+          },
+          description: "文档列表 [{book_id, doc_id}, ...]",
+        },
       },
-      required: ["book_id", "doc_id"],
-    },
-  },
-  {
-    name: "yuque_list_docs_for_export",
-    description: "列出知识库文档列表（用于批量导出前预览）",
-    inputSchema: {
-      type: "object",
-      properties: {
-        book_id: { type: "number", description: "知识库 ID" },
-        offset: { type: "number", description: "分页偏移" },
-        limit: { type: "number", description: "每页数量" },
-      },
-      required: ["book_id"],
+      required: ["docs"],
     },
   },
 
@@ -459,8 +456,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_restore_note: (a) => restoreNote(a),
 
   yuque_search: (a) => search(a),
-  yuque_export_doc: (a) => exportDoc(a),
-  yuque_list_docs_for_export: (a) => listDocsForExport(a),
+  yuque_batch_get_docs_body: (a) => batchGetDocsBody(a),
   yuque_health_check: () => healthCheck(),
   yuque_get_user: () => getUser(),
 

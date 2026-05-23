@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 知识库管理、文档 CRUD、小记管理、目录编排、批量导出、一级索引知识库问答 + 批量运维（归档、分类、格式化、目录重构、重命名）。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 知识库管理、文档 CRUD、小记管理、目录编排、批量导出、一级索引知识库问答 + 批量运维（归档、分类、格式化、目录重构、重命名、审计、仪表盘、摘要）。纯 LLM + 语雀 API，零外部依赖。
 
 [![Release](https://img.shields.io/github/v/release/yehuoshun/yuque-ai-mcp?label=release)](https://github.com/yehuoshun/yuque-ai-mcp/releases)
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
@@ -141,13 +141,12 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `yuque_get_book_stats` | 团队知识库统计 |
 | `yuque_get_doc_stats` | 团队文档统计 |
 
-### 搜索 & 导出 & 元信息
+### 批量获取 & 搜索 & 元信息
 
 | Tool | 说明 |
 |------|------|
 | `yuque_search` | 搜索（支持 scope 限定范围） |
-| `yuque_export_doc` | 导出单篇 Markdown |
-| `yuque_list_docs_for_export` | 批量导出前预览文档列表 |
+| `yuque_batch_get_docs_body` | 批量获取多篇文档 Markdown 正文（并发 5） |
 | `yuque_get_user` | 当前 Token 用户详情 |
 | `yuque_health_check` | 健康检查（Token + 知识库） |
 
@@ -164,7 +163,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 ```mermaid
 flowchart TD
     Q["👤 用户提问"] --> S0{"指定了文档名?"}
-    S0 -->|"✅"| S0a["yuque_search 全库搜索 → yuque_export_doc 读原文 → LLM 总结"]
+    S0 -->|"✅"| S0a["yuque_search 全库搜索 → yuque_get_doc 读原文 → LLM 总结"]
     S0a --> END["✅ 完成"]
 
     S0 -->|"❌"| S1["LLM 生成搜索关键词"]
@@ -173,7 +172,7 @@ flowchart TD
     S3 --> S4["合并去重 → 提取 content_segment"]
     S4 --> S5{"LLM 判断充足?"}
     S5 -->|"✅"| S6["LLM 生成答案 + 引用"]
-    S5 -->|"❌"| S7["yuque_export_doc 跨库读原文"]
+    S5 -->|"❌"| S7["yuque_get_doc 跨库读原文"]
     S7 --> S6
     S6 --> END
 
@@ -197,6 +196,7 @@ flowchart TD
 | [batch-rename](skills/batch-rename.md) | 批量重命名（前缀/后缀/序号/查找替换/正则/模板/移除七种方式） |
 | [batch-version-audit](skills/batch-version-audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
 | [batch-dashboard](skills/batch-dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
+| [batch-summary](skills/batch-summary.md) | 多粒度智能摘要（L1-L4 四级 + 单篇/多篇/知识库三种模式） |
 
 ---
 
@@ -210,11 +210,11 @@ yuque-ai-skill/
 │   ├── batch-archive.md  # 批量归档/备份
 │   ├── batch-classify.md # 智能分类打标
 │   ├── batch-format.md   # 批量格式标准化
-│   └── batch-toc-rebuild.md # 目录智能重构
-│   └── batch-rename.md      # 批量重命名
-│   └── batch-version-audit.md # 版本审计 & 变更追踪
-│   └── batch-dashboard.md     # 知识库运营仪表盘
-│   └── batch-dashboard.md     # 知识库运营仪表盘
+│   ├── batch-toc-rebuild.md # 目录智能重构
+│   ├── batch-rename.md      # 批量重命名
+│   ├── batch-version-audit.md # 版本审计 & 变更追踪
+│   ├── batch-dashboard.md     # 知识库运营仪表盘
+│   └── batch-summary.md        # 多粒度智能摘要
 ├── mcp-server/           # MCP Server (TypeScript)
 │   ├── src/
 │   │   ├── index.ts      # Server 入口（注册 32 个 tools）

@@ -1,15 +1,10 @@
 /**
- * 导出单篇文档为 Markdown 内容
+ * 批量获取多篇文档的 Markdown body
+ * 底层走 get_doc API（export 端点已不存在于语雀 v2 API）
  */
-export declare function exportDoc(params: {
-    book_id: number;
-    doc_id: number;
-}): Promise<string>;
-/**
- * 批量导出知识库的文档列表
- */
-export declare function listDocsForExport(params: {
-    book_id: number;
-    offset?: number;
-    limit?: number;
+export declare function batchGetDocsBody(params: {
+    docs: Array<{
+        book_id: number;
+        doc_id: number;
+    }>;
 }): Promise<string>;

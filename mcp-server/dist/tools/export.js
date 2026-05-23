@@ -1,22 +1,42 @@
 import { get } from "../client.js";
 /**
- * 导出单篇文档为 Markdown 内容
+ * 批量获取多篇文档的 Markdown body
+ * 底层走 get_doc API（export 端点已不存在于语雀 v2 API）
  */
-export async function exportDoc(params) {
-    const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
-    const doc = data.data || data;
-    return doc.body || doc.body_sheet || "";
-}
-/**
- * 批量导出知识库的文档列表
- */
-export async function listDocsForExport(params) {
-    const offset = params.offset ?? 0;
-    const limit = params.limit ?? 100;
-    const data = await get(`/repos/${params.book_id}/docs?offset=${offset}&limit=${Math.min(limit, 100)}`);
-    const docs = data.data || data;
-    if (!Array.isArray(docs) || docs.length === 0)
-        return JSON.stringify([]);
-    return JSON.stringify(docs.map((d) => ({ id: d.id, title: d.title, slug: d.slug })), null, 2);
+export async function batchGetDocsBody(params) {
+    const results = [];
+    // 并发获取，限制 5 个并发
+    const concurrency = 5;
+    for (let i = 0; i < params.docs.length; i += concurrency) {
+        const batch = params.docs.slice(i, i + concurrency);
+        const batchResults = await Promise.all(batch.map(async ({ book_id, doc_id }) => {
+            try {
+                const data = await get(`/repos/${book_id}/docs/${doc_id}`);
+                const doc = data.data || data;
+                return {
+                    doc_id,
+                    title: doc.title || "",
+                    body: doc.body || "",
+                    format: doc.format || "unknown",
+                };
+            }
+            catch (e) {
+                return {
+                    doc_id,
+                    title: "",
+                    body: "",
+                    format: "unknown",
+                    error: e.message || String(e),
+                };
+            }
+        }));
+        results.push(...batchResults);
+    }
+    return JSON.stringify({
+        total: results.length,
+        success: results.filter((r) => !r.error).length,
+        failed: results.filter((r) => r.error).length,
+        results,
+    }, null, 2);
 }
 //# sourceMappingURL=export.js.map
