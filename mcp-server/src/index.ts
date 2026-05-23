@@ -7,6 +7,7 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
+import { loadDarkArts } from "./tools/dark-arts-loader.js";
 
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
@@ -543,6 +544,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  // 🕶️ 动态加载邪修玩法（子模块不存在则跳过）
+  const darkArts = await loadDarkArts();
+  if (darkArts.tools.length > 0) {
+    tools.push(...darkArts.tools);
+    Object.assign(handlers, darkArts.handlers);
+    console.error(`🕶️ dark-arts: ${darkArts.tools.length} tools 已加载`);
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("🦞 yuque-mcp server started");
