@@ -24,7 +24,7 @@
 
 ---
 
-> ⚠️ 统计 API 需要 Token 勾选 `statistic:read` 权限，否则返回 403。
+> ⚠️ 统计 API 仅支持团队（group）账户，个人账户返回 404。Token 需勾选 `statistic:read` 权限。
 
 ---
 

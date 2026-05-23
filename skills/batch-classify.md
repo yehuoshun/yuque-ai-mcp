@@ -55,7 +55,7 @@ yuque_list_repos → 匹配：
 
 ```
 yuque_list_docs(namespace=源库) → 全部文档
-提取：title | slug | updated_at
+提取：title | slug | id | updated_at
 
 count == 0 →「《XXX》是空的」结束
 count > 50 → 分批，每批 50 篇，告用户「共 {n} 篇，每批 50 篇，共 {p} 批」

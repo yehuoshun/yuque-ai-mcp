@@ -86,7 +86,7 @@ yuque_list_repos → 获取所有知识库
 
 ```
 yuque_list_docs(namespace=源库) → 全部文档
-提取：title | slug | updated_at | created_at
+提取：title | slug | id | updated_at
 ```
 
 源库为空 →「《XXX》是空的，没有文档可归档」结束。

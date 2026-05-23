@@ -57,7 +57,7 @@ yuque_list_repos → 匹配：
 
 ```
 yuque_list_docs(namespace=源库) → 全部文档
-提取：title | slug | updated_at | created_at
+提取：title | slug | id | updated_at | created_at
 
 count == 0 → 告知，结束
 count > 50 → 分批 50 篇/批

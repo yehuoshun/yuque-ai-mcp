@@ -34,11 +34,12 @@
 1. yuque_list_repos → 匹配源库（必须指定）
 
 2. yuque_list_docs(namespace=源库) → 全部文档
+   提取：title | slug | id | updated_at
    count == 0 → 告知，结束
    count > 50 → 分批 50 篇/批
 
 3. 并发 3 篇：
-   每篇 → yuque_list_doc_versions(namespace, slug)
+   每篇 → yuque_list_doc_versions(doc_id=id)
    筛选 updated_at 在指定时间段内的版本
    记录：title、最后变更时间、该时段版本数
 
@@ -69,8 +70,9 @@
 
 ```
 1. yuque_list_docs(namespace) 搜文档标题 or 用户直接给 slug
+   → 拿到数字 id
 
-2. yuque_list_doc_versions(namespace, slug) → 全部版本
+2. yuque_list_doc_versions(doc_id=id) → 全部版本
    version_id | updated_at | 变更人
 
 3. 展示时间线
@@ -100,9 +102,9 @@
 
 ```
 1. 用户指定文档 + 两个版本号
-
-2. yuque_get_doc_version(namespace, slug, version_id=A) → body_A
-   yuque_get_doc_version(namespace, slug, version_id=B) → body_B
+2. yuque_get_doc(namespace, slug) → 拿到数字 id
+3. yuque_get_doc_version(version_id=A) → body_A
+4. yuque_get_doc_version(version_id=B) → body_B
 
 3. LLM 对比 → 变更摘要：
    - 结构变化（新增/删除章节）
@@ -142,6 +144,7 @@
 1. yuque_list_repos → 匹配源库（必须指定）
 
 2. yuque_list_docs → 全部文档
+   提取：title | slug | id | updated_at
    count > 50 → 分批 50 篇
 
 3. 并发 3 篇：

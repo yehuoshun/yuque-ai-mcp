@@ -107,6 +107,7 @@ LLM 解析为规则列表 → 进阶段三
 
 ```
 yuque_list_docs(namespace=源库) → 全部文档
+提取：title | slug | id | updated_at
 count == 0 → 告知，结束
 count > 50 → 分批 50 篇/批
 
