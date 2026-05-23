@@ -1,116 +1,87 @@
 ---
 name: yuque-ai
-description: 语雀全功能技能。支持知识库管理、文档管理、小记管理、目录管理、文档导出 + 一级索引知识库问答（纯 LLM + 语雀 API，零外部依赖）。当用户提到「语雀」时触发，如「在语雀搜索...」「我的语雀知识库...」「创建语雀文档...」「语雀小记...」。
+description: 语雀全功能技能。支持知识库管理、文档管理、小记管理、目录管理、文档导出 + 一级索引知识库问答（纯 LLM + 语雀 API，零外部依赖）。管理操作通过 yuque-mcp MCP Server 执行。当用户提到「语雀」时触发，如「在语雀搜索...」「我的语雀知识库...」「创建语雀文档...」「语雀小记...」。
 ---
 
 # 语雀 AI 技能
 
-> API 端点/参数/错误码/限制 → **[references/api_reference.md](references/api_reference.md)**
-
-## 触发
-
-消息含「语雀」「小记」「知识库」即触发。不确定时主动触发。
-
-## 配置
-
-默认从 skill 目录下 `config/yuque-config.json` 读取，支持自定义路径。
-
-```json
-{
-  "token": "语雀 API Token",
-  "group": "用户名",
-  "default_book": { "book_id": 0, "namespace": "" },
-  "index_book": { "book_id": 0, "namespace": "" }
-}
-```
-
-> `index_book` = 索引库（关键词→源文档）。搜索时直接搜索引库定位到源文档，不经过路由层。
-
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `token` | — | 语雀 API Token（必填） |
-| `group` | — | 语雀用户名/login（必填） |
-| `default_book` | — | 默认知识库，创建文档时未指定目标则使用此库（不影响搜索） |
-| `index_book` | `{}` | 索引库（关键词→源文档），搜索时直接命中 |
-
-## 初始化流程
-
-**触发时机**：每次 `YuqueAPI()` 实例化时自动校验 token/group 非空。Agent 在以下场景主动调 `health_check()`：
-- 用户首次配置 skill 后
-- 用户说「检查语雀配置」「验证语雀连接」
-- 操作中大范围 403/404 时排查
+## 架构
 
 ```
-api.health_check() → 返回 {token: {ok, message/error}, repos: {label: {ok, name, ...}}, all_ok}
+yuque-mcp (MCP Server)     ← 管理操作：CRUD、搜索、导出、健康检查
+    ↓ 提供 21 个 tools
+LLM Agent                  ← 问答编排：搜索 → 判断 → 补读 → 生成答案
 ```
 
-### 检查步骤
-
-1. **Token 验证**：`validate_token()` → `hello()`，失败则提示用户到 https://www.yuque.com/settings/tokens 重新生成
-2. **默认知识库**：`_check_repo_health()` → `GET /repos/{book_id}`，不存在则提示创建。book_id=0 自动跳过
-3. **索引库**：检查 `index_book`，不存在则提示创建。book_id=0 自动跳过
-
-> ⚠️ 语雀 API 无权限查询端点，Token 有效不代表权限齐全。缺 `repo:read`/`doc:read` 时后续操作会 403，Agent 需在 403 响应时提示用户检查 Token 权限范围。
-
-### 创建缺失知识库（完整示例）
-
-```python
-api = YuqueAPI()
-health = api.health_check()
-
-# Token 无效 → 终止
-if not health["token"]["ok"]:
-    print(f"❌ Token 无效：{health['token']['error']}")
-    print("请到 https://www.yuque.com/settings/tokens 重新生成")
-    return
-
-# 知识库缺失 → 逐项创建并回写配置
-for label, r in health["repos"].items():
-    if r["ok"]:
-        continue
-
-    # 取角色名作为知识库名称（可通过修改 role 值自定义。去掉 health_check 内部附加的 #N 索引号）
-    name = r["role"].split(" #")[0]
-    slug = api.generate_slug(name)
-
-    try:
-        repo = api.create_repo(name, slug)
-    except Exception as e:
-        # slug 冲突时换时间戳重试一次
-        slug = api.generate_slug(name)
-        repo = api.create_repo(name, slug)
-
-    entry = {"book_id": repo["id"], "namespace": f"{api.group}/{slug}"}
-
-    if label == "default_book":
-        api.update_config({"default_book": entry})
-    elif label == "index_book":
-        api.index_book = entry
-        api.update_config({"index_book": api.index_book})
-
-    print(f"✅ 已创建 {name} ({repo['id']})")
-
-# 创建完成后建议二次验证
-api.health_check()
-```
-
-> `generate_slug()` 生成格式：`{小写字母}-{毫秒时间戳}{随机后缀}`，如 `java-982413de2`。
-
-## 调用约定
-
-- **基地址**：`https://www.yuque.com/api/v2`
-- **方式**：Python `urllib.request`（禁止 pip install），简单请求可用 curl
-- **超时**：所有请求 `timeout=30`
-- **并发**：按操作类型分级
-  - **API 轨**（列表/搜索/文档 CRUD/目录/导出）：初始并发 5，上限 10。每批后读 `X-RateLimit-Remaining` 动态调节
-  - **LLM 轨**（索引/问答/内容生成等）：`LLM并发 = clamp(floor(可用内存MB / 1024), 1, 3)`，即 ≥3GB→3, ≥2GB→2, <2GB→1。耗时兜底：连续 3 次 >10s 降 1 级，>30s 暂停
-  - 混合场景自动切换：拉文档走 API 轨、过 LLM 走 LLM 轨，两轨不互阻
-- **速率**：每批次请求后检查 `X-RateLimit-Remaining`。429 响应：检查 `X-RateLimit-Remaining`，≠0 则等 1s 重试（QPS 突发），=0 则暂停等整点（小时配额耗尽）
-- **scope**：搜索 API 用 namespace 格式（`group/book_slug`），不支持 book_id
+> 📦 MCP Server 源码：`mcp-server/`，通过 `npx yuque-mcp` 启动。
 
 ---
 
-# 一、知识库问答系统
+## 一、管理操作（调 MCP tools）
+
+所有管理操作通过 **yuque-mcp** 的 tools 执行，不需要手动 curl。
+
+### 知识库
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_repos` | 列出所有知识库 |
+| `yuque_get_repo` | 获取知识库详情 |
+| `yuque_create_repo` | 创建知识库 |
+| `yuque_delete_repo` | ⚠️ 硬删除知识库 |
+| `yuque_list_toc` | 列出目录结构 |
+| `yuque_update_toc` | 挂载文档到目录 |
+
+### 文档
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_docs` | 列出文档 |
+| `yuque_get_doc` | 获取文档（默认 Markdown） |
+| `yuque_create_doc` | 创建文档 + 自动挂 TOC |
+| `yuque_update_doc` | 更新文档 |
+| `yuque_delete_doc` | ⚠️ 硬删除文档 |
+
+### 小记
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_notes` | 列出小记 |
+| `yuque_get_note` | 获取小记详情 |
+| `yuque_create_note` | 创建小记 |
+| `yuque_update_note` | 更新小记 |
+| `yuque_delete_note` | 删除小记（软删除） |
+| `yuque_restore_note` | 恢复小记 |
+
+### 搜索 & 导出 & 健康检查
+
+| Tool | 说明 |
+|------|------|
+| `yuque_search` | 搜索（支持 scope 限定范围） |
+| `yuque_export_doc` | 导出单篇 Markdown |
+| `yuque_list_docs_for_export` | 批量导出前预览文档列表 |
+| `yuque_health_check` | 健康检查（Token + 知识库） |
+
+### 删除确认规范
+
+| 操作 | 类型 | 确认模板 |
+|------|------|---------|
+| `yuque_delete_repo` | 硬删除 | `⚠️ 即将删除《XXX》，含 N 篇文档。不可恢复，确认？` |
+| `yuque_delete_doc` | 硬删除 | `⚠️ 即将删除《XXX》。不可恢复，确认？` |
+| `yuque_delete_note` | 软删除 | `📝 移入回收站，可恢复。确认？` |
+
+### 创建文档后挂载 TOC
+
+`yuque_create_doc` 已自动完成 TOC 挂载。如手动创建需单独调用 `yuque_update_toc`：
+
+```
+yuque_create_doc → 创建文档
+yuque_update_toc(book_id, action="appendNode", doc_ids=[id]) → 挂载目录
+```
+
+---
+
+# 二、知识库问答系统
 
 > **铁律**：不用嵌入模型、不用向量数据库、不用额外模型服务、不用第三方搜索 API。仅 LLM API + 语雀 API。
 
@@ -156,21 +127,21 @@ Docker 容器 容器化 容器编排 部署 运维 k8s kubernetes 镜像 image d
          │
          ├─[0] 前置：用户指定了文档名？
          │      → LLM 判断用户问题中是否明确指定了具体文档名称（含引号/书名号内的名称，或"xxx这篇文档"等表述）
-         │      → 是：直接全库搜索 → 读原文 → LLM 总结（短路）
+         │      → 是：直接 yuque_search 全库搜索 → 读原文 → LLM 总结（短路）
          │      → 否：继续
          │
-         ├─[1] LLM 生成一组搜索关键词 → 拆为单个关键词并行搜索引库
+         ├─[1] LLM 生成一组搜索关键词 → 拆为单个关键词 → 并行调 yuque_search(scope=index_book.namespace)
          │      → 命中索引文档标题（标题=[索引] xx）
-         │      → 读全文 → 解析 body → 提取 source_entries
+         │      → 调 yuque_get_doc 读全文 → 解析 body → 提取 source_entries
          │
          ├─[2] 合并去重（按 source doc_id）
          │
          ├─[3] 提取 content_segment
          │      有内容段 → 直接送入 LLM
-         │      无内容段（Lake卡片）→ 标注"仅标题匹配" → 读取原文尝试
+         │      无内容段（Lake卡片）→ 标注"仅标题匹配" → 调 yuque_export_doc 读取原文尝试
          │
          ├─[4] LLM 判断 content_segment 是否足以回答
-         │      不足 → read_source_docs_across_books（跨知识库并发读取原文）
+         │      不足 → 跨知识库并发调 yuque_export_doc 读取原文
          │
          └─[5] LLM 生成答案 + 引用出处
 ```
@@ -180,8 +151,8 @@ Docker 容器 容器化 容器编排 部署 运维 k8s kubernetes 镜像 image d
 索引管线命中不足或未配置索引时，降级为**语雀全库搜索**（不传 scope，搜用户全部知识库）：
 
 ```
-LLM 生成搜索词 → batch_search（无 scope）→ 语雀原生全库搜索
-→ 返回标题 + 摘要 → LLM 筛选 → 读原文 → LLM 生成答案
+LLM 生成搜索词 → yuque_search（无 scope）→ 语雀原生全库搜索
+→ 返回标题 + 摘要 → LLM 筛选 → yuque_export_doc 读原文 → LLM 生成答案
 ```
 
 降级触发：
@@ -194,7 +165,7 @@ LLM 生成搜索词 → batch_search（无 scope）→ 语雀原生全库搜索
 ```
 正常路径（索引管线）
   ↓ 索引命中不足 / 未配置索引库
-降级模式（跳过索引层，搜全库，不传 scope）
+降级模式（跳过索引层，yuque_search 不传 scope，搜全库）
   ↓ 仍 0 命中
 返回「未找到相关内容，请尝试换个问法」
 ```
@@ -204,7 +175,7 @@ LLM 生成搜索词 → batch_search（无 scope）→ 语雀原生全库搜索
 ### 3.1 搜索词生成
 
 ```
-把用户问题改写为一组搜索关键词，空格分隔。<br/>多角度覆盖核心概念、别称、相关术语，合并输出一行。
+把用户问题改写为一组搜索关键词，空格分隔。多角度覆盖核心概念、别称、相关术语，合并输出一行。
 
 用户问题：{question}
 
@@ -227,9 +198,41 @@ LLM 生成搜索词 → batch_search（无 scope）→ 语雀原生全库搜索
 3. 回答末尾列出引用的来源 doc_name + doc_link
 ```
 
-## 4. 索引构建（离线）
+## 4. 并发策略
 
-### 4.1 索引文档格式
+| 阶段 | 并发数 | 说明 |
+|------|--------|------|
+| 搜索词搜索索引库 | 按关键词数 | 关键词拆为单个词并行调 yuque_search |
+| 读命中索引文档全文 | 按命中数 | 并行调 yuque_get_doc |
+| 读原文（按需） | 2-3 | 仅 content_segment 不足时调 yuque_export_doc |
+
+## 5. 风险与对策
+
+| 风险 | 对策 |
+|------|------|
+| 语雀搜索分词质量未知 | 关键词采用词级空格分隔，降低对分词依赖 |
+| LLM 提取关键词有遗漏 | 多路并发搜补位 |
+| 索引库容量超 5000 | 索引文档按关键词归类，数量可控 |
+| 关键词过宽→单文档来源爆炸 | 拆细粒度 + 多组关键词并发搜 |
+| 别名遗漏→搜索命中不足 | 索引构建穷举别名写入 keywords 字段 |
+| 索引文档内容过时 | 每次实时读取，不缓存 |
+| Lake 卡片正文不可读 | content_segment 填标题兜底，搜索时标注「仅标题匹配」 |
+| API 限流 | 指数退避 + X-RateLimit-Remaining 动态调节 |
+
+## 6. 技术依赖
+
+| 组件 | 依赖 |
+|------|------|
+| LLM | 任意 OpenAI 兼容 API |
+| 存储 | 语雀知识库（索引库 + 内容库） |
+| 搜索 | 语雀搜索 API（索引模式 scope=namespace，降级模式不传 scope 搜全库） |
+| **额外依赖** | **零** |
+
+---
+
+# 三、索引构建（离线）
+
+### 索引文档格式
 
 正文 = **别名明文首行** + 空行 + JSON。
 
@@ -256,7 +259,7 @@ Python 爬虫 爬虫框架 web scraping 网页抓取 数据采集 requests beaut
 > **解析**：`body.split('\n\n', 1)`，前半截忽略，后半截 JSON。
 > 兼容旧格式（纯 JSON 无别名行 / Markdown `### 标题\n- **源文档ID**: xxx`），自动识别。
 
-### 4.2 索引构建 Prompt
+### 索引构建 Prompt
 
 **单篇分析 Prompt**（生成 source_entry）：
 
@@ -302,136 +305,42 @@ Python 爬虫 爬虫框架 web scraping 网页抓取 数据采集 requests beaut
 {all_keywords}
 
 别名明文：
-```》
+```
 
-### 4.3 构建流程
+### 构建流程
 
 **全量构建**：
 
-0. 确保索引库已存在（不存在则创建知识库）
-1. 遍历源知识库文档列表
+0. 调 `yuque_health_check` 确保索引库存在
+1. 调 `yuque_list_docs` 遍历源知识库文档列表
 2. LLM 逐篇分析 → 输出 source_entry JSON（单篇分析 Prompt）
 3. 按关键词归类合并，同一关键词的多个 source_entry 归入一个索引文档
 4. 来源过多的关键词拆细粒度（如 Docker→Docker-部署/Docker-网络）
 5. LLM 合并该索引文档所有 keywords → 生成别名明文（别名明文生成 Prompt）
-6. 组装正文：`别名明文 + \n\n + JSON` → `POST /repos/{index_book_id}/docs` → `PUT /toc` 挂目录
-
-> 步骤 0 仅首次部署时需要。已有索引库则跳过创建步骤，直接从步骤 1 开始。
+6. 组装正文：`别名明文 + \n\n + JSON` → 调 `yuque_create_doc` 写入索引库
 
 **增量构建**：
 
 1. 调用方提供 `since` 时间戳
 2. 筛选 `updated_at > since` 的变更文档
-3. 仅对变更文档跑构建（同上 2-5 步）
-4. 更新索引库中对应 source_entry（查找已有索引文档，更新 source_entries + 重新生成别名明文 + 写入）
+3. 仅对变更文档跑构建
+4. 调 `yuque_update_doc` 更新索引库中对应 source_entry
 5. 调用方自行管理 `since` 时间戳
 
-## 5. 并发策略
-
-| 阶段 | 并发数 | 说明 |
-|------|--------|------|
-| 搜索词搜索索引库 | 按关键词数 | 关键词拆为单个词并行搜 |
-| 读命中索引文档全文 | 按命中数 | `GET /docs/{doc_id}?raw=1` |
-| 读原文（按需） | 2-3 | 仅 content_segment 不足时 |
-
-## 6. 风险与对策
-
-| 风险 | 对策 |
-|------|------|
-| 语雀搜索分词质量未知 | 关键词采用词级空格分隔，降低对分词依赖 |
-| LLM 提取关键词有遗漏 | 多路并发搜补位 |
-| 索引库容量超 5000 | 索引文档按关键词归类，数量可控 |
-| 关键词过宽→单文档来源爆炸 | 拆细粒度 + 多组关键词并发搜 |
-| 别名遗漏→搜索命中不足 | 索引构建穷举别名写入 keywords 字段 |
-| 索引文档内容过时 | 每次实时读取，不缓存 |
-| Lake 卡片正文不可读 | content_segment 填标题兜底，搜索时标注「仅标题匹配」 |
-| API 限流 | 指数退避 + X-RateLimit-Remaining 动态调节 |
-
-## 7. 技术依赖
-
-| 组件 | 依赖 |
-|------|------|
-| LLM | 任意 OpenAI 兼容 API |
-| 存储 | 语雀知识库（索引库 + 内容库） |
-| 搜索 | 语雀搜索 API（索引模式 scope=namespace，降级模式不传 scope 搜全库） |
-| **额外依赖** | **零** |
-
 ---
 
-# 二、API 速查（管理操作）
+# 四、配置
 
-### 知识库
-
-| 操作 | 端点 | 注意 |
-|------|------|------|
-| 列表 | `GET /users/{login}/repos` | 一次返回全部 |
-| 详情 | `GET /repos/{id_or_namespace}` | id 或 namespace 均可 |
-| 创建 | `POST /users/{login}/repos` | name+slug 必填。slug 约束：`[a-z0-9._-]`，大写自动转小写，禁空格 |
-| 更新 | `PUT /repos/{id_or_namespace}` | 支持 `toc` 全量替换目录 |
-| 删除 | `DELETE /repos/{id_or_namespace}` | 硬删除不可逆，**必须先确认** |
-
-### 文档
-
-| 操作 | 端点 | 注意 |
-|------|------|------|
-| 列表 | `GET /repos/{book_id}/docs?offset=0&limit=100` | limit 最大 100 |
-| 详情 | `GET /repos/{book_id}/docs/{doc_id}?raw=1` | raw=1 返回 markdown |
-| 创建 | `POST /repos/{book_id}/docs` | title+body 必填；**创建后必须 `PUT /toc` 挂目录** |
-| 更新 | `PUT /repos/{book_id}/docs/{doc_id}` | |
-| 删除 | `DELETE /repos/{book_id}/docs/{doc_id}` | 硬删除不可逆，**必须先确认** |
-
-> ⚠️ **TOC 挂载**：`POST /repos/{book_id}/docs` 后文档默认不显示。调 `PUT /toc`（action=appendNode, action_mode=sibling, type=DOC, doc_ids=[id]）。如需放在目录第一位，用 `prependNode` 替换 `appendNode`。失败等1s重试×3，仍失败则提示手动拖入。
-
-### 小记
-
-| 操作 | 端点 | 注意 |
-|------|------|------|
-| 列表 | `GET /notes?page=1&limit=20&status=0` | 返回 `{pin_notes, notes, has_more}` |
-| 详情 | `GET /notes/{note_id}` | content 是嵌套对象：`note.content.source` |
-| 创建 | `POST /notes` | body 必填，只返回 `note_url`。需查列表通过 slug 匹配获取 id |
-| 更新 | `PUT /notes/{note_id}` | 先 GET 获取原内容，再 PUT。source/html/abstract 三个字段缺一不可。⚠️ 返回结构为 `{data: {data: {...}}}`，取结果用 `.data.data` |
-| 删除 | `PUT /notes/{note_id}`（status=9） | 软删除。**先 GET 获取原内容**，再 PUT 设 status=9 |
-| 恢复 | `PUT /notes/{note_id}`（status=0） | **先 GET 获取原内容**，再 PUT 设 status=0 |
-
-### 搜索 / 连通测试 / 目录 / 导出
-
-不常用的端点（群组、统计、版本管理等）按需查 **[references/api_reference.md](references/api_reference.md)**。
-
-| 操作 | 端点 | 注意 |
-|------|------|------|
-| 连通测试 | `GET /hello` | 验证 Token 有效性 |
-| 搜索 | `GET /search?q={query}&type=doc&scope={namespace}&page=1` | PageSize 固定 20，最多 100 页。scope 可选，不传则搜全库 |
-| 单篇导出 | `GET /repos/{book_id}/docs/{doc_id}?raw=1` → 保存 `{标题}.md` | |
-| 批量导出 | 完整流程见 api_reference | 增量导出、图片下载、交叉引用替换 |
-
-## 创建文档完整流程（强制）
-
-```
-POST /repos/{book_id}/docs  →  获取 doc_id
-  ↓
-PUT /repos/{book_id}/toc    →  action=appendNode, action_mode=sibling, type=DOC, doc_ids=[id]
-  ↓
-验证文档出现在 TOC 返回中
+```json
+{
+  "token": "语雀 API Token",
+  "group": "用户名",
+  "default_book": { "book_id": 0, "namespace": "" },
+  "index_book": { "book_id": 0, "namespace": "" }
+}
 ```
 
-## 错误处理
+> 配置文件路径：`config/yuque-config.json`，MCP Server 与 Skill 共享同一配置。
+> MCP Server 环境变量覆盖：`YUQUE_CONFIG_PATH`。
 
-| 错误码 | 说明 | 处理 |
-|--------|------|------|
-| 401 | Token 无效/过期 | 引导用户重新生成 Token 并更新配置 |
-| 403 | 权限不足 | 检查 Token 权限范围 |
-| 404 | 资源不存在 | 检查 ID 是否正确或已删除 |
-| 429 | 请求过频 | 见[调用约定](#调用约定)速率部分 |
-| 500/502/503/504 | 服务端错误 | 稍后重试 |
-
-## 删除确认规范
-
-| 操作 | 类型 | 确认模板 |
-|------|------|---------|
-| 删知识库 | 硬删除 | `⚠️ 即将删除《XXX》，含 N 篇文档。不可恢复，确认？` |
-| 删文档 | 硬删除 | `⚠️ 即将删除《XXX》。不可恢复，确认？` |
-| 删小记 | 软删除 | `📝 移入回收站，可恢复。确认？` |
-
----
-
-> 详细 API 参数/返回结构/错误码/故障排查 → **[references/api_reference.md](references/api_reference.md)**
+> API 端点/参数/错误码/限流等详细参考 → **[references/api_reference.md](references/api_reference.md)**
