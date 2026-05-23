@@ -214,6 +214,7 @@ yuque-ai-skill/
 │   └── batch-rename.md      # 批量重命名
 │   └── batch-version-audit.md # 版本审计 & 变更追踪
 │   └── batch-dashboard.md     # 知识库运营仪表盘
+│   └── batch-dashboard.md     # 知识库运营仪表盘
 ├── mcp-server/           # MCP Server (TypeScript)
 │   ├── src/
 │   │   ├── index.ts      # Server 入口（注册 32 个 tools）
