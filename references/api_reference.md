@@ -194,28 +194,29 @@ GET /api/v2/repos/{book_id}/docs/{doc_id}?raw=1
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | int | 文档 ID |
+| `type` | string | 文档类型：`Doc`(普通文档) / `Sheet`(表格) / `Thread`(话题) / `Board`(图集) / `Table`(数据表) |
 | `book_id` | int | 所属知识库 ID |
 | `title` | string | 标题 |
 | `slug` | string | 文档路径 |
 | `description` | string | 摘要 |
-| `format` | string | 格式：`markdown` / `lake` / `html` / `lakesheet` |
-| `public` | int | 0=私有 / 1=公开 |
-| `status` | int | 文档状态 |
+| `cover` | string | 封面 |
+| `format` | string | 内容格式：`markdown` / `lake` / `html` / `lakesheet` |
+| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `status` | int | 0=草稿 / 1=发布 |
 | `body` | string | 正文（markdown/Lake 源码） |
 | `body_draft` | string | 草稿内容 |
 | `body_html` | string | HTML 内容 |
 | `body_lake` | string | Lake 格式内容 |
-| `body_sheet` | string | 电子表格内容（lakesheet 格式） |
-| `body_table` | string | 表格内容 |
+| `body_sheet` | string | 表格正文（Sheet 类型），JSON 二维数组 `{version, data: [{name, rowCount, colCount, table: [[...]]}]}` |
+| `body_table` | string | 数据表正文（Table 类型），JSON `{totalCount, records, pageSize, page}` |
 | `word_count` | int | 字数 |
 | `read_count` | int | 阅读数 |
 | `likes_count` | int | 点赞数 |
 | `comments_count` | int | 评论数 |
-| `created_at` | string | 创建时间 |
-| `updated_at` | string | 最后操作时间 |
-| `content_updated_at` | string | 内容最后修改时间 |
-| `published_at` | string | 发布时间 |
-| `first_published_at` | string | 首次发布时间 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 最后操作时间 (ISO 8601) |
+| `content_updated_at` | string | 内容最后修改时间 (ISO 8601) |
+| `published_at` | string | 发布时间 (ISO 8601) |
 | `latest_version_id` | int | 最新已发版本 ID |
 | `creator` | object | 创建者信息 |
 | `user` | object | 最后操作者信息 |

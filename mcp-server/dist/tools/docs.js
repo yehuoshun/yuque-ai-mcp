@@ -27,10 +27,12 @@ export async function getDoc(params) {
     const b = doc.book || {};
     return JSON.stringify({
         id: doc.id,
+        type: doc.type,
         book_id: doc.book_id,
         title: doc.title,
         slug: doc.slug,
         description: doc.description,
+        cover: doc.cover,
         format: doc.format,
         public: doc.public,
         status: doc.status,
