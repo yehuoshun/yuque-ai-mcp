@@ -25,9 +25,17 @@ export async function listGroupUsers(params) {
  * 更新群组成员角色
  */
 export async function updateGroupUser(params) {
-    await put(`/groups/${params.login}/users/${params.id}`, { role: params.role });
-    const label = params.role === 0 ? "管理员" : params.role === 1 ? "成员" : "只读";
-    return `✅ 成员角色已更新为 ${label}: id=${params.id}`;
+    const data = await put(`/groups/${params.login}/users/${params.id}`, { role: params.role });
+    const r = data.data || data;
+    return JSON.stringify({
+        id: r.id,
+        group_id: r.group_id,
+        user_id: r.user_id,
+        role: r.role,
+        role_label: r.role === 0 ? "管理员" : r.role === 1 ? "成员" : "只读",
+        user: r.user ? { login: r.user.login, name: r.user.name } : null,
+        updated_at: r.updated_at,
+    }, null, 2);
 }
 /**
  * 移除群组成员
