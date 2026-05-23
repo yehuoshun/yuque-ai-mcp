@@ -83,4 +83,5 @@ export declare function updateToc(params: {
 export declare function removeTocNode(params: {
     book_id: number;
     target_uuid: string;
+    action_mode?: "sibling" | "child";
 }): Promise<string>;

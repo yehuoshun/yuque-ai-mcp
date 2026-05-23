@@ -171,6 +171,36 @@ Prompt：
 
 ## 导入流程
 
+### 核心工具：`yuque_import_doc`
+
+单篇文件导入由 `yuque_import_doc` MCP tool 完成，内部自动处理：
+
+- 📖 读文件 + 检测类型（MD / 代码 / 文本）
+- 🔧 Obsidian 格式适配（WikiLinks / callouts / frontmatter / 注释 / 标签）
+- 🖼️ 提取本地图片 → 上传 CDN → 替换路径
+- 📄 创建文档 + 自动挂 TOC
+- 📎 可选：上传原始文件作为附件引用
+
+**两种模式**：
+
+| 模式 | body 参数 | 行为 |
+|------|-----------|------|
+| 自动适配 | 不传 | 读文件 → regex 适配 → 上传图片 → 创建文档 |
+| 预适配 | 传 body | 使用 Agent LLM 处理好的 body，仅做图片上传+创建 |
+
+```
+# 自动适配模式
+
+### 预适配模式（Agent 先 LLM 适配复杂内容）
+yuque_import_doc(file_path="/notes/Docker.md", book_id=123)
+
+yuque_import_doc(file_path="/notes/Docker.md", book_id=123, body="LLM处理后的内容", title="覆盖标题")
+```
+
+---
+
+### 批量导入流程
+
 ```
 0. 前置检查：
    config 有 cookie + ctoken → 继续
@@ -211,22 +241,17 @@ Prompt：
    「B. 只处理文本」— 代码/配置转文档，其余跳过（默认）
    「C. 全部跳过」— 只导入 Markdown
 
-3. 逐篇导入 Markdown（并发 3）：
+3. 逐篇导入 Markdown（并发 3，调 `yuque_import_doc`）：
 
-   对每篇 .md：
-     a. read 文件内容
-     b. 检测是否需要格式适配 → 需要则 LLM 适配
-     c. 提取 title
-     d. 正则提取 ![](路径) → 上传 CDN → 替换
-     e. yuque_create_doc
+   每篇 .md：
+     a. 检查格式适配需求 → 简单适配直接调 `yuque_import_doc`
+     b. 复杂适配（Notion 表格等）→ Agent 先 read → LLM 适配 → 传 body 给 `yuque_import_doc`
 
-4. 逐篇导入纯文本（并发 3，选 A/B 时）：
+4. 逐篇导入纯文本（并发 3，调 `yuque_import_doc` + `upload_original=true`）：
 
    对每个纯文本文件：
-     a. read 文件内容
-     b. 按语言标记代码块（代码类）或直接 body（纯文本类）
-     c. yuque_upload_attachment 上传原始文件
-     d. yuque_create_doc(title={文件名}, body={代码块/文本}+📎链接)
+     yuque_import_doc(file_path, upload_original=true)
+     → 自动识别语言标记代码块 + 上传原始文件附件
 
 5. 上传二进制附件（选 A 时）：
 
@@ -355,10 +380,9 @@ Prompt：
 | 阶段 | 工具 |
 |------|------|
 | 扫描 | `exec find/ls/unzip` |
-| 读文件 | `read` |
-| 格式适配 | LLM（本 Agent） |
+| 读取+适配+创建 | `yuque_import_doc`（自动读文件+格式适配+图片上传+创建文档） |
 | 上传附件 | `yuque_upload_attachment` |
-| 创建文档 | `yuque_create_doc` |
+| 单篇导入（预适配） | `yuque_import_doc`（传 body） |
 | 建 TITLE 分组 | `yuque_update_toc` (appendNode sibling) |
 | 挂文档到分组 | `yuque_update_toc` (removeNode → appendNode child) |
 | TOC 优化 | batch/rebuild-toc（技能联动） |

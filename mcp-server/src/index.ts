@@ -18,6 +18,7 @@ import { healthCheck, getUser } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
+import { importDoc } from "./tools/import.js";
 
 // ---- tool definitions ----
 const tools: Tool[] = [
@@ -293,6 +294,22 @@ const tools: Tool[] = [
 
   // --- 上传 ---
   {
+    name: "yuque_import_doc",
+    description: "导入单个文件到语雀知识库。自动适配 Obsidian Markdown 格式（WikiLinks/callouts/frontmatter/注释/标签），自动上传本地图片到 CDN 并替换路径。支持预适配 body（Agent 已用 LLM 处理过的内容）",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file_path: { type: "string", description: "本地文件路径（必填，除非提供了 body）" },
+        book_id: { type: "number", description: "目标知识库 ID（默认使用 config 中的 default_book）" },
+        body: { type: "string", description: "预适配好的正文（可选。提供后跳过文件读取和 regex 适配，仅做图片上传+创建文档）" },
+        title: { type: "string", description: "文档标题（可选。不填则从 frontmatter/文件名/H1 提取）" },
+        skip_images: { type: "boolean", description: "跳过图片上传（默认 false，无 cookie 时自动跳过）" },
+        upload_original: { type: "boolean", description: "上传原始文件作为附件引用（默认 false）" },
+      },
+      required: ["file_path"],
+    },
+  },
+  {
     name: "yuque_upload_attachment",
     description: "上传文件到语雀 CDN（需 Cookie 登录态。支持 image/attachment/video 三种类型，默认 attachment 可传任意文件，上限 10MB）",
     inputSchema: {
@@ -473,6 +490,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
 
   yuque_search: (a) => search(a),
   yuque_batch_get_docs_body: (a) => batchGetDocsBody(a),
+  yuque_import_doc: (a) => importDoc(a),
   yuque_upload_attachment: (a) => uploadAttachment(a),
   yuque_health_check: () => healthCheck(),
   yuque_get_user: () => getUser(),

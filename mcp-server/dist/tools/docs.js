@@ -83,11 +83,12 @@ export async function createDoc(params) {
     const data = await post(`/repos/${bookId}/docs`, payload);
     const doc = data.data || data;
     const docId = doc.id;
-    // 自动挂载到目录
+    // 自动挂载到目录（对齐官方：child + 空 target_uuid = 根级子节点）
     try {
         await put(`/repos/${bookId}/toc`, {
             action: "appendNode",
-            action_mode: "sibling",
+            action_mode: "child",
+            target_uuid: "",
             type: "DOC",
             doc_ids: [docId],
         });
@@ -166,9 +167,10 @@ export async function updateToc(params) {
         payload.doc_ids = params.doc_ids;
     if (params.node_uuid)
         payload.node_uuid = params.node_uuid;
-    // appendNode/prependNode 用 target_uuid 表示插入位置
+    // appendNode/prependNode 用 target_uuid 表示插入位置（空字符串 = 根级）
     // editNode/removeNode 用 node_uuid 表示操作对象
-    if (params.target_uuid) {
+    // ⚠️ 使用 !== undefined 而非 truthy 检查，因为 "" 是合法的根级 target_uuid
+    if (params.target_uuid !== undefined) {
         const action = params.action || "appendNode";
         if (action === "editNode" || action === "removeNode") {
             payload.node_uuid = params.node_uuid || params.target_uuid;
@@ -188,7 +190,7 @@ export async function updateToc(params) {
 export async function removeTocNode(params) {
     await put(`/repos/${params.book_id}/toc`, {
         action: "removeNode",
-        action_mode: "sibling",
+        action_mode: params.action_mode || "sibling",
         node_uuid: params.target_uuid,
     });
     return `✅ 节点已从目录移除: ${params.target_uuid}`;
