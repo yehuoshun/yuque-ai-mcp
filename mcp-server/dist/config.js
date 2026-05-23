@@ -14,9 +14,29 @@ let cached = null;
 export function loadConfig() {
     if (cached)
         return cached;
+    // 优先读环境变量（npm 包安装方式）
+    if (process.env.YUQUE_TOKEN) {
+        cached = {
+            token: process.env.YUQUE_TOKEN,
+            group: process.env.YUQUE_GROUP || "",
+            default_book: normalizeBook({
+                book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
+                namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
+            }),
+            index_book: normalizeBook({
+                book_id: process.env.YUQUE_INDEX_BOOK_ID ? parseInt(process.env.YUQUE_INDEX_BOOK_ID) : 0,
+                namespace: process.env.YUQUE_INDEX_BOOK_NS || "",
+            }),
+            cookie: process.env.YUQUE_COOKIE || undefined,
+            ctoken: process.env.YUQUE_CTOKEN || undefined,
+            user_id: process.env.YUQUE_USER_ID || undefined,
+        };
+        return cached;
+    }
+    // 回退到配置文件（本地开发方式）
     const configPath = resolveConfigPath();
     if (!existsSync(configPath)) {
-        throw new Error(`语雀配置文件不存在: ${configPath}\n请创建 config/yuque-config.json，格式参考 SKILL.md`);
+        throw new Error(`语雀配置缺失。请设置环境变量 YUQUE_TOKEN 和 YUQUE_GROUP，或创建 ${configPath}`);
     }
     const raw = JSON.parse(readFileSync(configPath, "utf-8"));
     cached = {

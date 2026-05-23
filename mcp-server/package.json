@@ -1,7 +1,7 @@
 {
   "name": "yuque-mcp-server",
   "version": "1.0.0",
-  "description": "语雀 MCP Server — 知识库/文档/小记管理、搜索、导出",
+  "description": "语雀 MCP Server — 知识库/文档/小记 CRUD、搜索、批量导出、统计",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -18,5 +18,24 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.8.0"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "keywords": [
+    "yuque",
+    "语雀",
+    "mcp",
+    "mcp-server",
+    "modelcontextprotocol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yehuoshun/yuque-ai-mcp.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
   }
 }

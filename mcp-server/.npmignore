@@ -1,0 +1,16 @@
+# 源码
+src/
+tsconfig.json
+
+# 敏感内容
+config/
+dark-arts/
+
+# 测试
+test/
+
+# 不需要的文件
+node_modules/
+.git/
+.gitmodules
+.npmrc
