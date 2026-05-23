@@ -15,8 +15,8 @@ export async function listDocs(params) {
 }
 /**
  * 获取文档详情
- * 默认返回 JSON 含 format/body/body_html 等，适配 markdown/lake/html 多种格式
- * raw=true 时返回纯文本（markdown 格式适用，lake 格式返回的是 Lake JSON）
+ * 默认返回 JSON 含完整字段，适配 markdown/lake/html/lakesheet 多种格式
+ * raw=true 时返回纯文本（仅 markdown 格式文档可用）
  */
 export async function getDoc(params) {
     if (params.raw) {
@@ -24,16 +24,36 @@ export async function getDoc(params) {
     }
     const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
     const doc = data.data || data;
-    // 返回核心字段，LLM 按 format 自行处理（markdown 读 body / lake 读 body_lake / html 读 body_html）
+    const b = doc.book || {};
     return JSON.stringify({
+        id: doc.id,
+        book_id: doc.book_id,
         title: doc.title,
         slug: doc.slug,
+        description: doc.description,
         format: doc.format,
+        public: doc.public,
+        status: doc.status,
+        // 各格式正文
         body: doc.body,
+        body_draft: doc.body_draft,
         body_html: doc.body_html,
         body_lake: doc.body_lake,
+        body_sheet: doc.body_sheet,
+        body_table: doc.body_table,
+        // 统计
+        word_count: doc.word_count,
+        read_count: doc.read_count,
+        likes_count: doc.likes_count,
+        comments_count: doc.comments_count,
+        // 时间
         created_at: doc.created_at,
         updated_at: doc.updated_at,
+        content_updated_at: doc.content_updated_at,
+        published_at: doc.published_at,
+        // 关联
+        book: { id: b.id, name: b.name, namespace: b.namespace },
+        latest_version_id: doc.latest_version_id,
     }, null, 2);
 }
 /**
