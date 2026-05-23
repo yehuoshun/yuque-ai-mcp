@@ -24,7 +24,12 @@ export async function getRepo(params) {
 export async function createRepo(params) {
     const { group } = loadConfig();
     const slug = params.slug || generateSlug(params.name);
-    const data = await post(`/users/${group}/repos`, { name: params.name, slug });
+    const payload = { name: params.name, slug };
+    if (params.description)
+        payload.description = params.description;
+    if (params.public !== undefined)
+        payload.public = params.public;
+    const data = await post(`/users/${group}/repos`, payload);
     const r = data.data || data;
     return `✅ 知识库已创建: ${r.name} (id=${r.id}, namespace=${group}/${slug})`;
 }

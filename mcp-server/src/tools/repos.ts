@@ -32,10 +32,18 @@ export async function getRepo(params: { id_or_namespace: string }): Promise<stri
 /**
  * 创建知识库
  */
-export async function createRepo(params: { name: string; slug?: string }): Promise<string> {
+export async function createRepo(params: {
+  name: string;
+  slug?: string;
+  description?: string;
+  public?: 0 | 1 | 2;
+}): Promise<string> {
   const { group } = loadConfig();
   const slug = params.slug || generateSlug(params.name);
-  const data = await post(`/users/${group}/repos`, { name: params.name, slug });
+  const payload: Record<string, any> = { name: params.name, slug };
+  if (params.description) payload.description = params.description;
+  if (params.public !== undefined) payload.public = params.public;
+  const data = await post(`/users/${group}/repos`, payload);
   const r = (data as any).data || data;
   return `✅ 知识库已创建: ${r.name} (id=${r.id}, namespace=${group}/${slug})`;
 }

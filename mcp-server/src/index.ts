@@ -43,6 +43,8 @@ const tools: Tool[] = [
       properties: {
         name: { type: "string", description: "知识库名称" },
         slug: { type: "string", description: "知识库 slug（可选，自动生成）" },
+        description: { type: "string", description: "简介（可选）" },
+        public: { type: "number", enum: [0, 1, 2], description: "0=私有 1=公开 2=团队内公开" },
       },
       required: ["name"],
     },
@@ -120,6 +122,7 @@ const tools: Tool[] = [
         book_id: { type: "number", description: "知识库 ID" },
         offset: { type: "number", description: "分页偏移（默认 0）" },
         limit: { type: "number", description: "每页数量（默认 100）" },
+        optional_properties: { type: "string", description: "额外返回字段，逗号分隔：hits(阅读数)/tags(标签)/latest_version_id" },
       },
       required: ["book_id"],
     },

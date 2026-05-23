@@ -5,6 +5,7 @@ export declare function listDocs(params: {
     book_id: number;
     offset?: number;
     limit?: number;
+    optional_properties?: string;
 }): Promise<string>;
 /**
  * 获取文档详情

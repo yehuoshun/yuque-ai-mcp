@@ -4,11 +4,18 @@ import { loadConfig } from "../config.js";
 /**
  * 列出知识库内的文档
  */
-export async function listDocs(params: { book_id: number; offset?: number; limit?: number }): Promise<string> {
+export async function listDocs(params: {
+  book_id: number;
+  offset?: number;
+  limit?: number;
+  optional_properties?: string;
+}): Promise<string> {
   const offset = params.offset ?? 0;
-  const limit = params.limit ?? 100;
-  const data = await get(`/repos/${params.book_id}/docs?offset=${offset}&limit=${Math.min(limit, 100)}`);
+  const limit = Math.min(params.limit ?? 100, 100);
+  let url = `/repos/${params.book_id}/docs?offset=${offset}&limit=${limit}`;
+  if (params.optional_properties) url += `&optional_properties=${params.optional_properties}`;
 
+  const data = await get(url);
   const docs = (data as any).data || data;
   if (!Array.isArray(docs) || docs.length === 0) return "暂无文档";
 

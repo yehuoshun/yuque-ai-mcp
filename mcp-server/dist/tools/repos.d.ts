@@ -14,6 +14,8 @@ export declare function getRepo(params: {
 export declare function createRepo(params: {
     name: string;
     slug?: string;
+    description?: string;
+    public?: 0 | 1 | 2;
 }): Promise<string>;
 /**
  * 更新知识库
