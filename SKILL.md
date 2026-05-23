@@ -25,16 +25,16 @@ LLM Agent                  ← 问答编排：搜索 → 判断 → 补读 → �
 
 | 用户意图 | 详情 |
 |----------|------|
-| 归档/清理/搬移/备份旧文档 | [skills/batch-archive.md](skills/batch-archive.md) |
-| 自动分类/归类/整理结构 | [skills/batch-classify.md](skills/batch-classify.md) |
-| 统一文档格式/排版 | [skills/batch-format.md](skills/batch-format.md) |
-| 重建知识库目录/优化结构 | [skills/batch-toc-rebuild.md](skills/batch-toc-rebuild.md) |
-| 批量重命名 | [skills/batch-rename.md](skills/batch-rename.md) |
-| 版本审计/变更追踪/协作报告 | [skills/batch-version-audit.md](skills/batch-version-audit.md) |
-| 知识库运营数据/周报/仪表盘 | [skills/batch-dashboard.md](skills/batch-dashboard.md) |
-| 智能摘要/文档概括/知识库概览 | [skills/batch-summary.md](skills/batch-summary.md) |
-| 写作风格分析/笔记打磨/风格迁移/模板写作 | [skills/writing-studio.md](skills/writing-studio.md) |
-| 文档关联图谱/交叉引用/知识聚类 | [skills/knowledge-graph.md](skills/knowledge-graph.md) |
+| 归档/清理/搬移/备份旧文档 | [skills/batch/archive.md](skills/batch/archive.md) |
+| 自动分类/归类/整理结构 | [skills/batch/classify.md](skills/batch/classify.md) |
+| 统一文档格式/排版 | [skills/batch/format.md](skills/batch/format.md) |
+| 重建知识库目录/优化结构 | [skills/batch/rebuild-toc.md](skills/batch/rebuild-toc.md) |
+| 批量重命名 | [skills/batch/rename.md](skills/batch/rename.md) |
+| 版本审计/变更追踪/协作报告 | [skills/batch/audit.md](skills/batch/audit.md) |
+| 知识库运营数据/周报/仪表盘 | [skills/batch/dashboard.md](skills/batch/dashboard.md) |
+| 智能摘要/文档概括/知识库概览 | [skills/batch/summarize.md](skills/batch/summarize.md) |
+| 写作风格分析/笔记打磨/风格迁移/模板写作 | [skills/write/polish.md](skills/write/polish.md) |
+| 文档关联图谱/交叉引用/知识聚类 | [skills/map/knowledge.md](skills/map/knowledge.md) |
 
 ---
 
