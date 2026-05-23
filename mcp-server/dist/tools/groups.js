@@ -34,6 +34,7 @@ export async function updateGroupUser(params) {
         role: r.role,
         role_label: r.role === 0 ? "管理员" : r.role === 1 ? "成员" : "只读",
         user: r.user ? { login: r.user.login, name: r.user.name } : null,
+        created_at: r.created_at,
         updated_at: r.updated_at,
     }, null, 2);
 }
