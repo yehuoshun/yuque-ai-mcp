@@ -2,22 +2,24 @@ import { readFileSync, statSync } from "fs";
 import { loadConfig } from "../config.js";
 
 /**
- * 上传图片到语雀 CDN
+ * 上传文件到语雀 CDN（支持图片、附件、视频）
  * 需要 Cookie 登录态（非 API Token），不支持时返回错误提示
  */
-export async function uploadImage(params: {
-  image_path: string;
+export async function uploadAttachment(params: {
+  file_path: string;
+  type?: "image" | "attachment" | "video";
   cookie?: string;
   ctoken?: string;
 }): Promise<string> {
   const config = loadConfig();
   const cookie = params.cookie || config.cookie || "";
   const ctoken = params.ctoken || config.ctoken || "";
+  const type = params.type || "attachment";
 
   if (!cookie || !ctoken) {
     return JSON.stringify({
       error: "MISSING_COOKIE",
-      message: "图片上传需要 Cookie 登录态。请在 config/yuque-config.json 中配置 cookie 和 ctoken 字段，获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
+      message: "文件上传需要 Cookie 登录态。请在 config/yuque-config.json 中配置 cookie 和 ctoken 字段。获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
     });
   }
 
@@ -25,20 +27,20 @@ export async function uploadImage(params: {
   let fileBuffer: Buffer;
   let fileName: string;
   try {
-    fileBuffer = readFileSync(params.image_path);
-    fileName = params.image_path.split("/").pop() || "image.png";
-    const sizeMB = statSync(params.image_path).size / 1024 / 1024;
-    if (sizeMB > 2) {
+    fileBuffer = readFileSync(params.file_path);
+    fileName = params.file_path.split("/").pop() || "file";
+    const sizeMB = statSync(params.file_path).size / 1024 / 1024;
+    if (sizeMB > 10) {
       return JSON.stringify({
         error: "FILE_TOO_LARGE",
-        message: `图片过大 (${sizeMB.toFixed(1)}MB)，上限 2MB`,
-        path: params.image_path,
+        message: `文件过大 (${sizeMB.toFixed(1)}MB)，上限 10MB`,
+        path: params.file_path,
       });
     }
   } catch (e: any) {
     return JSON.stringify({
       error: "FILE_NOT_FOUND",
-      message: `文件不存在或无法读取: ${params.image_path}`,
+      message: `文件不存在或无法读取: ${params.file_path}`,
       detail: e.message,
     });
   }
@@ -58,8 +60,8 @@ export async function uploadImage(params: {
   const body = Buffer.concat(parts);
 
   try {
-    const userId = "25689388"; // 从 config 读或传参
-    const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=image&ctoken=${ctoken}`;
+    const userId = "25689388";
+    const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30_000);
@@ -91,12 +93,15 @@ export async function uploadImage(params: {
 
     const data = JSON.parse(text);
     const filekey = data?.data?.filekey || data?.filekey || "";
+    const extname = data?.data?.extname || "";
     const url_result = filekey ? `https://cdn.nlark.com/${filekey}` : "";
 
     return JSON.stringify({
       success: true,
       url: url_result,
       filekey,
+      extname,
+      type,
     });
   } catch (e: any) {
     return JSON.stringify({

@@ -12,7 +12,7 @@ import { batchGetDocsBody } from "./tools/export.js";
 import { healthCheck, getUser } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
-import { uploadImage } from "./tools/upload.js";
+import { uploadAttachment } from "./tools/upload.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
@@ -281,16 +281,17 @@ const tools = [
     },
     // --- 上传 ---
     {
-        name: "yuque_upload_image",
-        description: "上传图片到语雀 CDN（需配置 Cookie 登录态。cookie/ctoken 参数可选，未传则读 config）",
+        name: "yuque_upload_attachment",
+        description: "上传文件到语雀 CDN（需 Cookie 登录态。支持 image/attachment/video 三种类型，默认 attachment 可传任意文件，上限 10MB）",
         inputSchema: {
             type: "object",
             properties: {
-                image_path: { type: "string", description: "本地图片路径" },
+                file_path: { type: "string", description: "本地文件路径" },
+                type: { type: "string", enum: ["image", "attachment", "video"], description: "文件类型（默认 attachment）" },
                 cookie: { type: "string", description: "语雀 Cookie 字符串（可选，默认读 config）" },
                 ctoken: { type: "string", description: "CSRF Token（可选，默认读 config）" },
             },
-            required: ["image_path"],
+            required: ["file_path"],
         },
     },
     {
@@ -453,7 +454,7 @@ const handlers = {
     yuque_restore_note: (a) => restoreNote(a),
     yuque_search: (a) => search(a),
     yuque_batch_get_docs_body: (a) => batchGetDocsBody(a),
-    yuque_upload_image: (a) => uploadImage(a),
+    yuque_upload_attachment: (a) => uploadAttachment(a),
     yuque_health_check: () => healthCheck(),
     yuque_get_user: () => getUser(),
     yuque_list_group_users: (a) => listGroupUsers(a),

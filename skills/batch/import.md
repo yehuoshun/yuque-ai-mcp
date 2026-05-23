@@ -91,8 +91,8 @@ Prompt：
 ```
 检测到 ![](./path/to/img.png) 普通路径或 ![](https://...) 远程 URL：
 
-  本地路径 → 检查文件存在 → yuque_upload_image → CDN URL → 替换路径
-  远程 URL → 下载到临时文件 → yuque_upload_image → CDN URL → 替换路径
+  本地路径 → 检查文件存在 → yuque_upload_attachment → CDN URL → 替换路径
+  远程 URL → 下载到临时文件 → yuque_upload_attachment → CDN URL → 替换路径
   Obsidian ![[img.png]] → 适配层已转为 ![](./img.png) → 按本地路径处理
 
   上传限制：
@@ -249,7 +249,7 @@ Prompt：
 | 扫描 | `exec find/ls/unzip` |
 | 读文件 | `read` |
 | 格式适配 | LLM（本 Agent） |
-| 上传图片 | `yuque_upload_image` |
+| 上传图片 | `yuque_upload_attachment` |
 | 创建文档 | `yuque_create_doc` |
 | 建目录 | `yuque_update_toc` |
 | TOC 优化 | batch/rebuild-toc（技能联动） |
