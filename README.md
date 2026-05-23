@@ -2,8 +2,8 @@
 
 > 语雀全功能 AI Agent 技能 —— 知识库管理、文档 CRUD、小记管理、目录编排、批量导出、一级索引知识库问答（纯 LLM + 语雀 API，零外部依赖）。
 
-[![Release](https://img.shields.io/github/v/release/yehuoshun/yuque-ai-skill?label=release)](https://github.com/yehuoshun/yuque-ai-skill/releases)
-[![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-skill)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/yehuoshun/yuque-ai-mcp?label=release)](https://github.com/yehuoshun/yuque-ai-mcp/releases)
+[![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
 [![MCP](https://img.shields.io/badge/MCP-Server-blue)](./mcp-server)
 
