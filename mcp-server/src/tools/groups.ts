@@ -16,11 +16,15 @@ export async function listGroupUsers(params: {
   const users = (data as any).data || data;
   if (!Array.isArray(users) || users.length === 0) return "暂无成员";
 
-  const lines = users.map(
-    (u: any) =>
-      `- ${u.user?.name || "未知"} (login=${u.user?.login}, role=${u.role === 0 ? "管理员" : u.role === 1 ? "成员" : "只读"})`
-  );
-  return lines.join("\n");
+  return JSON.stringify(users.map((u: any) => ({
+    id: u.id,
+    group_id: u.group_id,
+    user_id: u.user_id,
+    role: u.role,
+    role_label: u.role === 0 ? "管理员" : u.role === 1 ? "成员" : "只读",
+    user: u.user ? { id: u.user.id, login: u.user.login, name: u.user.name, avatar_url: u.user.avatar_url } : null,
+    created_at: u.created_at,
+  })), null, 2);
 }
 
 /**
