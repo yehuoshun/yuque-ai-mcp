@@ -101,6 +101,12 @@ export async function updateDoc(params) {
         payload.title = params.title;
     if (params.body !== undefined)
         payload.body = params.body;
+    if (params.slug)
+        payload.slug = params.slug;
+    if (params.format)
+        payload.format = params.format;
+    if (params.public !== undefined)
+        payload.public = params.public;
     await put(`/repos/${params.book_id}/docs/${params.doc_id}`, payload);
     return `✅ 文档已更新: id=${params.doc_id}`;
 }

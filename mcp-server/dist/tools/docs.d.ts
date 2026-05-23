@@ -35,6 +35,9 @@ export declare function updateDoc(params: {
     doc_id: number;
     title?: string;
     body?: string;
+    slug?: string;
+    format?: "markdown" | "html" | "lake";
+    public?: 0 | 1 | 2;
 }): Promise<string>;
 /**
  * 删除文档

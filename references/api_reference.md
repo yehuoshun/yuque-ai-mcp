@@ -273,9 +273,23 @@ Content-Type: application/json
 {
   "title": "新标题",
   "body": "新内容",
-  "format": "markdown"
+  "slug": "新路径",
+  "format": "markdown",
+  "public": 0
 }
 ```
+
+**参数**（全部可选，只传需更新的字段）：
+
+| 参数 | 说明 |
+|------|------|
+| `title` | 标题 |
+| `body` | 正文内容 |
+| `slug` | 文档路径 |
+| `format` | 内容格式：`markdown` / `html` / `lake` |
+| `public` | 0=私密 / 1=公开 / 2=企业内公开 |
+
+> 📤 **返回**：完整文档对象，字段同 [获取文档详情](#获取文档详情)。
 
 ### 删除文档
 

@@ -153,7 +153,7 @@ const tools: Tool[] = [
   },
   {
     name: "yuque_update_doc",
-    description: "更新语雀文档的标题或正文",
+    description: "更新语雀文档（标题/正文/路径/格式/公开性）",
     inputSchema: {
       type: "object",
       properties: {
@@ -161,6 +161,9 @@ const tools: Tool[] = [
         doc_id: { type: "number", description: "文档 ID" },
         title: { type: "string", description: "新标题（可选）" },
         body: { type: "string", description: "新正文（可选）" },
+        slug: { type: "string", description: "新路径（可选）" },
+        format: { type: "string", enum: ["markdown", "html", "lake"], description: "内容格式（可选）" },
+        public: { type: "number", enum: [0, 1, 2], description: "0=私密 1=公开 2=企业内公开（可选）" },
       },
       required: ["book_id", "doc_id"],
     },
