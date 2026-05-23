@@ -19,11 +19,11 @@ export declare function createNote(params: {
     body: string;
 }): Promise<string>;
 /**
- * 更新小记（需要先 GET 原内容再 PUT）
+ * 更新小记
  */
 export declare function updateNote(params: {
     note_id: number;
-    body?: string;
+    body: string;
     title?: string;
 }): Promise<string>;
 /**

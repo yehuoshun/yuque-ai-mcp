@@ -10,10 +10,11 @@ export async function listNotes(params: { page?: number; limit?: number; status?
   const data = await get(`/notes?page=${page}&limit=${limit}&status=${status}`);
 
   const body = data as any;
-  const notes = body.data || body;
+  const raw = body.data || body;
+  const notes = raw.notes || raw.pin_notes || [];
   if (!Array.isArray(notes) || notes.length === 0) return "暂无小记";
 
-  const lines = notes.map((n: any) => `- [${n.title || "无标题"}](${n.slug}) id=${n.id}`);
+  const lines = notes.map((n: any) => `- [${n.title || "无标题"}](id=${n.id}) created=${(n.published_at || n.created_at || "").slice(0, 10)}`);
   return lines.join("\n");
 }
 
@@ -37,24 +38,20 @@ export async function createNote(params: { body: string }): Promise<string> {
 }
 
 /**
- * 更新小记（需要先 GET 原内容再 PUT）
+ * 更新小记
  */
-export async function updateNote(params: { note_id: number; body?: string; title?: string }): Promise<string> {
-  // 先获取原内容
-  const origin = await get(`/notes/${params.note_id}`);
-  const origNote = ((origin as any).data?.data || (origin as any).data || origin) as any;
-
+export async function updateNote(params: { note_id: number; body: string; title?: string }): Promise<string> {
   const payload: Record<string, any> = {
-    source: params.body || origNote.content?.source || origNote.source || "",
-    html: origNote.content?.html || origNote.html || "",
-    abstract: origNote.content?.abstract || origNote.abstract || "",
+    source: params.body,
+    html: `<p>${params.body}</p>`,
+    abstract: params.body.substring(0, 200),
   };
 
   if (params.title) {
     payload.title = params.title;
   }
 
-  const data = await put(`/notes/${params.note_id}`, payload);
+  await put(`/notes/${params.note_id}`, payload);
   return `✅ 小记已更新: id=${params.note_id}`;
 }
 

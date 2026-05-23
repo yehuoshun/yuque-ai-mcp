@@ -239,10 +239,10 @@ const tools = [
             type: "object",
             properties: {
                 note_id: { type: "number", description: "小记 ID" },
-                body: { type: "string", description: "新正文（可选）" },
+                body: { type: "string", description: "新正文" },
                 title: { type: "string", description: "新标题（可选）" },
             },
-            required: ["note_id"],
+            required: ["note_id", "body"],
         },
     },
     {
