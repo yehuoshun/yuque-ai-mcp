@@ -262,7 +262,7 @@ Content-Type: application/json
 }
 ```
 
-> 💡 如需**首插**（文档放在目录第一位），将 `action` 改为 `prependNode`。详见 [目录 API](#目录-api) 章节。
+> 💡 如需**首插**（文档放在目录第一位）：`prependNode` 不支持直接用 `doc_ids` 创建，需两步：① 创建文档（自动 appendNode 挂到 TOC 末尾）→ ② `prependNode` + `node_uuid` 移到首位。详见 [目录 API · 首插](#目录-api) 示例。
 
 ### 更新文档
 
@@ -688,6 +688,26 @@ Content-Type: application/json
 | `url` | string | 创建外链必填 | 外链 URL |
 | `open_window` | int | 外链选填 | 0=当前页打开 / 1=新窗口打开 |
 | `visible` | int | 选填 | 0=不可见 / 1=可见（默认 1） |
+
+**首插（文档放目录第一位）**：
+
+> `prependNode` 不支持直接用 `doc_ids` 创建（返回 400），只能配合 `node_uuid` 移动已有节点。
+
+首插需两步：
+1. **创建文档** → `yuque_create_doc` 自动 `appendNode` 挂载到 TOC 末尾
+2. **移动到位** → `prependNode` + `sibling` + `node_uuid`（文档的 TOC UUID）+ `target_uuid`（当前首位节点的 UUID）
+
+```json
+// 步骤1：yuque_create_doc 已完成，文档在 TOC 末尾
+
+// 步骤2：从 list_toc 取文档 TOC UUID 和首位 UUID，调用：
+{
+  "action": "prependNode",
+  "action_mode": "sibling",
+  "node_uuid": "<文档的TOC_UUID>",
+  "target_uuid": "<第一位节点的UUID>"
+}
+```
 
 **注意**：
 - `appendNode` 不接受 `node_uuid`（会返回 `invalid action`），移动已有节点到子级请用 `prependNode` + `child` + `node_uuid` + `target_uuid`
