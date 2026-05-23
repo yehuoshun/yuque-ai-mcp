@@ -17,15 +17,28 @@ export async function listDocs(params: { book_id: number; offset?: number; limit
 }
 
 /**
- * 获取文档详情（Markdown）
+ * 获取文档详情
+ * 默认返回 JSON 含 format/body/body_html 等，适配 markdown/lake/html 多种格式
+ * raw=true 时返回纯文本（markdown 格式适用，lake 格式返回的是 Lake JSON）
  */
 export async function getDoc(params: { book_id: number; doc_id: number; raw?: boolean }): Promise<string> {
-  const raw = params.raw !== false;
-  if (raw) {
+  if (params.raw) {
     return await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
   }
+
   const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
-  return JSON.stringify((data as any).data || data, null, 2);
+  const doc = (data as any).data || data;
+  // 返回核心字段，LLM 按 format 自行处理（markdown 读 body / lake 读 body_lake / html 读 body_html）
+  return JSON.stringify({
+    title: doc.title,
+    slug: doc.slug,
+    format: doc.format,
+    body: doc.body,
+    body_html: doc.body_html,
+    body_lake: doc.body_lake,
+    created_at: doc.created_at,
+    updated_at: doc.updated_at,
+  }, null, 2);
 }
 
 /**

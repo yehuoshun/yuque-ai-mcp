@@ -117,13 +117,13 @@ const tools = [
     },
     {
         name: "yuque_get_doc",
-        description: "获取语雀文档内容（默认返回 Markdown），raw=false 返回 JSON",
+        description: "获取语雀文档内容。默认返回 JSON（含 format/body/body_html/body_lake 适配多格式），raw=true 返回纯文本（仅 markdown 格式可用）",
         inputSchema: {
             type: "object",
             properties: {
                 book_id: { type: "number", description: "知识库 ID" },
                 doc_id: { type: "number", description: "文档 ID" },
-                raw: { type: "boolean", description: "返回 Markdown（默认 true）" },
+                raw: { type: "boolean", description: "返回纯文本（默认 false，仅 markdown 格式文档可用）" },
             },
             required: ["book_id", "doc_id"],
         },

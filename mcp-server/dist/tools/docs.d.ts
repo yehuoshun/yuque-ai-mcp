@@ -7,7 +7,9 @@ export declare function listDocs(params: {
     limit?: number;
 }): Promise<string>;
 /**
- * 获取文档详情（Markdown）
+ * 获取文档详情
+ * 默认返回 JSON 含 format/body/body_html 等，适配 markdown/lake/html 多种格式
+ * raw=true 时返回纯文本（markdown 格式适用，lake 格式返回的是 Lake JSON）
  */
 export declare function getDoc(params: {
     book_id: number;
