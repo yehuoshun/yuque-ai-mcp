@@ -9,8 +9,7 @@ import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, 
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";
-import { healthCheck } from "./tools/health.js";
-import { getUser } from "./tools/user.js";
+import { healthCheck, getUser } from "./tools/user.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
