@@ -10,6 +10,7 @@ import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } f
 import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";
 import { healthCheck } from "./tools/health.js";
+import { getUser } from "./tools/user.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
@@ -302,6 +303,11 @@ const tools = [
         description: "检查语雀配置是否正常（Token 有效性、知识库可访问性）",
         inputSchema: { type: "object", properties: {}, required: [] },
     },
+    {
+        name: "yuque_get_user",
+        description: "获取当前 Token 的用户详情（login/name/统计等）",
+        inputSchema: { type: "object", properties: {}, required: [] },
+    },
 ];
 // ---- handler map ----
 const handlers = {
@@ -330,6 +336,7 @@ const handlers = {
     yuque_export_doc: (a) => exportDoc(a),
     yuque_list_docs_for_export: (a) => listDocsForExport(a),
     yuque_health_check: () => healthCheck(),
+    yuque_get_user: () => getUser(),
 };
 // ---- server ----
 const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
