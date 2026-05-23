@@ -1,4 +1,4 @@
-import { get, getRaw, post, put, del } from "../client.js";
+import { get, post, put, del } from "../client.js";
 import { loadConfig } from "../config.js";
 /**
  * 列出知识库内的文档
@@ -18,21 +18,8 @@ export async function listDocs(params) {
 }
 /**
  * 获取文档详情
- * 默认返回 JSON 含完整字段，适配 markdown/lake/html/lakesheet 多种格式
- * raw=true 时返回纯文本（仅 markdown 格式文档可用）
  */
 export async function getDoc(params) {
-    if (params.raw) {
-        const text = await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
-        try {
-            const parsed = JSON.parse(text);
-            const doc = (parsed.data || parsed);
-            return doc.body || text;
-        }
-        catch {
-            return text;
-        }
-    }
     const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
     const doc = data.data || data;
     const b = doc.book || {};

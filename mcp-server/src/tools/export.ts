@@ -1,18 +1,13 @@
-import { get, getRaw } from "../client.js";
+import { get } from "../client.js";
 import { loadConfig } from "../config.js";
 
 /**
  * 导出单篇文档为 Markdown 内容
  */
 export async function exportDoc(params: { book_id: number; doc_id: number }): Promise<string> {
-  const text = await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
-  try {
-    const parsed = JSON.parse(text);
-    const doc = (parsed.data || parsed);
-    return doc.body || text;
-  } catch {
-    return text;
-  }
+  const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
+  const doc = (data as any).data || data;
+  return doc.body || doc.body_sheet || "";
 }
 
 /**

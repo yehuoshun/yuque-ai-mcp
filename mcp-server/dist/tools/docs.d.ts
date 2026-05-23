@@ -9,13 +9,10 @@ export declare function listDocs(params: {
 }): Promise<string>;
 /**
  * 获取文档详情
- * 默认返回 JSON 含完整字段，适配 markdown/lake/html/lakesheet 多种格式
- * raw=true 时返回纯文本（仅 markdown 格式文档可用）
  */
 export declare function getDoc(params: {
     book_id: number;
     doc_id: number;
-    raw?: boolean;
 }): Promise<string>;
 /**
  * 创建文档（自动挂 TOC）
