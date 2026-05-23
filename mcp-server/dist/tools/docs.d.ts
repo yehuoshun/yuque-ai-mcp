@@ -1,5 +1,5 @@
 /**
- * 列出知识库内的文档
+ * 列出知识库内的文档（返回结构化 JSON，不含 body 以节省 token）
  */
 export declare function listDocs(params: {
     book_id: number;

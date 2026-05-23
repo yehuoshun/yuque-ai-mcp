@@ -1,7 +1,7 @@
 import { get, post, put, del } from "../client.js";
 import { loadConfig } from "../config.js";
 /**
- * 列出知识库内的文档
+ * 列出知识库内的文档（返回结构化 JSON，不含 body 以节省 token）
  */
 export async function listDocs(params) {
     const offset = params.offset ?? 0;
@@ -12,9 +12,17 @@ export async function listDocs(params) {
     const data = await get(url);
     const docs = data.data || data;
     if (!Array.isArray(docs) || docs.length === 0)
-        return "暂无文档";
-    const lines = docs.map((d) => `- [${d.title}](${d.slug}) id=${d.id}`);
-    return lines.join("\n");
+        return JSON.stringify([]);
+    return JSON.stringify(docs.map((d) => ({
+        id: d.id,
+        slug: d.slug,
+        title: d.title,
+        format: d.format,
+        public: d.public,
+        word_count: d.word_count,
+        updated_at: d.updated_at,
+        ...(d.content_updated_at ? { content_updated_at: d.content_updated_at } : {}),
+    })), null, 2);
 }
 /**
  * 获取文档详情
