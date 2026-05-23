@@ -36,7 +36,71 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
 
 ---
 
-## 来源支持
+## 附件处理
+
+导入扫描考文件类型时，非 Markdown 文件需询问处理方式：
+
+```
+检测到 {N} 个非 Markdown 文件：
+
+  .py .js .ts .java .html .css .json .csv .log 等代码/文本 → 可转为文档
+  .pdf .docx .rtf 等可转换文档 → 暂不支持（需安装工具，后续加）
+  .mp4 .zip .png .mp3 等二进制 → 只能上传附件
+
+处理方式：
+  A. 全部处理 — 文本→文档，二进制→上传附件
+  B. 只处理文本 — 代码/配置文件转文档，其余跳过
+  C. 全部跳过 — 非 Markdown 全部忽略
+
+默认 B（只处理文本）。
+```
+
+### 纯文本文件处理
+
+以下扩展名当天直接 `read` 创建文档：
+
+| 类型 | 扩展名 | 文档格式 |
+|------|--------|---------|
+| 代码 | .py .js .ts .java .rb .go .rs .swift .cpp .hpp .c .h .cs .php .lua .scala .groovy .kt .dart .m .mm .sql .sh .bash .zsh .ps1 .bat .cmd | ` ```lang ` 代码块 |
+| Web | .html .htm .css .scss .less .sass .xml .svg | ` ```lang ` 代码块 |
+| 配置 | .json .yaml .yml .toml .ini .cfg .conf .properties .env | ` ```lang ` 代码块 |
+| 数据 | .csv .tsv | Markdown 表格 |
+| 标记 | .rst .tex .textile | 直接 body |
+| 纯文本 | .txt .log .nfo .diff .patch | 直接 body |
+
+### 纯文本导入规则
+
+```
+1. read 文件内容
+2. 检测文件大小 → >500KB 截断前 500KB + 末尾标注「已截断」
+3. create_doc(
+    title = {文件名}（保留后缀）,
+    body = ```{lang}\n{内容}\n```  (代码类)
+           或直接 body（标记/纯文本类）
+   )
+4. 原始文件上传 yuque_upload_attachment(type="attachment")
+5. 文档末尾追加：
+
+   ---
+   📎 原始文件：[{文件名}]({CDN URL})
+```
+
+### 二进制文件处理
+
+```
+选 A 时：
+  仅上传附件（yuque_upload_attachment），不创建文档
+  → 创建一篇索引文档「📎 附件清单」列出所有二进制文件 + CDN 链接
+
+选 B/C：
+  跳过，报告中列出
+```
+
+### 可转换文档（暂不支持）
+
+```
+.pdf .docx .rtf .chm → 需要 pdftotext/pandoc 等工具，暂无 tool，留坑后续加。
+```
 
 | 来源 | 识别方式 | 格式适配 |
 |------|---------|---------|
@@ -110,47 +174,72 @@ Prompt：
 ```
 0. 前置检查：
    config 有 cookie + ctoken → 继续
-   无 → 「图片上传需要 Cookie 登录态，请配置后重试」
+   无 → 「文件上传需要 Cookie 登录态，请配置后重试」
 
 1. 扫描源：
-   文件夹 → exec find {目录} -name '*.md' → 获取所有 .md 路径
-   ZIP → exec unzip -l {zip} → 提取 .md 列表 → 解压
+   文件夹 → exec find {目录} -type f → 获取所有文件
+   ZIP → exec unzip -l {zip} → 提取文件列表 → 解压
    单文件 → 直接确定路径
-   上限 100 篇
+   总上限 100 篇（Markdown + 纯文本），附件不占配额
 
-2. 预览：
+2. 文件分类 + 询问附件策略：
 
-   📋 导入预览
-   来源：{路径/文件名} → 目标库：《{库名}》
-   类型：{Obsidian/Notion/本地}
+   📋 导入扫描结果
+   来源：{路径} → 目标库：《{库名}》
 
-   #  文件              大小    来源目录
+   📝 Markdown（{N}篇）
+   #  文件              大小    目录
    1  Docker入门.md     12KB    根
    2  Docker部署.md     8KB     📂部署/
-   3  K8s基础.md        15KB    📂部署/
-   ...
 
-   共 {N} 篇 | 含 {M} 张图片 | {需要适配的篇数} 篇需格式适配
+   📄 可转为文档的文本文件（{M}个）
+   #  文件              类型    大小
+   1  config.json       JSON    2KB
+   2  deploy.sh          bash   1KB
+   3  data.csv          CSV     15KB
 
-   「确认导入」「排除 N号」「改目标库」「取消」
+   🎬 二进制/附件（{K}个）
+   #  文件              类型    大小
+   1  demo.mp4          mp4     50MB
+   2  logo.png          png     200KB
 
-3. 逐篇导入（并发 3）：
+   ⚠️ 暂不支持（{P}个）
+   1  report.pdf        pdf     3MB
+
+   附件处理：
+   「A. 全部处理」— 文本→文档 + 附件上传
+   「B. 只处理文本」— 代码/配置转文档，其余跳过（默认）
+   「C. 全部跳过」— 只导入 Markdown
+
+3. 逐篇导入 Markdown（并发 3）：
 
    对每篇 .md：
      a. read 文件内容
      b. 检测是否需要格式适配 → 需要则 LLM 适配
-     c. 适配后提取 title（from frontmatter or filename）
-     d. 正则提取 ![](路径) → 本地/远程图片
-     e. 逐张上传（并发 3）→ 替换路径为 CDN URL
-     f. yuque_create_doc(title, body)
+     c. 提取 title
+     d. 正则提取 ![](路径) → 上传 CDN → 替换
+     e. yuque_create_doc
 
-4. 建目录：
+4. 逐篇导入纯文本（并发 3，选 A/B 时）：
+
+   对每个纯文本文件：
+     a. read 文件内容
+     b. 按语言标记代码块（代码类）或直接 body（纯文本类）
+     c. yuque_upload_attachment 上传原始文件
+     d. yuque_create_doc(title={文件名}, body={代码块/文本}+📎链接)
+
+5. 上传二进制附件（选 A 时）：
+
+   逐文件 yuque_upload_attachment(type="attachment")
+   → 创建索引文档「📎 附件清单」列出所有附件
+
+6. 建目录：
    按原文件夹结构 → yuque_update_toc 挂 TOC 节点（最多 3 级）
 
-5. TOC 优化：
+7. TOC 优化：
    深度 > 3 级 → 调 batch/rebuild-toc 智能扁平化
 
-6. 报告
+8. 报告
 ```
 
 ---
@@ -182,25 +271,28 @@ Prompt：
 ```
 ✅ 导入完成
 
-来源：~/Obsidian/vault/ → 目标库：《{库名}》
+来源：{路径} → 目标库：《{库名}》
 
-📊 {N} 篇 | 成功 {K} | 失败 {F} | 跳过 {S}
+📝 Markdown：{N} 篇 | 成功 {K} | 失败 {F}
+📄 纯文本→文档：{M} 个 | 成功 {SM} | 跳过 {PM}
+📎 附件上传：{A} 个 | {CDN 链接数}
 
 ✅ 已导入：
   1. Docker入门 → {链接}
-  2. Java基础 → {链接}
+  2. config.json → {链接}
+  3. deploy.sh → {链接}
 
-🖼️ 图片：上传 {M} 张 | 跳过 {P} 张
-  跳过（如有）：
-    ./screenshots/big.png (3.2MB) → Docker部署.md
-    ./logo.png (无 cookie) → 全部文档
+📎 附件清单（如有）：
+  📎 附件清单 → {链接}
+
+🖼️ 图片：上传 {Img} 张 | 跳过 {Sk} 张
 
 🔧 格式适配：{X} 篇
 📂 TOC：已按原结构挂载 {Y} 个节点
-  {如有优化} TOC 已优化（扁平化 {Z} 级 → 3 级）
 
 ❌ 失败（如有）：
   xxx.md — 文件读取失败
+  report.pdf — 暂不支持，需 pdftotext
 ```
 
 ---
@@ -209,12 +301,15 @@ Prompt：
 
 | 项 | 上限 |
 |----|------|
-| 单次导入 | 100 篇 |
+| 单次导入 Markdown+文本 | 100 篇 |
+| 附件文件 | 50 个 |
+| 附件大小 | 10MB/个 |
 | 图片大小 | 2MB/张 |
 | 单篇图片数 | 20 张 |
 | 目录深度 | 3 级（超则自动优化） |
-| 并发导入 | 3 篇 |
-| 并发上传 | 3 张 |
+| 并发导入 Markdown | 3 篇 |
+| 并发导入纯文本 | 3 个 |
+| 并发上传附件 | 3 个 |
 
 ---
 
@@ -249,7 +344,7 @@ Prompt：
 | 扫描 | `exec find/ls/unzip` |
 | 读文件 | `read` |
 | 格式适配 | LLM（本 Agent） |
-| 上传图片 | `yuque_upload_attachment` |
+| 上传附件 | `yuque_upload_attachment` |
 | 创建文档 | `yuque_create_doc` |
 | 建目录 | `yuque_update_toc` |
 | TOC 优化 | batch/rebuild-toc（技能联动） |
