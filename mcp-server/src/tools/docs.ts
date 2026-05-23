@@ -30,7 +30,14 @@ export async function listDocs(params: {
  */
 export async function getDoc(params: { book_id: number; doc_id: number; raw?: boolean }): Promise<string> {
   if (params.raw) {
-    return await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
+    const text = await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
+    try {
+      const parsed = JSON.parse(text);
+      const doc = (parsed.data || parsed);
+      return doc.body || text;
+    } catch {
+      return text;
+    }
   }
 
   const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);

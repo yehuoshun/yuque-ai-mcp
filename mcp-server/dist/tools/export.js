@@ -3,8 +3,15 @@ import { get, getRaw } from "../client.js";
  * 导出单篇文档为 Markdown 内容
  */
 export async function exportDoc(params) {
-    const markdown = await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
-    return markdown;
+    const text = await getRaw(`/repos/${params.book_id}/docs/${params.doc_id}`);
+    try {
+        const parsed = JSON.parse(text);
+        const doc = (parsed.data || parsed);
+        return doc.body || text;
+    }
+    catch {
+        return text;
+    }
 }
 /**
  * 批量导出知识库的文档列表
