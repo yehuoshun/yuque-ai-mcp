@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 知识库管理、文档 CRUD、小记管理、目录编排、批量导出、一级索引知识库问答（纯 LLM + 语雀 API，零外部依赖）。
+> 语雀全功能 AI Agent 技能 —— 知识库管理、文档 CRUD、小记管理、目录编排、批量导出、一级索引知识库问答 + 批量运维（归档、分类、格式化、目录重构、重命名）。纯 LLM + 语雀 API，零外部依赖。
 
 [![Release](https://img.shields.io/github/v/release/yehuoshun/yuque-ai-mcp?label=release)](https://github.com/yehuoshun/yuque-ai-mcp/releases)
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
@@ -12,15 +12,18 @@
 ## 架构
 
 ```
-yuque-mcp (MCP Server)     ← 管理操作：21 个 tools（CRUD、搜索、导出、健康检查）
+yuque-mcp (MCP Server)     ← 管理操作：32 个 tools（CRUD、搜索、导出、统计、群组、健康检查）
+    ↓
+业务 Skills                ← 批量运维：归档/备份、智能分类、格式标准化、目录重构、批量重命名
     ↓
 LLM Agent                  ← 问答编排：搜索 → 判断 → 补读 → 生成答案
 ```
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 21 个 tools |
-| `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建） |
+| `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 32 个 tools |
+| `skills/` | Markdown | 业务 Skills（batch-archive、batch-classify 等） |
+| `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 | `yuque_api.py` | Python 3 标准库 | 核心 API 封装（兼容旧版，逐步由 MCP 替代） |
 | `yuque_search.py` | Python 3 标准库 | 搜索管线（兼容旧版） |
 | `yuque_index.py` | Python 3 标准库 | 索引构建器（兼容旧版） |
@@ -181,15 +184,32 @@ flowchart TD
 
 ---
 
+## 业务 Skills
+
+基于 MCP 32 tools 的高层业务能力。全部遵循先预览后确认、单篇隔离不传染。
+
+| Skill | 说明 |
+|-------|------|
+| [batch-archive](skills/batch-archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
+| [batch-classify](skills/batch-classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
+| batch-format | 批量格式标准化（待开发） |
+| batch-toc-rebuild | 目录智能重构（待开发） |
+| batch-rename | 批量重命名（待开发） |
+
+---
+
 ## 项目结构
 
 ```
 yuque-ai-skill/
 ├── SKILL.md              # AI Agent 执行规范
 ├── README.md             # 本文件
+├── skills/               # 业务 Skills
+│   ├── batch-archive.md  # 批量归档/备份
+│   └── batch-classify.md # 智能分类打标
 ├── mcp-server/           # MCP Server (TypeScript)
 │   ├── src/
-│   │   ├── index.ts      # Server 入口（注册 21 个 tools）
+│   │   ├── index.ts      # Server 入口（注册 32 个 tools）
 │   │   ├── client.ts     # 语雀 HTTP 客户端
 │   │   ├── config.ts     # 配置读取
 │   │   ├── tools/        # Tool 实现
