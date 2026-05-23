@@ -160,6 +160,8 @@ count == 0 → 「所有文档都在 {阈值} 内活跃更新中 🎉」结束
 
 ```
 目标库需新建 → yuque_create_repo(name="归档-{源库name}", slug, description)
+  → 响应不包含 namespace，手动构造：namespace = "{login}/{slug}"
+  → login 从 config/yuque-config.json 的 group 字段取
   → 失败 → 中止，告知用户「创建目标库失败」
 ```
 

@@ -134,6 +134,8 @@ LLM 全局分析：
 
 ```
 迁移模式 + 目标库需新建 → yuque_create_repo
+  → 响应不包含 namespace，手动构造：namespace = "{login}/{slug}"
+  → login 从 config/yuque-config.json 的 group 字段取
   → 失败 → 中止
 ```
 
