@@ -3,32 +3,13 @@
 > 来源：语雀官方 OpenAPI 文档
 > 基地址：`https://www.yuque.com/api/v2`
 
-> 💡 **API 调用方式**：使用 Python 标准库（urllib.request、json、concurrent.futures）调用语雀 API。简单请求也可用 curl + exec。禁止 pip install。
->
-> ⚠️ **必须设置 timeout**：`urlopen(req, timeout=30)`，避免网络异常时请求无限挂起。超时后按错误处理规范重试。
->
-
-> **Python 示例**：
-> ```python
-> import urllib.request, json
-> req = urllib.request.Request("https://www.yuque.com/api/v2/...", headers={"X-Auth-Token": token})
-> data = json.loads(urllib.request.urlopen(req, timeout=30).read())
-> ```
->
-> **curl 示例**（仅简单请求）：
-> ```bash
-> curl -s -H "X-Auth-Token: $TOKEN" "https://www.yuque.com/api/v2/..."
-> ```
-
 ## 认证
 
-所有 API 请求需要携带 Token：
+所有 API 请求需携带 Token：
 
 ```http
 X-Auth-Token: {token}
 ```
-
-Token 从配置文件读取（配置文件路径记录在 MEMORY.md 的「语雀」章节）。
 
 ## 用户 API
 
@@ -130,13 +111,13 @@ Content-Type: application/json
 
 ### 删除知识库
 
-> ⚠️ **硬删除**：不可逆，删除知识库会删除其下所有文档。确认提示应明确警告「不可恢复」。
+> ⚠️ **硬删除**：不可逆，删除知识库会删除其下所有文档。
 
 ```http
 DELETE /api/v2/repos/{id_or_namespace}
 ```
 
-**确认提示**：「即将删除知识库《XXX》，包含 N 篇文档。此操作不可恢复，确认删除吗？」
+
 
 ## 文档 API
 
@@ -293,17 +274,17 @@ Content-Type: application/json
 
 ### 删除文档
 
-> ⚠️ **硬删除**：不可逆。确认提示应明确警告「不可恢复」。
+> ⚠️ **硬删除**：不可逆。
 
 ```http
 DELETE /api/v2/repos/{book_id}/docs/{doc_id}
 ```
 
-**确认提示**：「即将删除文档《XXX》。此操作不可恢复，确认删除吗？」
+
 
 ## 搜索 API
 
-> ⚠️ **不要用** `GET /repos/{book_id}/docs` 做搜索，此端点没有 `q` 参数，只能分页列出文档。必须用 `/api/v2/search`。
+> ⚠️ 搜索只能用 `/api/v2/search`，`list_docs` 端点无搜索参数。
 
 ```http
 GET /api/v2/search?q={query}&type={type}&scope={scope}&page={page}
@@ -508,7 +489,7 @@ Content-Type: application/json
 
 ### 删除小记
 
-> 💡 **软删除**：小记删除是软删除，移入回收站（status=9），可通过恢复操作还原。确认提示应注明「可恢复」。
+> 💡 **软删除**：小记删除是软删除，移入回收站（status=9），可通过恢复操作还原。
 
 **方法**：先获取小记内容，再 PUT 更新并设置 `status: 9`
 
@@ -527,8 +508,6 @@ Content-Type: application/json
 **注意**：
 - 必须先获取小记原文（包含 source、html、abstract），再软删除
 - 删除后进入回收站，可通过设置 `status: 0` 恢复
-- 确认提示：「即将把小记移入回收站。确认删除吗？（可从回收站恢复）」
-- 删除后提示：「小记已移入回收站。如需恢复，请说「恢复这条小记」」
 
 ### 恢复小记
 
@@ -742,13 +721,6 @@ with open(f"{title}.md", "w", encoding="utf-8") as f:
 5. **下载文档中引用的图片**：正则提取 `![](...)`，下载到本地并替换路径
 6. **交叉引用替换**：`[文档名](slug)` 内部链接替换为 `.md` 相对路径
 
-```python
-# 使用封装方法
-api = YuqueAPI()
-result = api.export_repo(book_id, output_dir="./export")
-# 返回 {repo, total, success, failed, output_dir, files}
-```
-
 ### 增量导出
 
 1. 记录上次导出时间戳 `last_export`
@@ -810,7 +782,7 @@ Content-Type: application/json
 
 ### 移除群组成员
 
-> ⚠️ **硬删除**：不可逆。确认提示应明确警告「不可恢复」。
+> ⚠️ **硬删除**：不可逆。
 
 ```http
 DELETE /api/v2/groups/{login}/users/{id}
@@ -823,8 +795,6 @@ DELETE /api/v2/groups/{login}/users/{id}
 | `id` | 用户 Login 或 ID（必填） |
 
 **返回 JSON**：`{ "data": { "user_id": "string" } }`
-
-**确认提示**：`⚠️ 即将将成员移出群组。此操作不可恢复，确认移除吗？`
 
 ## 统计 API
 
@@ -927,7 +897,7 @@ GET /api/v2/groups/{login}/statistics/docs?bookId={bookId}&name={name}&range={ra
 | 错误码 | 说明 | 处理方式 |
 |--------|------|----------|
 | 400 | 请求参数错误 | 输出错误信息，检查参数格式 |
-| 401 | Token 无效或已过期 | 引导用户到语雀设置重新生成 Token 并更新配置文件 |
+| 401 | Token 无效或已过期 | 重新生成 Token 后更新配置 |
 | 403 | 权限不足 | 说明缺少的权限，检查 Token 权限范围 |
 | 404 | 资源不存在 | 文档/知识库/小记可能已被删除或 ID 错误 |
 | 410 | 资源已删除 | 资源已被删除或 API 端点已废弃 |
@@ -947,117 +917,3 @@ GET /api/v2/groups/{login}/statistics/docs?bookId={bookId}&name={name}&range={ra
 | `X-RateLimit-Remaining` | 剩余可用次数 |
 
 **使用方式**：每次请求后检查 `X-RateLimit-Remaining`，合理控制请求节奏。
-
-### 速率控制策略
-
-#### 批量操作（索引构建）
-
-1. **每批处理后检查**：读取 `X-RateLimit-Remaining`
-2. **剩余 < 200 时暂停**：主动暂停当前批次，更新状态文件保存进度，汇报用户「⏳ 剩余配额不足，已保存进度。整点后回复「继续」从断点续传。」
-3. **批次间延迟**：每批处理完成后等待 2-3 秒
-
-#### 429 错误处理
-
-检查 `X-RateLimit-Remaining` 响应头区分限制类型：
-
-| 情况 | 限制 | 处理 |
-|------|------|------|
-| `remaining = 0` | 5000/h | 立即暂停，保存进度，通知用户整点后重新触发 |
-| `remaining > 0` | 100/s | 等待 1s 重试（最多 3 次） |
-
-#### 并发控制
-
-- 批量请求时使用 `ThreadPoolExecutor`，并发数 ≤ 5
-
-### 请求预判
-
-开始大批量操作前，估算请求次数：
-
-| 操作 | 单篇文档请求次数 |
-|------|------------------|
-| 获取内容 | 1 GET |
-| 搜索索引（每个关键词）| 1 GET |
-| 更新索引（每个关键词）| 1 PUT |
-
-**示例**：100 篇文档，每篇 5 关键词 ≈ 1100 次请求
-
-如果预估请求次数 > 4000，提示用户可能超限，建议分多次执行。
-
-### 状态文件记录
-
-索引构建时，在状态文件中记录：
-
-```json
-{
-  "rate_limit": {
-    "limit": 5000,
-    "remaining": 1234,
-    "last_checked": "2026-04-26T21:00:00+08:00"
-  }
-}
-```
-
-便于中断后恢复时了解剩余配额。
-
----
-
-# 故障排查
-
-## Token 问题
-
-### 401 Unauthorized
-1. 检查配置文件路径是否正确（从 MEMORY.md 读取）
-2. 检查 token 是否正确填写，无多余空格或引号
-3. 登录语雀 → 设置 → Token → 确认 token 未过期
-4. 确认 token 有**读取**和**写入**权限
-5. 重新生成 token → 更新配置文件 → 重试
-
-### 403 Forbidden
-1. 确认 token 权限：`repo:read`、`repo:write`、`doc:read`、`doc:write`
-2. 确认资源归属：知识库/文档是否属于该用户/团队
-3. 团队资源：确认账号有团队访问权限
-
-## 搜索问题
-
-### 搜索无结果
-1. 检查索引是否构建（语雀中搜索 `[索引]` 查看）
-2. 检查 `scope` 格式是否正确（`group/book_slug`）
-3. 尝试用文档标题中的关键词
-
-### 搜索结果不准确
-1. 索引可能过时 → 尝试「更新《XXX》的索引」
-2. 调整 `candidates_limit` 和 `top_k` 配置
-
-## 索引构建问题
-
-### 构建中途报错
-1. 检查 `X-RateLimit-Remaining` → 触及限制则等待
-2. 检查状态文件 `status` / `last_indexed_doc_id` / `failed_docs`
-3. 重新执行「构建索引」会从断点继续
-
-### 构建卡住
-1. `status=in_progress` → 正常，等待
-2. `status=awaiting_confirmation` → 有待确认的无意义文档，回复「全部跳过」或「全部索引」
-
-### 索引重复或混乱
-手动删除索引库中所有 `[索引]` 开头的文档，重新构建。
-
-## 小记问题
-
-| 症状 | 原因 | 解决 |
-|------|------|------|
-| 更新返回 400 | `source`/`html`/`abstract` 缺字段 | 先 GET 原小记，再 PUT 更新 |
-| 获取内容为空 | 用了列表 API（`content` 只有 `abstract`） | 用详情 API：`GET /notes/{id}` |
-
-## 其他
-
-### 配置文件找不到
-1. 检查 MEMORY.md 中记录的路径
-2. 不存在则复制 `config.example.json` 到指定位置并填写
-
-### 快速诊断清单
-1. 配置文件路径正确？
-2. Token 有效且有正确权限？
-3. 索引是否构建？
-4. scope/namespace 格式正确？
-5. 速率限制是否用完？
