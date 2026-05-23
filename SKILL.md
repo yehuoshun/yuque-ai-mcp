@@ -26,7 +26,7 @@ LLM Agent                  ← 问答编排：搜索 → 判断 → 补读 → �
 | 归档/清理/搬移/备份旧文档 | [skills/batch-archive.md](skills/batch-archive.md) |
 | 自动分类/归类/整理结构 | [skills/batch-classify.md](skills/batch-classify.md) |
 | 统一文档格式/排版 | [skills/batch-format.md](skills/batch-format.md) |
-| 重建知识库目录 | 待开发 |
+| 重建知识库目录/优化结构 | [skills/batch-toc-rebuild.md](skills/batch-toc-rebuild.md) |
 | 批量重命名 | 待开发 |
 
 ---
