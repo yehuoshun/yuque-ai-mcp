@@ -81,7 +81,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ---
 
-## MCP Tools 全览（32 个）
+## MCP Tools 全览（33 个）
 
 ### 知识库
 
