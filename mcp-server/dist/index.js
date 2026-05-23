@@ -12,6 +12,7 @@ import { batchGetDocsBody } from "./tools/export.js";
 import { healthCheck, getUser } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
+import { uploadImage } from "./tools/upload.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
@@ -278,7 +279,20 @@ const tools = [
             required: ["query"],
         },
     },
-    // --- 批量导出 ---
+    // --- 上传 ---
+    {
+        name: "yuque_upload_image",
+        description: "上传图片到语雀 CDN（需配置 Cookie 登录态。cookie/ctoken 参数可选，未传则读 config）",
+        inputSchema: {
+            type: "object",
+            properties: {
+                image_path: { type: "string", description: "本地图片路径" },
+                cookie: { type: "string", description: "语雀 Cookie 字符串（可选，默认读 config）" },
+                ctoken: { type: "string", description: "CSRF Token（可选，默认读 config）" },
+            },
+            required: ["image_path"],
+        },
+    },
     {
         name: "yuque_batch_get_docs_body",
         description: "批量获取多篇文档的 Markdown 正文（并发 5，底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
@@ -439,6 +453,7 @@ const handlers = {
     yuque_restore_note: (a) => restoreNote(a),
     yuque_search: (a) => search(a),
     yuque_batch_get_docs_body: (a) => batchGetDocsBody(a),
+    yuque_upload_image: (a) => uploadImage(a),
     yuque_health_check: () => healthCheck(),
     yuque_get_user: () => getUser(),
     yuque_list_group_users: (a) => listGroupUsers(a),

@@ -14,6 +14,8 @@ export interface YuqueConfig {
   group: string;
   default_book: YuqueBook;
   index_book: YuqueBook;
+  cookie?: string;
+  ctoken?: string;
 }
 
 function resolveConfigPath(): string {
