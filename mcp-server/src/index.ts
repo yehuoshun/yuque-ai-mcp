@@ -15,6 +15,7 @@ import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } f
 import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";
 import { healthCheck, getUser } from "./tools/user.js";
+import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 
 // ---- tool definitions ----
 const tools: Tool[] = [
@@ -323,6 +324,46 @@ const tools: Tool[] = [
     description: "获取当前 Token 的用户详情（login/name/统计等）",
     inputSchema: { type: "object", properties: {}, required: [] },
   },
+
+  // --- 群组 ---
+  {
+    name: "yuque_list_group_users",
+    description: "列出群组成员（支持角色筛选和分页）",
+    inputSchema: {
+      type: "object",
+      properties: {
+        login: { type: "string", description: "团队 Login 或 ID" },
+        role: { type: "number", enum: [0, 1, 2], description: "0=管理员 1=成员 2=只读（可选筛选）" },
+        offset: { type: "number", description: "分页偏移（默认 0，每页 100）" },
+      },
+      required: ["login"],
+    },
+  },
+  {
+    name: "yuque_update_group_user",
+    description: "更新群组成员角色",
+    inputSchema: {
+      type: "object",
+      properties: {
+        login: { type: "string", description: "团队 Login 或 ID" },
+        user_id: { type: "number", description: "用户 ID" },
+        role: { type: "number", enum: [0, 1, 2], description: "0=管理员 1=成员 2=只读" },
+      },
+      required: ["login", "user_id", "role"],
+    },
+  },
+  {
+    name: "yuque_remove_group_user",
+    description: "⚠️ 从群组移除成员",
+    inputSchema: {
+      type: "object",
+      properties: {
+        login: { type: "string", description: "团队 Login 或 ID" },
+        user_id: { type: "number", description: "用户 ID" },
+      },
+      required: ["login", "user_id"],
+    },
+  },
 ];
 
 // ---- handler map ----
@@ -356,6 +397,10 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_list_docs_for_export: (a) => listDocsForExport(a),
   yuque_health_check: () => healthCheck(),
   yuque_get_user: () => getUser(),
+
+  yuque_list_group_users: (a) => listGroupUsers(a),
+  yuque_update_group_user: (a) => updateGroupUser(a),
+  yuque_remove_group_user: (a) => removeGroupUser(a),
 };
 
 // ---- server ----
