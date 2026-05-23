@@ -346,10 +346,10 @@ const tools: Tool[] = [
       type: "object",
       properties: {
         login: { type: "string", description: "团队 Login 或 ID" },
-        user_id: { type: "number", description: "用户 ID" },
+        id: { type: "string", description: "用户 Login 或 ID" },
         role: { type: "number", enum: [0, 1, 2], description: "0=管理员 1=成员 2=只读" },
       },
-      required: ["login", "user_id", "role"],
+      required: ["login", "id", "role"],
     },
   },
   {
@@ -359,9 +359,9 @@ const tools: Tool[] = [
       type: "object",
       properties: {
         login: { type: "string", description: "团队 Login 或 ID" },
-        user_id: { type: "number", description: "用户 ID" },
+        id: { type: "string", description: "用户 Login 或 ID" },
       },
-      required: ["login", "user_id"],
+      required: ["login", "id"],
     },
   },
 ];

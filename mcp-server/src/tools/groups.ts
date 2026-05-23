@@ -32,12 +32,12 @@ export async function listGroupUsers(params: {
  */
 export async function updateGroupUser(params: {
   login: string;
-  user_id: number;
+  id: string;
   role: 0 | 1 | 2;
 }): Promise<string> {
-  await put(`/groups/${params.login}/users/${params.user_id}`, { role: params.role });
+  await put(`/groups/${params.login}/users/${params.id}`, { role: params.role });
   const label = params.role === 0 ? "管理员" : params.role === 1 ? "成员" : "只读";
-  return `✅ 成员角色已更新为 ${label}: user_id=${params.user_id}`;
+  return `✅ 成员角色已更新为 ${label}: id=${params.id}`;
 }
 
 /**
@@ -45,8 +45,8 @@ export async function updateGroupUser(params: {
  */
 export async function removeGroupUser(params: {
   login: string;
-  user_id: number;
+  id: string;
 }): Promise<string> {
-  await del(`/groups/${params.login}/users/${params.user_id}`);
-  return `✅ 成员已移除: user_id=${params.user_id}`;
+  await del(`/groups/${params.login}/users/${params.id}`);
+  return `✅ 成员已移除: id=${params.id}`;
 }

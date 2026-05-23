@@ -11,7 +11,7 @@ export declare function listGroupUsers(params: {
  */
 export declare function updateGroupUser(params: {
     login: string;
-    user_id: number;
+    id: string;
     role: 0 | 1 | 2;
 }): Promise<string>;
 /**
@@ -19,5 +19,5 @@ export declare function updateGroupUser(params: {
  */
 export declare function removeGroupUser(params: {
     login: string;
-    user_id: number;
+    id: string;
 }): Promise<string>;

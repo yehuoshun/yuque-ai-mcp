@@ -25,15 +25,15 @@ export async function listGroupUsers(params) {
  * 更新群组成员角色
  */
 export async function updateGroupUser(params) {
-    await put(`/groups/${params.login}/users/${params.user_id}`, { role: params.role });
+    await put(`/groups/${params.login}/users/${params.id}`, { role: params.role });
     const label = params.role === 0 ? "管理员" : params.role === 1 ? "成员" : "只读";
-    return `✅ 成员角色已更新为 ${label}: user_id=${params.user_id}`;
+    return `✅ 成员角色已更新为 ${label}: id=${params.id}`;
 }
 /**
  * 移除群组成员
  */
 export async function removeGroupUser(params) {
-    await del(`/groups/${params.login}/users/${params.user_id}`);
-    return `✅ 成员已移除: user_id=${params.user_id}`;
+    await del(`/groups/${params.login}/users/${params.id}`);
+    return `✅ 成员已移除: id=${params.id}`;
 }
 //# sourceMappingURL=groups.js.map
