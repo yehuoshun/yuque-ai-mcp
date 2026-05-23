@@ -75,6 +75,26 @@ export async function deleteDoc(params) {
     await del(`/repos/${params.book_id}/docs/${params.doc_id}`);
     return `✅ 文档已删除: id=${params.doc_id}`;
 }
+// ---------- 版本 ----------
+/**
+ * 获取文档版本列表
+ */
+export async function listDocVersions(params) {
+    const data = await get(`/doc_versions?doc_id=${params.doc_id}`);
+    const versions = data.data || data;
+    if (!Array.isArray(versions) || versions.length === 0)
+        return "暂无版本记录";
+    const lines = versions.map((v) => `- v${v.id} — ${v.title || "无标题"} (${v.created_at || ""}) by ${v.user?.name || "未知"}`);
+    return lines.join("\n");
+}
+/**
+ * 获取文档版本详情
+ */
+export async function getDocVersion(params) {
+    const data = await get(`/doc_versions/${params.version_id}`);
+    const v = data.data || data;
+    return `# ${v.title || "无标题"}\n\n${v.body || v.body_draft || "(空内容)"}`;
+}
 // ---------- 目录（TOC）----------
 /**
  * 列出知识库目录

@@ -5,7 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextpro
 import { YuqueAPIError } from "./shared/types.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
-import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc } from "./tools/docs.js";
+import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { exportDoc, listDocsForExport } from "./tools/export.js";
@@ -153,6 +153,29 @@ const tools = [
             required: ["book_id", "doc_id"],
         },
     },
+    // --- 文档版本 ---
+    {
+        name: "yuque_list_doc_versions",
+        description: "获取文档的版本历史列表",
+        inputSchema: {
+            type: "object",
+            properties: {
+                doc_id: { type: "number", description: "文档 ID" },
+            },
+            required: ["doc_id"],
+        },
+    },
+    {
+        name: "yuque_get_doc_version",
+        description: "获取文档某版本的内容详情",
+        inputSchema: {
+            type: "object",
+            properties: {
+                version_id: { type: "number", description: "版本 ID" },
+            },
+            required: ["version_id"],
+        },
+    },
     // --- 小记 ---
     {
         name: "yuque_list_notes",
@@ -278,6 +301,8 @@ const handlers = {
     yuque_create_doc: (a) => createDoc(a),
     yuque_update_doc: (a) => updateDoc(a),
     yuque_delete_doc: (a) => deleteDoc(a),
+    yuque_list_doc_versions: (a) => listDocVersions(a),
+    yuque_get_doc_version: (a) => getDocVersion(a),
     yuque_list_notes: (a) => listNotes(a),
     yuque_get_note: (a) => getNote(a),
     yuque_create_note: (a) => createNote(a),

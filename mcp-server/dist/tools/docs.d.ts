@@ -41,6 +41,18 @@ export declare function deleteDoc(params: {
     doc_id: number;
 }): Promise<string>;
 /**
+ * 获取文档版本列表
+ */
+export declare function listDocVersions(params: {
+    doc_id: number;
+}): Promise<string>;
+/**
+ * 获取文档版本详情
+ */
+export declare function getDocVersion(params: {
+    version_id: number;
+}): Promise<string>;
+/**
  * 列出知识库目录
  */
 export declare function listToc(params: {
