@@ -4,7 +4,7 @@
  */
 export declare function batchGetDocsBody(params: {
     docs: Array<{
-        book_id: number;
+        book_id: number | string;
         doc_id: number;
     }>;
 }): Promise<string>;

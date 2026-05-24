@@ -1,5 +1,5 @@
 export interface YuqueBook {
-    book_id: number;
+    book_id: number | string;
     namespace: string;
 }
 export interface YuqueConfig {

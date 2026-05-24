@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface YuqueBook {
-  book_id: number;
+  book_id: number | string;
   namespace: string;
 }
 

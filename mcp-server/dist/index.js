@@ -75,7 +75,7 @@ const tools = [
         description: "列出知识库的目录结构",
         inputSchema: {
             type: "object",
-            properties: { book_id: { type: "number", description: "知识库 ID" } },
+            properties: { book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" } },
             required: ["book_id"],
         },
     },
@@ -85,7 +85,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 action: { type: "string", enum: ["appendNode", "prependNode", "editNode", "removeNode"], description: "操作类型" },
                 action_mode: { type: "string", enum: ["sibling", "child"], description: "sibling=同级 child=子节点" },
                 type: { type: "string", enum: ["DOC", "TITLE", "LINK"], description: "节点类型（创建时必填）" },
@@ -103,7 +103,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 target_uuid: { type: "string", description: "要移除的节点 UUID" },
             },
             required: ["book_id", "target_uuid"],
@@ -116,7 +116,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 offset: { type: "number", description: "分页偏移（默认 0）" },
                 limit: { type: "number", description: "每页数量（默认 100）" },
                 optional_properties: { type: "string", description: "额外返回字段，逗号分隔：hits(阅读数)/tags(标签)/latest_version_id" },
@@ -130,7 +130,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 doc_id: { type: "number", description: "文档 ID" },
             },
             required: ["book_id", "doc_id"],
@@ -142,7 +142,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID（默认使用 config 中的 default_book）" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace。留空使用 config default_book" },
                 title: { type: "string", description: "文档标题" },
                 body: { type: "string", description: "文档正文" },
                 format: { type: "string", enum: ["markdown", "html", "lake"], description: "内容格式（默认 markdown）" },
@@ -158,7 +158,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 doc_id: { type: "number", description: "文档 ID" },
                 title: { type: "string", description: "新标题（可选）" },
                 body: { type: "string", description: "新正文（可选）" },
@@ -175,7 +175,7 @@ const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                book_id: { type: "number", description: "知识库 ID" },
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                 doc_id: { type: "number", description: "文档 ID" },
             },
             required: ["book_id", "doc_id"],
@@ -290,7 +290,7 @@ const tools = [
             type: "object",
             properties: {
                 file_path: { type: "string", description: "本地文件路径（必填，除非提供了 body）" },
-                book_id: { type: "number", description: "目标知识库 ID（默认使用 config 中的 default_book）" },
+                book_id: { type: ["number", "string"], description: "目标知识库 ID 或 namespace。留空使用 config default_book" },
                 body: { type: "string", description: "预适配好的正文（可选。提供后跳过文件读取和 regex 适配，仅做图片上传+创建文档）" },
                 title: { type: "string", description: "文档标题（可选。不填则从 frontmatter/文件名/H1 提取）" },
                 skip_images: { type: "boolean", description: "跳过图片上传（默认 false，无 cookie 时自动跳过）" },
@@ -324,7 +324,7 @@ const tools = [
                     items: {
                         type: "object",
                         properties: {
-                            book_id: { type: "number", description: "知识库 ID" },
+                            book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
                             doc_id: { type: "number", description: "文档 ID" },
                         },
                         required: ["book_id", "doc_id"],

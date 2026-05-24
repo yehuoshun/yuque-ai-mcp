@@ -5,7 +5,7 @@ import { get } from "../client.js";
  * 底层走 get_doc API（export 端点已不存在于语雀 v2 API）
  */
 export async function batchGetDocsBody(params: {
-  docs: Array<{ book_id: number; doc_id: number }>;
+  docs: Array<{ book_id: number | string; doc_id: number }>;
 }): Promise<string> {
   const results: Array<{
     doc_id: number;

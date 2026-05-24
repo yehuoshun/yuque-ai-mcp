@@ -2,7 +2,7 @@
  * 列出知识库内的文档（返回结构化 JSON，不含 body 以节省 token）
  */
 export declare function listDocs(params: {
-    book_id: number;
+    book_id: number | string;
     offset?: number;
     limit?: number;
     optional_properties?: string;
@@ -11,14 +11,14 @@ export declare function listDocs(params: {
  * 获取文档详情
  */
 export declare function getDoc(params: {
-    book_id: number;
+    book_id: number | string;
     doc_id: number;
 }): Promise<string>;
 /**
  * 创建文档（自动挂 TOC）
  */
 export declare function createDoc(params: {
-    book_id: number;
+    book_id: number | string;
     title: string;
     body: string;
     format?: "markdown" | "html" | "lake";
@@ -29,7 +29,7 @@ export declare function createDoc(params: {
  * 更新文档
  */
 export declare function updateDoc(params: {
-    book_id: number;
+    book_id: number | string;
     doc_id: number;
     title?: string;
     body?: string;
@@ -41,7 +41,7 @@ export declare function updateDoc(params: {
  * 删除文档
  */
 export declare function deleteDoc(params: {
-    book_id: number;
+    book_id: number | string;
     doc_id: number;
 }): Promise<string>;
 /**
@@ -60,7 +60,7 @@ export declare function getDocVersion(params: {
  * 列出知识库目录
  */
 export declare function listToc(params: {
-    book_id: number;
+    book_id: number | string;
 }): Promise<string>;
 /**
  * 更新知识库目录
@@ -68,7 +68,7 @@ export declare function listToc(params: {
  * action_mode: sibling=同级 child=子节点
  */
 export declare function updateToc(params: {
-    book_id: number;
+    book_id: number | string;
     action?: "appendNode" | "prependNode" | "editNode" | "removeNode";
     action_mode?: "sibling" | "child";
     type?: "DOC" | "TITLE" | "LINK";
@@ -81,7 +81,7 @@ export declare function updateToc(params: {
  * 从目录中移除节点（不删除文档）
  */
 export declare function removeTocNode(params: {
-    book_id: number;
+    book_id: number | string;
     target_uuid: string;
     action_mode?: "sibling" | "child";
 }): Promise<string>;

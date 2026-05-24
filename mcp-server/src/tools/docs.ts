@@ -5,7 +5,7 @@ import { loadConfig } from "../config.js";
  * 列出知识库内的文档（返回结构化 JSON，不含 body 以节省 token）
  */
 export async function listDocs(params: {
-  book_id: number;
+  book_id: number | string;
   offset?: number;
   limit?: number;
   optional_properties?: string;
@@ -33,7 +33,7 @@ export async function listDocs(params: {
 /**
  * 获取文档详情
  */
-export async function getDoc(params: { book_id: number; doc_id: number }): Promise<string> {
+export async function getDoc(params: { book_id: number | string; doc_id: number }): Promise<string> {
   const data = await get(`/repos/${params.book_id}/docs/${params.doc_id}`);
   const doc = (data as any).data || data;
   const b = doc.book || {};
@@ -76,7 +76,7 @@ export async function getDoc(params: { book_id: number; doc_id: number }): Promi
  * 创建文档（自动挂 TOC）
  */
 export async function createDoc(params: {
-  book_id: number;
+  book_id: number | string;
   title: string;
   body: string;
   format?: "markdown" | "html" | "lake";
@@ -119,7 +119,7 @@ export async function createDoc(params: {
  * 更新文档
  */
 export async function updateDoc(params: {
-  book_id: number;
+  book_id: number | string;
   doc_id: number;
   title?: string;
   body?: string;
@@ -141,7 +141,7 @@ export async function updateDoc(params: {
 /**
  * 删除文档
  */
-export async function deleteDoc(params: { book_id: number; doc_id: number }): Promise<string> {
+export async function deleteDoc(params: { book_id: number | string; doc_id: number }): Promise<string> {
   await del(`/repos/${params.book_id}/docs/${params.doc_id}`);
   return `✅ 文档已删除: id=${params.doc_id}`;
 }
@@ -176,7 +176,7 @@ export async function getDocVersion(params: { version_id: number }): Promise<str
 /**
  * 列出知识库目录
  */
-export async function listToc(params: { book_id: number }): Promise<string> {
+export async function listToc(params: { book_id: number | string }): Promise<string> {
   const data = await get(`/repos/${params.book_id}/toc`);
   const toc = (data as any).data || data;
   return JSON.stringify(toc, null, 2);
@@ -188,7 +188,7 @@ export async function listToc(params: { book_id: number }): Promise<string> {
  * action_mode: sibling=同级 child=子节点
  */
 export async function updateToc(params: {
-  book_id: number;
+  book_id: number | string;
   action?: "appendNode" | "prependNode" | "editNode" | "removeNode";
   action_mode?: "sibling" | "child";
   type?: "DOC" | "TITLE" | "LINK";
@@ -225,7 +225,7 @@ export async function updateToc(params: {
  * 从目录中移除节点（不删除文档）
  */
 export async function removeTocNode(params: {
-  book_id: number;
+  book_id: number | string;
   target_uuid: string;
   action_mode?: "sibling" | "child";
 }): Promise<string> {
