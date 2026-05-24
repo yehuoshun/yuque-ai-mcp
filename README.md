@@ -19,48 +19,47 @@
 
 ## vs 官方生态
 
-官方生态由 3 个核心组件构成：[yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（MCP Server） + [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem)（OpenClaw 插件，8 skills） + [yuque-plugin](https://github.com/yuque/yuque-plugin)（Claude Code 插件，4+2 skills）。
+| 维度 | 🏛 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) | 🏛 [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem) | 🏛 [yuque-plugin](https://github.com/yuque/yuque-plugin) | 🦞 本项目 |
+|------|----------|-----------|-----------|--------|
+| **── 基本信息 ──** | | | | |
+| 维护方 | 语雀官方 | 语雀官方 | 语雀官方 | 社区（yehuoshun） |
+| 定位 | MCP Server 核心 | OpenClaw 插件 | Claude Code Marketplace 插件 | 全功能 MCP + Agent Skill 套装 |
+| 安装方式 | `npx yuque-mcp install` | `openclaw plugins install` | `claude plugin install` | clone + `npm install` + 手动配置 |
+| CLI 一键安装 | ✅ 10+ 客户端 | — | — | ❌ |
+| npm 发布 | ✅ `npx yuque-mcp` | — | — | ❌ 本地构建 |
+| 适用平台 | 通用 MCP 客户端 | OpenClaw | Claude Code | OpenClaw |
+| **── MCP Tools ──** | | | | |
+| 工具总数 | 16 个 | 复用 yuque-mcp-server | 复用 yuque-mcp-server | **34 个** |
+| 删除操作 | ❌ | ❌ | ❌ | ✅ repo/doc 硬删除 + note 软删除+恢复 |
+| 版本管理 | ❌ | ❌ | ❌ | ✅ 版本历史 + 版本详情 + 版本对比 |
+| 群组管理 | ❌ | ❌ | ❌ | ✅ 成员列表/角色变更/移除 |
+| 统计面板 | ❌ | ❌ | ❌ | ✅ group/member/book/doc 四维统计 |
+| 批量获取正文 | ❌ | ❌ | ❌ | ✅ batch_get_docs_body（并发 5） |
+| 上传 & 导入 | ❌ | ❌ | ❌ | ✅ CDN 上传 + Obsidian/Notion 导入 |
+| 健康检查 | ❌ | ❌ | ❌ | ✅ Token + 知识库连通性检查 |
+| **── Skills 矩阵 ──** | | | | |
+| Skills 总数 | — | 8 个 | 4（个人）/ 6（团队） | **17 个** |
+| 知识库问答 | — | `smart-search` | `smart-search` | **一级索引 + 多路并发 + 降级** |
+| 智能摘要 | — | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
+| 阅读摘录 | — | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
+| 碎片收集 | — | `daily-capture` | — | `inbox`（三种模式 + 可配置清理） |
+| 笔记打磨 | — | `note-refine` | — | `polish`（打磨 + 风格分析 + 迁移 + 模板） |
+| 风格分析 | — | `style-extract` | — | ↑ 合入 polish |
+| 知识关联 | — | `knowledge-connect` | — | `knowledge`（图谱 + 交叉引用 + 聚类） |
+| 过时检测 | — | `stale-detector` | — | `audit`（版本审计 + 变更追踪 + 对比） |
+| 会议纪要 | — | — | `meeting-notes` | 🟰 无专用模板 |
+| 技术方案 | — | — | `tech-design` | 🟰 无专用模板 |
+| 周报 | — | — | `weekly-report` | `dashboard`（维度远超周报） |
+| 入职指南 | — | — | `onboarding-guide`（团队） | ❌ 官方独有 |
+| 知识报告 | — | — | `knowledge-report`（团队） | `dashboard`（覆盖健康度+运营） |
+| **── 本项目独有 ──** | | | | |
+| 批量运维 | — | — | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
+| 翻译 | — | — | — | ✅ 批量/增量/多语言/保留格式 |
+| 文档同步 | — | — | — | ✅ 单向/双向/增量/差异检测 |
+| 拆分 & 合并 | — | — | — | ✅ split + merge |
+| 外部导入 | — | — | — | ✅ 本地/Obsidian/Notion |
 
-| 维度 | 🏛 官方生态 | 🦞 本项目 |
-|------|----------|--------|
-| **── 项目定位 ──** | | |
-| 维护方 | 语雀官方团队 | 社区（yehuoshun） |
-| 目标用户 | 普通用户，开箱即用 | 重度语雀用户，深度运维+AI能力 |
-| 安装复杂度 | `npx yuque-mcp install` 一行命令 | clone + `npm install` + 手动配置 |
-| CLI 安装器 | ✅ 10+ 客户端自动配置 | ❌ 需自行配置 MCP JSON |
-| npm 发布 | ✅ `npx yuque-mcp` | ❌ 本地构建 `node dist/index.js` |
-| **── MCP Tools ──** | | |
-| 工具总数 | 16 个 | **34 个**（+112%） |
-| 删除操作 | ❌ 无 | ✅ repo/doc 硬删除 + note 软删除+恢复 |
-| 版本管理 | ❌ 无 | ✅ 版本历史 + 版本详情 + 版本对比 |
-| 群组管理 | ❌ 无 | ✅ 成员列表/角色变更/移除 |
-| 统计面板 | ❌ 无 | ✅ group/member/book/doc 四维统计 |
-| 批量获取正文 | ❌ 无 | ✅ batch_get_docs_body（并发 5） |
-| 上传 & 导入 | ❌ 无 | ✅ CDN 上传 + Obsidian/Notion 格式导入 |
-| 健康检查 | ❌ 无 | ✅ Token + 知识库连通性检查 |
-| **── 业务 Skills ──** | | |
-| Skills 总数 | 8（OpenClaw）/ 6（Claude Code） | **17 个**（+112% / +183%） |
-| 知识库问答 | `smart-search`：LLM 逐篇读 | **一级索引 + 多路并发 + 降级模式** |
-| 智能摘要 | `smart-summary`：两档粒度 | `summarize`：L1-L4 四级粒度 |
-| 阅读摘录 | `reading-digest`：观点/金句 | `digest`：五维提取 + 知识卡片 |
-| 碎片收集 | `daily-capture`：基础捕获 | `inbox`：三种模式 + 可配置清理 |
-| 笔记打磨 | `note-refine`：打磨 | `polish`：打磨 + 风格分析 + 迁移 + 模板写作 |
-| 风格分析 | `style-extract`：风格画像 | ↑ 合入 polish，三合一 |
-| 知识关联 | `knowledge-connect`：发现关联 | `knowledge`：关联图谱 + 交叉引用 + 聚类 |
-| 过时检测 | `stale-detector`：过时扫描 | `audit`：版本审计 + 变更追踪 + 版本对比 |
-| 会议纪要 | `meeting-notes`（Claude Code） | 🟰 无专用模板，`polish` + `digest` 组合实现 |
-| 技术方案 | `tech-design`（Claude Code） | 🟰 无专用模板，`polish` 模板写作组合实现 |
-| 周报 | `weekly-report`（Claude Code） | `dashboard`：运营仪表盘，维度远超周报 |
-| 入职指南 | `onboarding-guide`（Claude Code 团队专属） | ❌ 官方独有 |
-| 知识报告 | `knowledge-report`（Claude Code 团队专属） | `dashboard`：覆盖知识库健康度 + 运营数据 |
-| **── 本项目独有 Skills ──** | | |
-| 批量运维 | ❌ 全部无 | ✅ `archive` 归档 / `classify` 分类 / `format` 格式化 / `rebuild-toc` 目录重构 / `rename` 重命名 / `dashboard` 仪表盘 / `audit` 审计 |
-| 翻译 | ❌ 无 | ✅ `translate`：批量/增量/多语言/保留格式 |
-| 文档同步 | ❌ 无 | ✅ `sync`：单向/双向/增量/差异检测 |
-| 文档拆分 & 合并 | ❌ 无 | ✅ `split` 长文拆分 + `merge` 多篇合并 |
-| 外部导入 | ❌ 无 | ✅ `import`：本地/Obsidian/Notion |
-
-> 🦞 **结论**：官方生态 3 个组件 — MCP Server（16 tools） + OpenClaw Plugin（8 skills） + Claude Code Plugin（6 skills）— 本项目以 **34 tools + 17 skills + 一级索引问答系统** 三管齐下全面压制。官方优势仅在 CLI 开箱体验 和 `meeting-notes` / `tech-design` / `onboarding-guide` 三个专用模板。
+> 🦞 官方优势仅在 CLI 开箱体验 + `meeting-notes` / `tech-design` / `onboarding-guide` 三个专用模板，其余维度本项目全面超越。
 
 ---
 
