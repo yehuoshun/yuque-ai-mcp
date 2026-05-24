@@ -23,6 +23,12 @@ const EXT_TO_LANG: Record<string, string> = {
 
 const TEXT_EXTS = new Set([".txt", ".log", ".nfo", ".diff", ".patch", ".md", ".markdown"]);
 
+// 图片 → 上传 CDN 嵌入文档
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".tiff", ".tif"]);
+
+// 暂不支持的文件类型（需 pandoc/pdftotext 等外部工具）
+const UNSUPPORTED_EXTS = new Set([".pdf", ".docx", ".doc", ".rtf", ".xlsx", ".xls", ".pptx", ".ppt", ".odt", ".ods", ".odp"]);
+
 // ===================== Obsidian Markdown 适配 =====================
 
 const CALLOUT_MAP: Record<string, string> = {
@@ -225,7 +231,30 @@ export async function importDoc(params: {
     imageRefs = adapted_md.imageRefs;
     if (adapted_md.title && !title) title = adapted_md.title;
     adapted = body !== raw;
-  } else {
+  } else if (IMAGE_EXTS.has(ext)) {
+    // === 图片文件：上传 CDN → 创建文档（嵌入图片） ===
+    if (skipImages) {
+      return JSON.stringify({
+        error: "NO_COOKIE",
+        message: "图片导入需要 Cookie 登录态。请在 config 中配置 cookie 和 ctoken。",
+      });
+    }
+    const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "image");
+    if (!upResult.success || !upResult.url) {
+      return JSON.stringify({
+        error: "UPLOAD_FAILED",
+        message: `图片上传失败: ${upResult.error}`,
+      });
+    }
+    if (!title) title = fileName;
+    body = `![](${upResult.url})`;
+  } else if (UNSUPPORTED_EXTS.has(ext)) {
+    // === 暂不支持的文件类型 ===
+    return JSON.stringify({
+      error: "UNSUPPORTED_FORMAT",
+      message: `暂不支持 ${ext} 格式导入。支持的类型：Markdown、代码、文本、图片、通用附件。${ext} 需要外部工具（pandoc/pdftotext）转换。`,
+    });
+  } else if (EXT_TO_LANG[ext] || TEXT_EXTS.has(ext)) {
     // === 代码/文本文件 ===
     const raw = readFileSync(filePath, "utf-8");
     const lang = EXT_TO_LANG[ext];
@@ -235,6 +264,23 @@ export async function importDoc(params: {
       body = raw;
     }
     if (!title) title = fileName;
+  } else {
+    // === 未知类型：尝试作为附件上传 ===
+    if (skipImages) {
+      return JSON.stringify({
+        error: "NO_COOKIE",
+        message: `无法识别文件类型 ${ext}，且无 Cookie 无法上传为附件。请在 config 中配置 cookie 和 ctoken。`,
+      });
+    }
+    const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "attachment");
+    if (!upResult.success || !upResult.url) {
+      return JSON.stringify({
+        error: "UPLOAD_FAILED",
+        message: `附件上传失败: ${upResult.error}`,
+      });
+    }
+    if (!title) title = fileName;
+    body = `📎 [${fileName}](${upResult.url})`;
   }
 
   // 如果仍然没有标题，用文件名（去掉后缀）

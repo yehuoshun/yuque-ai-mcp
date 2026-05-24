@@ -285,7 +285,7 @@ const tools = [
     // --- 上传 ---
     {
         name: "yuque_import_doc",
-        description: "导入单个文件到语雀知识库。自动适配 Obsidian Markdown 格式（WikiLinks/callouts/frontmatter/注释/标签），自动上传本地图片到 CDN 并替换路径。支持预适配 body（Agent 已用 LLM 处理过的内容）",
+        description: "导入单个文件到语雀知识库。支持类型：Markdown（自动适配 WikiLinks/callout/frontmatter/注释/标签）、代码/文本（自动识别语言包代码块）、图片（上传 CDN 嵌入）、其他文件（上传为附件引用）。支持预适配 body（Agent 已用 LLM 处理过的内容）",
         inputSchema: {
             type: "object",
             properties: {
