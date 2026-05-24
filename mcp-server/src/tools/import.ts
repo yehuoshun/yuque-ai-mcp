@@ -4,6 +4,7 @@ import { post, put } from "../client.js";
 import { loadConfig } from "../config.js";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
+import { execSync } from "child_process";
 
 // ===================== 扩展名 → 语言标记 =====================
 
@@ -111,8 +112,8 @@ const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".
 // Excel → 解析为 Markdown 表格
 const EXCEL_EXTS = new Set([".xlsx", ".xls"]);
 
-// Word → 提取内容为 Markdown（mammoth）
-const WORD_EXTS = new Set([".docx"]);
+// Word → 提取内容为 Markdown（mammoth / catdoc）
+const WORD_EXTS = new Set([".docx", ".doc"]);
 
 // 暂不支持转换但可上传为附件的文档格式
 // （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
@@ -130,7 +131,7 @@ const UPLOAD_EXTS = new Set([
   // 压缩包
   "zip", "rar", "7z", "gz", "tar", "bz2", "xz",
   // 文档（仅上传附件，不提取内容）
-  "pdf", "doc", "pptx", "ppt",
+  "pdf", "pptx", "ppt",
   "odt", "ods", "odp", "rtf", "wps", "chm",
   // 设计稿
   "ai", "xd", "sketch", "graffle", "psd", "cpt",
@@ -395,15 +396,33 @@ export async function importDoc(params: {
     if (adapted_md.title && !title) title = adapted_md.title;
     adapted = body !== raw;
   } else if (WORD_EXTS.has(ext)) {
-    // === Word 文档：mammoth 提取 Markdown → 创建文档 ===
+    // === Word 文档 ===
     if (!title) title = fileName.replace(/\.[^.]+$/, "");
-    try {
-      body = await wordToMarkdown(filePath);
-    } catch (e: any) {
-      return JSON.stringify({
-        error: "WORD_PARSE_FAILED",
-        message: `Word 解析失败: ${e.message || e}`,
-      });
+    if (ext === ".doc") {
+      // 旧版 .doc：尝试 catdoc 提取纯文本
+      try {
+        body = execSync(`catdoc "${filePath}"`, { encoding: "utf-8", timeout: 10_000 });
+      } catch {
+        // catdoc 不可用或失败 → 降级附件上传
+        if (skipImages) {
+          return JSON.stringify({
+            error: "NO_CONVERTER",
+            message: "无法解析 .doc 文件（catdoc 不可用），且无 Cookie 无法上传为附件。请安装 catdoc 或配置 Cookie。",
+          });
+        }
+        const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "attachment");
+        if (!upResult.success || !upResult.url) {
+          return JSON.stringify({ error: "PARSE_FAILED", message: `.doc 解析与上传均失败: ${upResult.error}` });
+        }
+        body = `📎 [${fileName}](${upResult.url})\n\n⚠️ 无法提取 .doc 内容（需安装 catdoc），原始文件已上传为附件。`;
+      }
+    } else {
+      // .docx：mammoth 提取 Markdown
+      try {
+        body = await wordToMarkdown(filePath);
+      } catch (e: any) {
+        return JSON.stringify({ error: "WORD_PARSE_FAILED", message: `Word 解析失败: ${e.message || e}` });
+      }
     }
   } else if (EXCEL_EXTS.has(ext)) {
     // === Excel 文件：解析为 Markdown 表格 → 创建文档 ===
