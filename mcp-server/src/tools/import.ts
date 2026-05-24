@@ -115,6 +115,9 @@ const EXCEL_EXTS = new Set([".xlsx", ".xls"]);
 // Word → 提取内容为 Markdown（mammoth / catdoc）
 const WORD_EXTS = new Set([".docx", ".doc"]);
 
+// PPT → catppt 提取纯文本
+const PPT_EXTS = new Set([".pptx", ".ppt"]);
+
 // 暂不支持转换但可上传为附件的文档格式
 // （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
 const UNSUPPORTED_EXTS = new Set<string>([]);
@@ -131,7 +134,7 @@ const UPLOAD_EXTS = new Set([
   // 压缩包
   "zip", "rar", "7z", "gz", "tar", "bz2", "xz",
   // 文档（仅上传附件，不提取内容）
-  "pdf", "pptx", "ppt",
+  "pdf",
   "odt", "ods", "odp", "rtf", "wps", "chm",
   // 设计稿
   "ai", "xd", "sketch", "graffle", "psd", "cpt",
@@ -395,6 +398,26 @@ export async function importDoc(params: {
     imageRefs = adapted_md.imageRefs;
     if (adapted_md.title && !title) title = adapted_md.title;
     adapted = body !== raw;
+  } else if (PPT_EXTS.has(ext)) {
+    // === PPT 文档：catppt 提取纯文本 → 创建文档 ===
+    if (!title) title = fileName.replace(/\.[^.]+$/, "");
+    try {
+      body = execSync(`catppt "${filePath}"`, { encoding: "utf-8", timeout: 15_000 });
+      // catppt 输出已经是 slide-by-slide，加个标题
+      body = `# ${title}\n\n${body}`;
+    } catch {
+      if (skipImages) {
+        return JSON.stringify({
+          error: "NO_CONVERTER",
+          message: "无法解析 PPT 文件（catppt 不可用），且无 Cookie 无法上传为附件。请安装 catdoc（含 catppt）或配置 Cookie。",
+        });
+      }
+      const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "attachment");
+      if (!upResult.success || !upResult.url) {
+        return JSON.stringify({ error: "PARSE_FAILED", message: `PPT 解析与上传均失败: ${upResult.error}` });
+      }
+      body = `📎 [${fileName}](${upResult.url})\n\n⚠️ 无法提取 PPT 内容（需安装 catdoc），原始文件已上传为附件。`;
+    }
   } else if (WORD_EXTS.has(ext)) {
     // === Word 文档 ===
     if (!title) title = fileName.replace(/\.[^.]+$/, "");
