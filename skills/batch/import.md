@@ -1,12 +1,11 @@
 # 外部文档导入（import）
 
-从本地文件夹 / Obsidian Vault / Notion 导出 ZIP 批量导入语雀知识库，自动适配格式、上传图片、建目录。
+从本地文件夹/ZIP 压缩包批量导入语雀知识库，自动适配 Markdown 变体格式、上传图片、按原目录结构建 TOC。
 
 ## 触发词
 
 ```
-「导入」「导入到语雀」「把文件夹导入」
-「导入 Obsidian Vault」「导入 Notion 导出文件」
+「导入」「导入到语雀」「把文件夹导入」「导入这个目录」
 ```
 
 ---
@@ -63,8 +62,7 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
 |------|--------|---------|
 | 代码 | .py .js .ts .java .rb .go .rs .swift .cpp .hpp .c .h .cs .php .lua .scala .groovy .kt .dart .m .mm .sql .sh .bash .zsh .ps1 .bat .cmd | ` ```lang ` 代码块 |
 | Web | .html .htm .css .scss .less .sass .xml .svg | ` ```lang ` 代码块 |
-| 配置 | .json .yaml .yml .toml .ini .cfg .conf .properties .env | ` ```lang ` 代码块 |
-| 数据 | .csv .tsv | Markdown 表格 |
+| 配置/数据 | .json .yaml .yml .toml .ini .cfg .conf .properties .env .csv .tsv | ` ```lang ` 代码块 |
 | 标记 | .rst .tex .textile | 直接 body |
 | 纯文本 | .txt .log .nfo .diff .patch | 直接 body |
 
@@ -104,49 +102,26 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
 
 | 来源 | 识别方式 | 格式适配 |
 |------|---------|---------|
-| 本地文件夹 | `exec ls/find` + 递归 `*.md` | 有特殊语法 → LLM 适配 |
-| Obsidian Vault | 同上（本质上就是文件夹） | `[[]]` `![[img]]` `> [!note]` `%%` `---` frontmatter |
-| Notion 导出 ZIP | `exec unzip` → 遍历 Markdown | Notion 特有表格格式 |
-| 单个 Markdown | `read` | 同上 |
+| 本地文件夹 | `exec ls/find` + 递归 `*.md` | `yuque_import_doc` 自动 regex 适配（WikiLinks/嵌入/callout/frontmatter/注释/标签） |
+| ZIP 压缩包 | `exec unzip -l` → 解压 → 遍历 | 同上 |
+| 单个文件 | `read` | 同上 |
 
 ---
 
 ## 格式适配层
 
-```
-在读文件后、创建文档前，检测并适配非标准 Markdown：
+`yuque_import_doc` 内置正则适配引擎，自动处理常见 Markdown 变体格式，不调 LLM：
 
-检测逻辑（正则，不调 LLM）：
-  有 [[ → Obsidian Wiki Link → 需适配
-  有 ![[ → Obsidian 嵌入图片 → 需适配
-  有 > [! → callout → 需适配
-  有 %% → 注释 → 需适配
-  有 --- 开头的 YAML → frontmatter → 需适配
-  都没有 → 纯标准 Markdown → 跳过适配
+| 检测模式 | 处理方式 |
+|---------|---------|
+| `[[文档名]]` / `[[文档名\|别名]]` | 转为纯文本 |
+| `![[img.png]]` | 转为 `![](./img.png)`，后续上传 CDN |
+| `---` YAML frontmatter | 提取 title 作文档标题，其余删除 |
+| `> [!note]` / `[!warning]` 等 callout | 转为 `> **📝 Note:**` 格式 |
+| `%% 注释 %%` | 删除 |
+| `#行内tag` | 删除 |
 
-需要适配时，调 LLM：
-
-Prompt：
-  将以下 {来源} 格式的 Markdown 适配为语雀标准格式。
-
-  规则：
-    1. [[文档名]] → 转为纯文本「文档名」
-    2. [[文档名|别名]] → 转为纯文本「别名」
-    3. ![[image.png]] → 转为 ![](./image.png)（后续上传处理）
-    4. --- YAML frontmatter → 提取 title 作为文档标题，其余删除
-    5. > [!note] 内容 → > **📝 Note:** 内容
-    6. > [!warning] 内容 → > **⚠️ Warning:** 内容
-    7. > [!tip] / > [!info] / > [!danger] → 类似转换
-    8. %% 注释内容 %% → 删除
-    9. #行内tag → 删除
-    10. 保留所有 Markdown 标准格式（标题/列表/代码块/引用/加粗/斜体/表格/链接）
-    11. 不改变原文事实内容，只改格式标记
-
-  原文：
-  {body}
-
-  适配后：
-```
+复杂格式（如非标准表格）可通过预适配模式处理：Agent 先 `read` → LLM 适配 → 传 `body` 给 `yuque_import_doc`。
 
 ---
 
@@ -157,7 +132,7 @@ Prompt：
 
   本地路径 → 检查文件存在 → yuque_upload_attachment → CDN URL → 替换路径
   远程 URL → 下载到临时文件 → yuque_upload_attachment → CDN URL → 替换路径
-  Obsidian ![[img.png]] → 适配层已转为 ![](./img.png) → 按本地路径处理
+  ![[img.png]] → 适配层已转为 ![](./img.png) → 按本地路径处理
 
   上传限制：
     单张 ≤ 2MB
@@ -176,7 +151,7 @@ Prompt：
 单篇文件导入由 `yuque_import_doc` MCP tool 完成，内部自动处理：
 
 - 📖 读文件 + 检测类型（MD / 代码 / 文本）
-- 🔧 Obsidian 格式适配（WikiLinks / callouts / frontmatter / 注释 / 标签）
+- 🔧 格式适配（WikiLinks / callouts / frontmatter / 注释 / 标签）
 - 🖼️ 提取本地图片 → 上传 CDN → 替换路径
 - 📄 创建文档 + 自动挂 TOC
 - 📎 可选：上传原始文件作为附件引用

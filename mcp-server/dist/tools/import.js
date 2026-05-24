@@ -101,8 +101,8 @@ function adaptMarkdown(md) {
     }
     return { body, title, imageRefs };
 }
-// ===================== 图片上传 =====================
-async function uploadImage(filePath, cookie, ctoken, userId) {
+// ===================== 文件上传到 CDN =====================
+async function uploadFile(filePath, cookie, ctoken, userId, type = "image") {
     try {
         const fileBuffer = readFileSync(filePath);
         const fileName = basename(filePath);
@@ -115,7 +115,7 @@ async function uploadImage(filePath, cookie, ctoken, userId) {
         parts.push(fileBuffer);
         add("\r\n");
         add(`--${boundary}--\r\n`);
-        const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=image&ctoken=${ctoken}`;
+        const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 30_000);
         const res = await fetch(url, {
@@ -216,7 +216,7 @@ export async function importDoc(params) {
                 imageResults.push({ path: imgPath, skipped: true, error: "文件不存在" });
                 continue;
             }
-            const result = await uploadImage(fullPath, cookie, ctoken, userId);
+            const result = await uploadFile(fullPath, cookie, ctoken, userId, "image");
             if (result.success && result.url) {
                 imageResults.push({ path: imgPath, url: result.url, skipped: false });
                 // 替换 body 中的本地路径为 CDN URL
@@ -237,7 +237,7 @@ export async function importDoc(params) {
     let attachmentWarning = "";
     if (params.upload_original && !skipImages) {
         try {
-            const result = await uploadImage(filePath, config.cookie, config.ctoken, config.user_id);
+            const result = await uploadFile(filePath, config.cookie, config.ctoken, config.user_id, "attachment");
             if (result.success && result.url) {
                 attachmentUrl = result.url;
                 body += `\n\n---\n📎 原始文件：[${fileName}](${attachmentUrl})`;
