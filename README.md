@@ -19,16 +19,23 @@
 
 ## vs 官方生态
 
-| 维度 | 🏛 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) | 🏛 [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem) | 🏛 [yuque-plugin](https://github.com/yuque/yuque-plugin) | 🦞 本项目 |
+官方生态由 3 个核心组件构成：[yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（MCP Server 核心） + [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem)（OpenClaw 插件，8 skills） + [yuque-plugin](https://github.com/yuque/yuque-plugin)（Claude Code 插件，4+2 skills）。以下按维度逐一对比。
+
+### 基本信息
+
+| 维度 | 🏛 yuque-mcp-server | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|----------|-----------|-----------|--------|
-| **── 基本信息 ──** | | | | |
 | 维护方 | 语雀官方 | 语雀官方 | 语雀官方 | 社区（yehuoshun） |
-| 定位 | MCP Server 核心 | OpenClaw 插件 | Claude Code Marketplace 插件 | 全功能 MCP + Agent Skill 套装 |
+| 定位 | MCP Server 核心 | OpenClaw 插件 | Claude Code 插件 | 全功能 MCP + Agent Skill 套装 |
 | 安装方式 | `npx yuque-mcp install` | `openclaw plugins install` | `claude plugin install` | clone + `npm install` + 手动配置 |
 | CLI 一键安装 | ✅ 10+ 客户端 | — | — | ❌ |
 | npm 发布 | ✅ `npx yuque-mcp` | — | — | ❌ 本地构建 |
 | 适用平台 | 通用 MCP 客户端 | OpenClaw | Claude Code | OpenClaw |
-| **── MCP Tools ──** | | | | |
+
+### MCP Tools
+
+| 维度 | 🏛 yuque-mcp-server | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
+|------|----------|-----------|-----------|--------|
 | 工具总数 | 16 个 | 复用 yuque-mcp-server | 复用 yuque-mcp-server | **34 个** |
 | 删除操作 | ❌ | ❌ | ❌ | ✅ repo/doc 硬删除 + note 软删除+恢复 |
 | 版本管理 | ❌ | ❌ | ❌ | ✅ 版本历史 + 版本详情 + 版本对比 |
@@ -37,7 +44,11 @@
 | 批量获取正文 | ❌ | ❌ | ❌ | ✅ batch_get_docs_body（并发 5） |
 | 上传 & 导入 | ❌ | ❌ | ❌ | ✅ CDN 上传 + Obsidian/Notion 导入 |
 | 健康检查 | ❌ | ❌ | ❌ | ✅ Token + 知识库连通性检查 |
-| **── Skills 矩阵 ──** | | | | |
+
+### Skills 矩阵
+
+| 维度 | 🏛 yuque-mcp-server | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
+|------|----------|-----------|-----------|--------|
 | Skills 总数 | — | 8 个 | 4（个人）/ 6（团队） | **17 个** |
 | 知识库问答 | — | `smart-search` | `smart-search` | **一级索引 + 多路并发 + 降级** |
 | 智能摘要 | — | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
@@ -52,7 +63,11 @@
 | 周报 | — | — | `weekly-report` | `dashboard`（维度远超周报） |
 | 入职指南 | — | — | `onboarding-guide`（团队） | ❌ 官方独有 |
 | 知识报告 | — | — | `knowledge-report`（团队） | `dashboard`（覆盖健康度+运营） |
-| **── 本项目独有 ──** | | | | |
+
+### 本项目独有
+
+| 维度 | 🏛 yuque-mcp-server | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
+|------|----------|-----------|-----------|--------|
 | 批量运维 | — | — | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
 | 翻译 | — | — | — | ✅ 批量/增量/多语言/保留格式 |
 | 文档同步 | — | — | — | ✅ 单向/双向/增量/差异检测 |
