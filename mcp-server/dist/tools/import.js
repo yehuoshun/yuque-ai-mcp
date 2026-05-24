@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, basename, extname } from "path";
 import { post, put } from "../client.js";
 import { loadConfig } from "../config.js";
+import * as XLSX from "xlsx";
 // ===================== 扩展名 → 语言标记 =====================
 const EXT_TO_LANG = {
     // Python
@@ -101,6 +102,8 @@ const EXT_TO_LANG = {
 const TEXT_EXTS = new Set([".txt", ".log", ".nfo", ".diff", ".patch", ".md", ".markdown", ".markdn", ".mdown", ".mkdn", ".textile"]);
 // 图片 → 上传 CDN 嵌入文档
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".tiff", ".tif"]);
+// Excel → 解析为 Markdown 表格
+const EXCEL_EXTS = new Set([".xlsx", ".xls"]);
 // 暂不支持转换但可上传为附件的文档格式
 // （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
 const UNSUPPORTED_EXTS = new Set([]);
@@ -116,14 +119,51 @@ const UPLOAD_EXTS = new Set([
     // 压缩包
     "zip", "rar", "7z", "gz", "tar", "bz2", "xz",
     // 文档（仅上传附件，不提取内容）
-    "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
+    "pdf", "docx", "doc", "pptx", "ppt",
     "odt", "ods", "odp", "rtf", "wps", "chm",
     // 设计稿
     "ai", "xd", "sketch", "graffle", "psd", "cpt",
     // 其他二进制
     "rplib", "dat",
 ].map(e => "." + e));
-// ===================== Obsidian Markdown 适配 =====================
+// ===================== Excel → Markdown 表格 =====================
+function excelToMarkdown(filePath) {
+    const workbook = XLSX.readFile(filePath, { type: "buffer" });
+    const parts = [];
+    for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (rows.length === 0) {
+            parts.push(`## ${sheetName}\n\n（空表）\n`);
+            continue;
+        }
+        // 超过 500 行截断
+        const maxRows = 500;
+        const truncated = rows.length > maxRows;
+        const data = rows.slice(0, maxRows);
+        // 计算列数（取最大行宽）
+        const colCount = Math.max(...data.map(r => Array.isArray(r) ? r.length : 1));
+        // 标题行
+        const header = data[0];
+        let md = `## ${sheetName}\n\n`;
+        md += "| " + Array.from({ length: colCount }, (_, i) => String(header[i] ?? `列${i + 1}`)).join(" | ") + " |\n";
+        md += "| " + Array.from({ length: colCount }, () => "---").join(" | ") + " |\n";
+        // 数据行
+        for (let r = 1; r < data.length; r++) {
+            const row = data[r];
+            md += "| " + Array.from({ length: colCount }, (_, i) => {
+                const cell = String(row[i] ?? "");
+                // 转义管道符
+                return cell.replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+            }).join(" | ") + " |\n";
+        }
+        if (truncated) {
+            md += `\n⚠️ 表格超过 500 行，已截断（原始 ${rows.length} 行）\n`;
+        }
+        parts.push(md);
+    }
+    return parts.join("\n\n");
+}
 const CALLOUT_MAP = {
     note: "📝 Note",
     warning: "⚠️ Warning",
@@ -290,6 +330,20 @@ export async function importDoc(params) {
         if (adapted_md.title && !title)
             title = adapted_md.title;
         adapted = body !== raw;
+    }
+    else if (EXCEL_EXTS.has(ext)) {
+        // === Excel 文件：解析为 Markdown 表格 → 创建文档 ===
+        if (!title)
+            title = fileName.replace(/\.[^.]+$/, "");
+        try {
+            body = excelToMarkdown(filePath);
+        }
+        catch (e) {
+            return JSON.stringify({
+                error: "EXCEL_PARSE_FAILED",
+                message: `Excel 解析失败: ${e.message || e}`,
+            });
+        }
     }
     else if (IMAGE_EXTS.has(ext)) {
         // === 图片文件：上传 CDN → 创建文档（嵌入图片） ===

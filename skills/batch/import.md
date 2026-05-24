@@ -42,6 +42,7 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
 | 文件类型 | `yuque_import_doc` 行为 |
 |---------|----------------------|
 | Markdown（.md） | regex 适配 + 内嵌图片上传 CDN + 创建文档 |
+| Excel（.xlsx .xls） | 解析为 Markdown 表格 → 创建文档（多 sheet 自动分节） |
 | 代码/文本（.py .json .csv …） | 识别语言 → 包代码块 → 创建文档 |
 | 图片（.png .jpg …） | 上传 CDN → 创建文档（嵌入 `![]()` ) |
 | 其他（.pdf .docx .mp4 .zip …） | 上传附件 → 创建文档（`📎 [文件名](CDN链接)` ) |
