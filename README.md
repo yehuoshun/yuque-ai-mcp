@@ -28,8 +28,8 @@
 | 维护方 | 语雀官方 | 语雀官方 | 语雀官方 | 社区（yehuoshun） |
 | 定位 | MCP Server 核心 | OpenClaw 插件 | Claude Code 插件 | 全功能 MCP + Agent Skill 套装 |
 | 安装方式 | `npx yuque-mcp install` | `openclaw plugins install` | `claude plugin install` | clone + `npm install` + 手动配置 |
-| CLI 一键安装 | ✅ 10+ 客户端 | — | — | ❌ |
-| npm 发布 | ✅ `npx yuque-mcp` | — | — | ❌ 本地构建 |
+| CLI 一键安装 | ✅ 10+ 客户端 | — | — | 🔜 规划中（npm 发布后） |
+| npm 发布 | ✅ `npx yuque-mcp` | — | — | 🔜 规划中（当前 test 阶段本地构建） |
 | 适用平台 | 通用 MCP 客户端 | OpenClaw | Claude Code | OpenClaw |
 
 ### MCP Tools
