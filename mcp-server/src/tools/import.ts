@@ -6,28 +6,109 @@ import { loadConfig } from "../config.js";
 // ===================== 扩展名 → 语言标记 =====================
 
 const EXT_TO_LANG: Record<string, string> = {
-  ".py": "python", ".js": "javascript", ".ts": "typescript",
-  ".java": "java", ".rb": "ruby", ".go": "go", ".rs": "rust",
-  ".swift": "swift", ".cpp": "cpp", ".hpp": "cpp", ".c": "c", ".h": "c",
-  ".cs": "csharp", ".php": "php", ".lua": "lua", ".scala": "scala",
-  ".groovy": "groovy", ".kt": "kotlin", ".dart": "dart", ".m": "objectivec",
-  ".mm": "objectivec", ".sql": "sql", ".sh": "bash", ".bash": "bash",
-  ".zsh": "bash", ".ps1": "powershell", ".bat": "batch", ".cmd": "batch",
-  ".html": "html", ".htm": "html", ".css": "css", ".scss": "scss",
-  ".less": "less", ".xml": "xml", ".svg": "xml",
-  ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "toml",
-  ".ini": "ini", ".cfg": "ini", ".conf": "ini", ".properties": "properties",
-  ".env": "bash", ".csv": "csv", ".tsv": "tsv",
-  ".rst": "rst", ".tex": "latex",
+  // Python
+  ".py": "python", ".pyw": "python",
+  // JavaScript / TypeScript
+  ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+  ".ts": "typescript", ".tsx": "typescript",
+  ".coffee": "coffeescript",
+  // JVM
+  ".java": "java", ".jsp": "java", ".jav": "java",
+  ".kt": "kotlin", ".scala": "scala", ".groovy": "groovy", ".clj": "clojure",
+  // C / C++ / ObjC
+  ".c": "c", ".h": "c",
+  ".cpp": "cpp", ".hpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".c++": "cpp",
+  ".h++": "cpp", ".hh": "cpp", ".hxx": "cpp", ".inl": "cpp", ".ipp": "cpp",
+  ".m": "objectivec", ".mm": "objectivec",
+  // C# / .NET
+  ".cs": "csharp", ".vb": "vb", ".asp": "asp", ".aspx": "asp", ".ascx": "asp",
+  // Go / Rust / Swift / Dart
+  ".go": "go", ".rs": "rust", ".swift": "swift", ".dart": "dart",
+  // Ruby
+  ".rb": "ruby", ".rbx": "ruby", ".rake": "ruby",
+  // PHP
+  ".php": "php", ".php2": "php", ".php3": "php", ".php4": "php", ".php5": "php",
+  ".phtml": "php",
+  // Lua
+  ".lua": "lua",
+  // Perl
+  ".pl": "perl", ".perl": "perl", ".pm": "perl",
+  // Shell
+  ".sh": "bash", ".bash": "bash", ".zsh": "bash", ".bashrc": "bash",
+  ".bash_login": "bash", ".bash_logout": "bash", ".bash_profile": "bash",
+  // PowerShell
+  ".ps1": "powershell", ".psm1": "powershell", ".psd1": "powershell",
+  ".ps1xml": "powershell",
+  // Batch
+  ".bat": "batch", ".cmd": "batch",
+  // SQL
+  ".sql": "sql", ".ddl": "sql", ".dml": "sql",
+  // R
+  ".r": "r",
+  // Pascal
+  ".pas": "pascal",
+  // Assembly
+  ".asm": "assembly", ".s": "assembly",
+  // AutoHotkey
+  ".ahk": "autohotkey",
+  // Tcl
+  ".tcl": "tcl",
+  // Erlang
+  ".erl": "erlang", ".hrl": "erlang",
+  // Haskell
+  ".hs": "haskell", ".lhs": "haskell",
+  // OCaml
+  ".ml": "ocaml", ".mli": "ocaml", ".mll": "ocaml", ".mly": "ocaml",
+  // F# / Fortran
+  ".fs": "fsharp", ".fsi": "fsharp", ".fsx": "fsharp", ".fsscript": "fsharp",
+  ".f": "fortran", ".f90": "fortran", ".f95": "fortran",
+  // Lisp
+  ".lisp": "lisp", ".lsp": "lisp", ".l": "lisp", ".cl": "lisp",
+  // Protobuf
+  ".proto": "protobuf",
+  // Make / Build
+  ".make": "makefile", ".mak": "makefile", ".makefile": "makefile",
+  ".cmake": "cmake",
+  // Web
+  ".html": "html", ".htm": "html", ".xhtml": "html", ".shtml": "html",
+  ".css": "css", ".scss": "scss", ".less": "less", ".sass": "sass",
+  // Template
+  ".jade": "pug", ".pug": "pug",
+  ".haml": "haml",
+  ".handlebars": "handlebars", ".hbs": "handlebars",
+  ".erb": "erb", ".rhtml": "erb",
+  // XML family
+  ".xml": "xml", ".svg": "xml", ".rss": "xml", ".atom": "xml",
+  ".xsd": "xml", ".wsdl": "xml", ".dtd": "xml", ".sgml": "xml",
+  ".opml": "xml", ".rdf": "xml", ".tld": "xml", ".xoml": "xml",
+  ".xslt": "xml", ".csproj": "xml", ".resx": "xml", ".resw": "xml",
+  ".manifest": "xml", ".disco": "xml",
+  // Data / Config
+  ".json": "json", ".cson": "json",
+  ".yaml": "yaml", ".yml": "yaml",
+  ".toml": "toml",
+  ".ini": "ini", ".cfg": "ini", ".conf": "ini", ".config": "ini", ".reg": "ini",
+  ".properties": "properties",
+  ".env": "bash",
+  ".csv": "csv", ".tsv": "tsv",
+  // Document markup
+  ".rst": "rst",
+  ".tex": "latex", ".ltx": "latex", ".sty": "latex",
+  ".textile": "textile",
+  // Misc
+  ".profile": "bash", ".gitconfig": "ini",
+  ".gemfile": "ruby", ".gemspec": "ruby",
+  ".capfile": "ruby", ".irbrc": "ruby", ".rprofile": "ruby", ".rxml": "ruby",
 };
 
-const TEXT_EXTS = new Set([".txt", ".log", ".nfo", ".diff", ".patch", ".md", ".markdown"]);
+const TEXT_EXTS = new Set([".txt", ".log", ".nfo", ".diff", ".patch", ".md", ".markdown", ".markdn", ".mdown", ".mkdn", ".textile"]);
 
 // 图片 → 上传 CDN 嵌入文档
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".tiff", ".tif"]);
 
-// 暂不支持的文件类型（需 pandoc/pdftotext 等外部工具）
-const UNSUPPORTED_EXTS = new Set([".pdf", ".docx", ".doc", ".rtf", ".xlsx", ".xls", ".pptx", ".ppt", ".odt", ".ods", ".odp"]);
+// 暂不支持转换但可上传为附件的文档格式
+// （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
+const UNSUPPORTED_EXTS = new Set<string>([]);
 
 // ===================== Obsidian Markdown 适配 =====================
 
@@ -265,22 +346,31 @@ export async function importDoc(params: {
     }
     if (!title) title = fileName;
   } else {
-    // === 未知类型：尝试作为附件上传 ===
-    if (skipImages) {
-      return JSON.stringify({
-        error: "NO_COOKIE",
-        message: `无法识别文件类型 ${ext}，且无 Cookie 无法上传为附件。请在 config 中配置 cookie 和 ctoken。`,
-      });
+    // === 未知类型：尝试读为文本，失败则上传附件 ===
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      // 检测是否为有效文本（无 null 字节）
+      if (raw.includes("\0")) throw new Error("binary");
+      body = raw;
+      if (!title) title = fileName;
+    } catch {
+      // 二进制文件 → 上传附件
+      if (skipImages) {
+        return JSON.stringify({
+          error: "NO_COOKIE",
+          message: `无法识别文件类型 ${ext}，且无 Cookie 无法上传为附件。`,
+        });
+      }
+      const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "attachment");
+      if (!upResult.success || !upResult.url) {
+        return JSON.stringify({
+          error: "UPLOAD_FAILED",
+          message: `附件上传失败: ${upResult.error}`,
+        });
+      }
+      if (!title) title = fileName;
+      body = `📎 [${fileName}](${upResult.url})`;
     }
-    const upResult = await uploadFile(filePath, config.cookie!, config.ctoken!, config.user_id!, "attachment");
-    if (!upResult.success || !upResult.url) {
-      return JSON.stringify({
-        error: "UPLOAD_FAILED",
-        message: `附件上传失败: ${upResult.error}`,
-      });
-    }
-    if (!title) title = fileName;
-    body = `📎 [${fileName}](${upResult.url})`;
   }
 
   // 如果仍然没有标题，用文件名（去掉后缀）
