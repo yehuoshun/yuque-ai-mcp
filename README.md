@@ -239,7 +239,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Tool | 说明 |
 |------|------|
-| `yuque_upload_attachment` | 上传文件到语雀 CDN（image/attachment/video，上限 10MB，需 Cookie） |
+| `yuque_upload_attachment` | 上传文件到语雀 CDN（image/attachment/video，上限按类型：图片20MB/附件500MB/视频500MB，需 Cookie） |
 | `yuque_import_doc` | 导入单个文件到知识库（自动适配 Obsidian WikiLinks/callouts/frontmatter，图片 CDN 上传） |
 
 ---

@@ -312,7 +312,7 @@ const tools: Tool[] = [
   },
   {
     name: "yuque_upload_attachment",
-    description: "上传文件到语雀 CDN（需 Cookie 登录态。支持 image/attachment/video 三种类型，默认 attachment 可传任意文件，上限 10MB）",
+    description: "上传文件到语雀 CDN（需 Cookie 登录态。支持 image/attachment/video 三种类型，默认 attachment。上限按类型：图片20MB / 附件500MB / 视频500MB）",
     inputSchema: {
       type: "object",
       properties: {

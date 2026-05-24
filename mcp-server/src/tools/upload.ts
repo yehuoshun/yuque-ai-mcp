@@ -30,10 +30,13 @@ export async function uploadAttachment(params: {
     fileBuffer = readFileSync(params.file_path);
     fileName = params.file_path.split("/").pop() || "file";
     const sizeMB = statSync(params.file_path).size / 1024 / 1024;
-    if (sizeMB > 10) {
+  // 按类型的上限（专业会员最低权限）
+  const LIMITS: Record<string, number> = { image: 20, attachment: 500, video: 500 };
+  const limitMB = LIMITS[type] || 10;
+  if (sizeMB > limitMB) {
       return JSON.stringify({
         error: "FILE_TOO_LARGE",
-        message: `文件过大 (${sizeMB.toFixed(1)}MB)，上限 10MB`,
+        message: `文件过大 (${sizeMB.toFixed(1)}MB)，${type} 上限 ${limitMB}MB`,
         path: params.file_path,
       });
     }
