@@ -155,12 +155,12 @@ export async function deleteDoc(params: { book_id: number | string; doc_id: numb
 export async function listDocVersions(params: { doc_id: number }): Promise<string> {
   const data = await get(`/doc_versions?doc_id=${params.doc_id}`);
   const versions = (data as any).data || data;
-  if (!Array.isArray(versions) || versions.length === 0) return "暂无版本记录";
+  if (!Array.isArray(versions) || versions.length === 0) return JSON.stringify([]);
 
-  const lines = versions.map((v: any) =>
-    `- v${v.id} — ${v.title || "无标题"} (${v.created_at || ""}) by ${v.user?.name || "未知"}`
-  );
-  return lines.join("\n");
+  return JSON.stringify(versions.map((v: any) => ({
+    id: v.id, title: v.title, created_at: v.created_at,
+    user_name: v.user?.name,
+  })), null, 2);
 }
 
 /**

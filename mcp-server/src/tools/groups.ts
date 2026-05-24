@@ -14,7 +14,7 @@ export async function listGroupUsers(params: {
 
   const data = await get(url);
   const users = (data as any).data || data;
-  if (!Array.isArray(users) || users.length === 0) return "暂无成员";
+  if (!Array.isArray(users) || users.length === 0) return JSON.stringify([]);
 
   return JSON.stringify(users.map((u: any) => ({
     id: u.id,
@@ -57,5 +57,5 @@ export async function removeGroupUser(params: {
   id: string;
 }): Promise<string> {
   await del(`/groups/${params.login}/users/${params.id}`);
-  return `✅ 成员已移除: id=${params.id}`;
+  return JSON.stringify({ removed: true, user: params.id, group: params.login });
 }

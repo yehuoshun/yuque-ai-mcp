@@ -132,9 +132,11 @@ export async function listDocVersions(params) {
     const data = await get(`/doc_versions?doc_id=${params.doc_id}`);
     const versions = data.data || data;
     if (!Array.isArray(versions) || versions.length === 0)
-        return "暂无版本记录";
-    const lines = versions.map((v) => `- v${v.id} — ${v.title || "无标题"} (${v.created_at || ""}) by ${v.user?.name || "未知"}`);
-    return lines.join("\n");
+        return JSON.stringify([]);
+    return JSON.stringify(versions.map((v) => ({
+        id: v.id, title: v.title, created_at: v.created_at,
+        user_name: v.user?.name,
+    })), null, 2);
 }
 /**
  * 获取文档版本详情

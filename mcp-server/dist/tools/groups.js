@@ -10,7 +10,7 @@ export async function listGroupUsers(params) {
     const data = await get(url);
     const users = data.data || data;
     if (!Array.isArray(users) || users.length === 0)
-        return "暂无成员";
+        return JSON.stringify([]);
     return JSON.stringify(users.map((u) => ({
         id: u.id,
         group_id: u.group_id,
@@ -43,6 +43,6 @@ export async function updateGroupUser(params) {
  */
 export async function removeGroupUser(params) {
     await del(`/groups/${params.login}/users/${params.id}`);
-    return `✅ 成员已移除: id=${params.id}`;
+    return JSON.stringify({ removed: true, user: params.id, group: params.login });
 }
 //# sourceMappingURL=groups.js.map
