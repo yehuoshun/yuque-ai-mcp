@@ -12,10 +12,12 @@ export async function listNotes(params: { page?: number; limit?: number; status?
   const body = data as any;
   const raw = body.data || body;
   const notes = raw.notes || raw.pin_notes || [];
-  if (!Array.isArray(notes) || notes.length === 0) return "暂无小记";
+  if (!Array.isArray(notes) || notes.length === 0) return JSON.stringify([]);
 
-  const lines = notes.map((n: any) => `- [${n.title || "无标题"}](id=${n.id}) created=${(n.published_at || n.created_at || "").slice(0, 10)}`);
-  return lines.join("\n");
+  return JSON.stringify(notes.map((n: any) => ({
+    id: n.id, title: n.title || "无标题", slug: n.slug,
+    created_at: n.created_at, updated_at: n.updated_at,
+  })), null, 2);
 }
 
 /**

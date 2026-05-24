@@ -11,9 +11,11 @@ export async function listNotes(params) {
     const raw = body.data || body;
     const notes = raw.notes || raw.pin_notes || [];
     if (!Array.isArray(notes) || notes.length === 0)
-        return "暂无小记";
-    const lines = notes.map((n) => `- [${n.title || "无标题"}](id=${n.id}) created=${(n.published_at || n.created_at || "").slice(0, 10)}`);
-    return lines.join("\n");
+        return JSON.stringify([]);
+    return JSON.stringify(notes.map((n) => ({
+        id: n.id, title: n.title || "无标题", slug: n.slug,
+        created_at: n.created_at, updated_at: n.updated_at,
+    })), null, 2);
 }
 /**
  * 获取小记详情

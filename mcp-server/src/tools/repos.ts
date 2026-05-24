@@ -9,11 +9,11 @@ export async function listRepos(): Promise<string> {
   const data = await get(`/users/${group}/repos`);
   const repos = (data as any).data || data;
 
-  const lines = (Array.isArray(repos) ? repos : []).map(
-    (r: any) => `- ${r.name} (id=${r.id}, slug=${r.slug})`
-  );
+  if (!Array.isArray(repos) || repos.length === 0) return JSON.stringify([]);
 
-  return lines.length > 0 ? lines.join("\n") : "暂无知识库";
+  return JSON.stringify(repos.map((r: any) => ({
+    id: r.id, name: r.name, slug: r.slug, items_count: r.items_count,
+  })), null, 2);
 }
 
 /**
