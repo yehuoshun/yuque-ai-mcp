@@ -137,7 +137,8 @@ const UPLOAD_EXTS = new Set([
 // ===================== Excel → Markdown 表格 =====================
 
 function excelToMarkdown(filePath: string): string {
-  const workbook = XLSX.readFile(filePath, { type: "buffer" });
+  const buffer = readFileSync(filePath);
+  const workbook = XLSX.read(buffer, { type: "buffer" });
   const parts: string[] = [];
 
   for (const sheetName of workbook.SheetNames) {
