@@ -17,6 +17,100 @@
 
 ---
 
+## vs 官方 yuque-mcp
+
+| 维度 | 🏛 官方 yuque-mcp | 🦞 本项目 yuque-ai-mcp |
+|------|-------------------|------------------------|
+| **MCP Tools** | 16 个 | **34 个**（+112%） |
+| **删除操作** | ❌ 无删除 | ✅ repo/doc 硬删除 + note 软删除+恢复 |
+| **版本管理** | ❌ 无 | ✅ 版本历史 + 版本详情 + 版本对比 |
+| **群组管理** | ❌ 无 | ✅ 成员列表/角色变更/移除 |
+| **统计面板** | ❌ 无（需额外权限） | ✅ group/member/book/doc 四维统计 |
+| **批量操作** | ❌ 无 | ✅ batch_get_docs_body 批量取正文（并发 5） |
+| **上传导入** | ❌ 无 | ✅ CDN 上传 + Obsidian/Notion 格式导入 |
+| **健康检查** | ❌ 无 | ✅ Token + 知识库连通性检查 |
+| **业务 Skills** | 8 个（个人版） | **17 个**（+112%） |
+| **知识库问答** | ❌ 依赖 LLM 逐篇读 | ✅ 一级索引 + 多路并发 + 降级模式 |
+| **批量运维** | ❌ 无 | ✅ 归档/分类/格式化/重命名/重构/审计/仪表盘 |
+| **写作辅助** | note-refine + style-extract | ✅ 合二为一 + 风格迁移 + 模板写作 |
+| **知识分析** | ❌ 无 | ✅ 关联图谱/阅读摘录/碎片整理 |
+| **翻译** | ❌ 无 | ✅ 批量/增量/多语言/保留格式 |
+| **文档同步** | ❌ 无 | ✅ 单向/双向/增量/差异检测 |
+| **CLI 安装器** | ✅ `npx yuque-mcp install` | ❌ 手动配置 |
+| **多客户端适配** | ✅ 10+ 客户端 | ❌ 需自行配置 MCP JSON |
+| **npm 发布** | ✅ `npx yuque-mcp` | ❌ 本地构建 `node dist/index.js` |
+| **维护方** | 语雀官方团队 | 社区（yehuoshun） |
+
+### 定位差异
+
+| | 官方 yuque-mcp | 本项目 yuque-ai-mcp |
+|------|-------------|-------------------|
+| **目标用户** | 普通用户，开箱即用 | 重度语雀用户，需要深度运维+AI能力 |
+| **设计理念** | 基础 CRUD + 轻量 AI skills | 全功能 MCP + AI 驱动的知识库操作系统 |
+| **安装复杂度** | 一行命令 | 需 clone + npm install + 手动配置 |
+| **能力深度** | 日常读写 | 批量运维/知识挖掘/跨库同步/翻译 |
+
+### Skills 逐一对标（vs 官方 OpenClaw 插件）
+
+| 官方 Skill | 本项目对标 | 差异 |
+|-----------|----------|------|
+| `smart-search` | **知识库问答系统**（SKILL.md 第二章） | 🦞 一级索引+多路并发+降级，非逐篇读 |
+| `smart-summary` | `batch/summarize` | 🦞 L1-L4 四级粒度（官方仅两档） |
+| `reading-digest` | `map/digest` | 🦞 五维提取（观点/金句/行动项/疑问/思考）+知识卡片 |
+| `daily-capture` | `map/inbox` | 🦞 三种收集模式+可配置清理策略 |
+| `note-refine` | `write/polish` | 🦞 合 note-refine + style-extract 二为一 |
+| `style-extract` | `write/polish` | 🦞 风格分析 + 风格迁移 + 模板写作三合一 |
+| `knowledge-connect` | `map/knowledge` | 🦞 关联图谱+交叉引用+知识聚类+自动补引用 |
+| `stale-detector` | `batch/audit` | 🦞 版本审计覆盖过时检测+变更追踪+版本对比 |
+| — | `batch/archive` | 🦞 **独有**：批量归档/备份 |
+| — | `batch/classify` | 🦞 **独有**：智能分类打标+目录树重建 |
+| — | `batch/format` | 🦞 **独有**：批量格式标准化（3种来源） |
+| — | `batch/rebuild-toc` | 🦞 **独有**：目录智能重构 |
+| — | `batch/rename` | 🦞 **独有**：批量重命名（7种方式） |
+| — | `batch/dashboard` | 🦞 **独有**：知识库运营仪表盘 |
+| — | `batch/translate` | 🦞 **独有**：AI批量翻译 |
+| — | `batch/sync` | 🦞 **独有**：文档镜像&知识库同步 |
+| — | `batch/split` | 🦞 **独有**：长文按层级拆分 |
+| — | `batch/merge` | 🦞 **独有**：多篇合并为长文 |
+| — | `batch/import` | 🦞 **独有**：外部文档导入 |
+
+| | 🏛 官方 OpenClaw 插件 | 🦞 本项目 |
+|---|---------------------|--------|
+| **Skills 覆盖** | 8 个 skills | 17 个 skills，**全部有对标** + 每个对标能力更强 |
+| **独有能力** | — | **10 个独有 skills**（批量运维 + 翻译 + 同步 + 导入） |
+
+### vs 官方 yuque-plugin（Claude Code 插件）
+
+| 官方 Skill | 本项目对标 | 差异 |
+|-----------|----------|------|
+| `smart-search`（个人/团队） | **知识库问答系统** | 🦞 一级索引+多路并发+降级，非逐篇读 |
+| `meeting-notes`（个人/团队） | `write/polish` + `map/digest` | 🟰 组合实现（无专用模板） |
+| `weekly-report`（个人/团队） | `batch/dashboard` | 🦞 运营仪表盘，维度远超周报 |
+| `tech-design`（个人/团队） | `write/polish` 模板写作 | 🟰 组合实现（无专用模板） |
+| `onboarding-guide`（团队专属） | ❌ 无直接对标 | 🏛 官方独有 |
+| `knowledge-report`（团队专属） | `batch/dashboard` | 🦞 覆盖知识库健康度+运营数据 |
+
+| | 🏛 官方 yuque-plugin | 🦞 本项目 |
+|---|---------------------|--------|
+| **优势** | `meeting-notes` / `tech-design` 专用模板 + `onboarding-guide` 独有 | 搜索更强（索引管线）+ 数据报表更强（多维度）+ skills 矩阵更全 |
+
+### 官方生态全景总结
+
+| 官方组件 | 定位 | 本项目覆盖情况 |
+|---------|------|-------------|
+| [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) | MCP Server 核心（16 tools） | ✅ 全覆盖，额外多 18 个 tools |
+| [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem) | 官网 + 多客户端插件（OpenClaw/Claude Code/OpenCode） | ✅ 覆盖 OpenClaw 8 skills + Claude Code 6 skills |
+| [yuque-plugin](https://github.com/yuque/yuque-plugin) | Claude Code Marketplace 插件（4+2 skills） | ✅ 搜索/周报/知识报告对标，会议纪要/技术方案/入职指南 3 个官方独有 |
+
+| 维度 | 🏛 官方生态 | 🦞 本项目 |
+|------|----------|--------|
+| **MCP Tools** | 16 个 | **34 个** |
+| **Skills** | 8（OpenClaw）/ 6（Claude Code） | **17 个** |
+| **知识库问答** | LLM 逐篇读 | **一级索引 + 多路并发 + 降级** |
+| **官方长处** | CLI 安装器 / 10+ 客户端适配 / 专用场景模板（会议纪要/技术方案/入职指南） | — |
+
+---
+
 ## 架构
 
 ```
