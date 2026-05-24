@@ -69,7 +69,7 @@
 ### 流程
 
 ```
-1. yuque_list_docs(namespace) 搜文档标题 or 用户直接给 slug
+1. yuque_list_docs(book_id=源库id) 搜文档标题 or 用户直接给 slug
    → 拿到数字 id
 
 2. yuque_list_doc_versions(doc_id=id) → 全部版本
@@ -102,7 +102,7 @@
 
 ```
 1. 用户指定文档 + 两个版本号
-2. yuque_get_doc(namespace, slug) → 拿到数字 id
+2. yuque_get_doc(book_id=源库id, doc_id=文档id) → 拿到数字 id
 3. yuque_get_doc_version(version_id=A) → body_A
 4. yuque_get_doc_version(version_id=B) → body_B
 
