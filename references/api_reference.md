@@ -796,8 +796,8 @@ Content-Type: application/octet-stream
 | 类型 | type 值 | 专业会员 | 超级会员 |
 |------|---------|---------|---------|
 | 图片 | `image` | 20 MB | 50 MB |
-| 附件 | `attachment` | 500 MB | 2 GB |
-| 视频 | `video` | 500 MB | 2 GB |
+| 附件 | `attachment` | 500 MB | 1 GB |
+| 视频 | `video` | 500 MB | 1 GB |
 
 ## 群组成员 API
 
