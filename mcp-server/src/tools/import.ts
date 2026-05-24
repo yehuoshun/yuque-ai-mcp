@@ -3,6 +3,7 @@ import { resolve, dirname, basename, extname } from "path";
 import { post, put } from "../client.js";
 import { loadConfig } from "../config.js";
 import * as XLSX from "xlsx";
+import mammoth from "mammoth";
 
 // ===================== 扩展名 → 语言标记 =====================
 
@@ -110,6 +111,9 @@ const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".
 // Excel → 解析为 Markdown 表格
 const EXCEL_EXTS = new Set([".xlsx", ".xls"]);
 
+// Word → 提取内容为 Markdown（mammoth）
+const WORD_EXTS = new Set([".docx"]);
+
 // 暂不支持转换但可上传为附件的文档格式
 // （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
 const UNSUPPORTED_EXTS = new Set<string>([]);
@@ -126,7 +130,7 @@ const UPLOAD_EXTS = new Set([
   // 压缩包
   "zip", "rar", "7z", "gz", "tar", "bz2", "xz",
   // 文档（仅上传附件，不提取内容）
-  "pdf", "docx", "doc", "pptx", "ppt",
+  "pdf", "doc", "pptx", "ppt",
   "odt", "ods", "odp", "rtf", "wps", "chm",
   // 设计稿
   "ai", "xd", "sketch", "graffle", "psd", "cpt",
@@ -182,6 +186,12 @@ function excelToMarkdown(filePath: string): string {
   }
 
   return parts.join("\n\n");
+}
+
+async function wordToMarkdown(filePath: string): Promise<string> {
+  const buffer = readFileSync(filePath);
+  const result = await (mammoth as any).convertToMarkdown({ buffer });
+  return result.value;
 }
 
 const CALLOUT_MAP: Record<string, string> = {
@@ -384,6 +394,17 @@ export async function importDoc(params: {
     imageRefs = adapted_md.imageRefs;
     if (adapted_md.title && !title) title = adapted_md.title;
     adapted = body !== raw;
+  } else if (WORD_EXTS.has(ext)) {
+    // === Word 文档：mammoth 提取 Markdown → 创建文档 ===
+    if (!title) title = fileName.replace(/\.[^.]+$/, "");
+    try {
+      body = await wordToMarkdown(filePath);
+    } catch (e: any) {
+      return JSON.stringify({
+        error: "WORD_PARSE_FAILED",
+        message: `Word 解析失败: ${e.message || e}`,
+      });
+    }
   } else if (EXCEL_EXTS.has(ext)) {
     // === Excel 文件：解析为 Markdown 表格 → 创建文档 ===
     if (!title) title = fileName.replace(/\.[^.]+$/, "");
