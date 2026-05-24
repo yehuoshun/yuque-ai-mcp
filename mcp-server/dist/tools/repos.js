@@ -31,7 +31,7 @@ export async function createRepo(params) {
         payload.public = params.public;
     const data = await post(`/users/${group}/repos`, payload);
     const r = data.data || data;
-    return `✅ 知识库已创建: ${r.name} (id=${r.id}, namespace=${group}/${slug})`;
+    return JSON.stringify(r, null, 2);
 }
 /**
  * 更新知识库
@@ -46,15 +46,16 @@ export async function updateRepo(params) {
         payload.description = params.description;
     if (params.public !== undefined)
         payload.public = params.public;
-    await put(`/repos/${params.id_or_namespace}`, payload);
-    return `✅ 知识库已更新: ${params.id_or_namespace}`;
+    const data = await put(`/repos/${params.id_or_namespace}`, payload);
+    const repo = data.data || data;
+    return JSON.stringify(repo, null, 2);
 }
 /**
  * 删除知识库
  */
 export async function deleteRepo(params) {
     await del(`/repos/${params.id_or_namespace}`);
-    return `✅ 知识库已删除: ${params.id_or_namespace}`;
+    return JSON.stringify({ deleted: true, id_or_namespace: params.id_or_namespace });
 }
 // ---------- 工具 ----------
 function generateSlug(name) {

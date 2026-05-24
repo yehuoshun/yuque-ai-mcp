@@ -34,7 +34,7 @@ export async function getNote(params: { note_id: number }): Promise<string> {
 export async function createNote(params: { body: string }): Promise<string> {
   const data = await post("/notes", { body: params.body });
   const note = (data as any).data || data;
-  return `✅ 小记已创建: ${note.note_url || note.slug || ""}`;
+  return JSON.stringify(note, null, 2);
 }
 
 /**
@@ -51,8 +51,9 @@ export async function updateNote(params: { note_id: number; body: string; title?
     payload.title = params.title;
   }
 
-  await put(`/notes/${params.note_id}`, payload);
-  return `✅ 小记已更新: id=${params.note_id}`;
+  const data = await put(`/notes/${params.note_id}`, payload);
+  const updated = (data as any).data || data;
+  return JSON.stringify(updated, null, 2);
 }
 
 /**
@@ -69,7 +70,7 @@ export async function deleteNote(params: { note_id: number }): Promise<string> {
     status: 9,
   });
 
-  return `✅ 小记已移入回收站: id=${params.note_id}`;
+  return JSON.stringify({ deleted: true, note_id: params.note_id });
 }
 
 /**
@@ -86,5 +87,5 @@ export async function restoreNote(params: { note_id: number }): Promise<string> 
     status: 0,
   });
 
-  return `✅ 小记已恢复: id=${params.note_id}`;
+  return JSON.stringify({ restored: true, note_id: params.note_id });
 }

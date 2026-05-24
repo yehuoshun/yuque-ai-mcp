@@ -30,7 +30,7 @@ export async function getNote(params) {
 export async function createNote(params) {
     const data = await post("/notes", { body: params.body });
     const note = data.data || data;
-    return `✅ 小记已创建: ${note.note_url || note.slug || ""}`;
+    return JSON.stringify(note, null, 2);
 }
 /**
  * 更新小记
@@ -44,8 +44,9 @@ export async function updateNote(params) {
     if (params.title) {
         payload.title = params.title;
     }
-    await put(`/notes/${params.note_id}`, payload);
-    return `✅ 小记已更新: id=${params.note_id}`;
+    const data = await put(`/notes/${params.note_id}`, payload);
+    const updated = data.data || data;
+    return JSON.stringify(updated, null, 2);
 }
 /**
  * 删除小记（软删除 status=9）
@@ -59,7 +60,7 @@ export async function deleteNote(params) {
         abstract: origNote.content?.abstract || origNote.abstract || "",
         status: 9,
     });
-    return `✅ 小记已移入回收站: id=${params.note_id}`;
+    return JSON.stringify({ deleted: true, note_id: params.note_id });
 }
 /**
  * 恢复小记（status=0）
@@ -73,6 +74,6 @@ export async function restoreNote(params) {
         abstract: origNote.content?.abstract || origNote.abstract || "",
         status: 0,
     });
-    return `✅ 小记已恢复: id=${params.note_id}`;
+    return JSON.stringify({ restored: true, note_id: params.note_id });
 }
 //# sourceMappingURL=notes.js.map

@@ -94,9 +94,9 @@ export async function createDoc(params) {
         });
     }
     catch (e) {
-        return `⚠️ 文档已创建 (id=${docId})，但挂载目录失败: ${e.message}`;
+        return JSON.stringify({ error: "TOC_FAILED", message: e.message, doc: { id: docId, title: params.title } });
     }
-    return `✅ 文档已创建: ${params.title} (id=${docId})`;
+    return JSON.stringify(doc, null, 2);
 }
 /**
  * 更新文档
@@ -113,15 +113,16 @@ export async function updateDoc(params) {
         payload.format = params.format;
     if (params.public !== undefined)
         payload.public = params.public;
-    await put(`/repos/${params.book_id}/docs/${params.doc_id}`, payload);
-    return `✅ 文档已更新: id=${params.doc_id}`;
+    const data = await put(`/repos/${params.book_id}/docs/${params.doc_id}`, payload);
+    const doc = data.data || data;
+    return JSON.stringify(doc, null, 2);
 }
 /**
  * 删除文档
  */
 export async function deleteDoc(params) {
     await del(`/repos/${params.book_id}/docs/${params.doc_id}`);
-    return `✅ 文档已删除: id=${params.doc_id}`;
+    return JSON.stringify({ deleted: true, doc_id: params.doc_id });
 }
 // ---------- 版本 ----------
 /**
@@ -182,7 +183,7 @@ export async function updateToc(params) {
     if (params.title)
         payload.title = params.title;
     await put(`/repos/${params.book_id}/toc`, payload);
-    return `✅ 目录已更新 (action=${payload.action})`;
+    return JSON.stringify({ success: true, action: payload.action, action_mode: params.action_mode });
 }
 /**
  * 从目录中移除节点（不删除文档）
@@ -193,6 +194,6 @@ export async function removeTocNode(params) {
         action_mode: params.action_mode || "sibling",
         node_uuid: params.target_uuid,
     });
-    return `✅ 节点已从目录移除: ${params.target_uuid}`;
+    return JSON.stringify({ success: true, removed_uuid: params.target_uuid });
 }
 //# sourceMappingURL=docs.js.map
