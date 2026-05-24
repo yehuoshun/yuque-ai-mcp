@@ -56,7 +56,7 @@ yuque_list_repos → 匹配：
 ### 2.1 获取文档
 
 ```
-yuque_list_docs(namespace=源库) → 全部文档
+yuque_list_docs(book_id=源库id) → 全部文档
 提取：title | slug | id | updated_at | created_at
 
 count == 0 → 告知，结束
@@ -143,7 +143,7 @@ count > 50 → 分批 50 篇/批
 
 ```
 原地重命名：
-  yuque_update_doc(doc_id=slug, title=新标题)
+  yuque_update_doc(doc_id=文档id, title=新标题)
 
 复制重命名：
   yuque_get_doc(源库) → body

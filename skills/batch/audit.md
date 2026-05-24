@@ -33,7 +33,7 @@
 ```
 1. yuque_list_repos → 匹配源库（必须指定）
 
-2. yuque_list_docs(namespace=源库) → 全部文档
+2. yuque_list_docs(book_id=源库id) → 全部文档
    提取：title | slug | id | updated_at
    count == 0 → 告知，结束
    count > 50 → 分批 50 篇/批

@@ -85,7 +85,7 @@ yuque_list_repos → 获取所有知识库
 ### 2.1 获取文档列表
 
 ```
-yuque_list_docs(namespace=源库) → 全部文档
+yuque_list_docs(book_id=源库id) → 全部文档
 提取：title | slug | id | updated_at
 ```
 
@@ -172,14 +172,14 @@ count == 0 → 「所有文档都在 {阈值} 内活跃更新中 🎉」结束
 ```
 对每篇文档（并发 3 个）：
 
-  Step A: yuque_get_doc(namespace=源库, doc_id=slug)
+  Step A: yuque_get_doc(book_id=源库id, doc_id=文档id)
     → 成功：拿 body（Markdown 原文）
     → 403/404：记录失败「{title} — 读取失败 ({code})」，skip
     → 429：等 Retry-After 秒后重试，最多 3 次
     → 超时：重试 1 次，仍失败记录失败
 
   Step B: yuque_create_doc(
-            namespace=目标库,
+            book_id=目标库id,
             title=原标题,
             body=body,
             format="markdown"
@@ -191,7 +191,7 @@ count == 0 → 「所有文档都在 {阈值} 内活跃更新中 🎉」结束
 ### 4.2 验证
 
 ```
-yuque_list_docs(namespace=目标库) → 确认新文档已在目标库
+yuque_list_docs(book_id=目标库id) → 确认新文档已在目标库
 
 成功数 != 期望数 → 告用户「写入验证异常：期望 {expect} 篇，确认 {actual} 篇」
 ```
@@ -207,7 +207,7 @@ yuque_list_docs(namespace=目标库) → 确认新文档已在目标库
   最后确认？」
 
 用户确认 →
-  逐篇 yuque_delete_doc(namespace=源库, doc_id=slug)
+  逐篇 yuque_delete_doc(book_id=源库id, doc_id=文档id)
     成功 → 记录成功
     失败 → 记录失败「{title} — 删除失败 ({code})」
 
@@ -217,7 +217,7 @@ yuque_list_docs(namespace=目标库) → 确认新文档已在目标库
 ### 4.4 目录整理
 
 ```
-目标库 → yuque_update_toc(action="append", ...) 挂上新文档
+目标库 → yuque_update_toc(action: "appendNode", action_mode: "sibling", ...) 挂上新文档
 
 源库（仅归档模式，删了文档的情况）→
   遍历被删除文档对应的目录节点

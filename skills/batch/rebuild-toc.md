@@ -52,7 +52,7 @@ yuque_list_repos → 匹配：
 ### 2.1 读目录
 
 ```
-yuque_list_toc(namespace=源库) → 当前目录结构
+yuque_list_toc(book_id=源库id) → 当前目录结构
 
 记录：
   - 层级深度
@@ -64,7 +64,7 @@ yuque_list_toc(namespace=源库) → 当前目录结构
 ### 2.2 读文档
 
 ```
-yuque_list_docs(namespace=源库) → 全部文档
+yuque_list_docs(book_id=源库id) → 全部文档
 count == 0 → 告知，结束
 count > 50 → 分批 50 篇/批
 
@@ -146,9 +146,9 @@ LLM 全局分析：
   1. yuque_list_toc → 备份原结构到报告
   2. yuque_remove_toc_node 逐节点清空（不删文档）
   3. 按新目录树逐层创建节点 + 挂载：
-     一级 → yuque_update_toc(action="append", target="root")
-     二级 → yuque_update_toc(action="child", target=父节点uuid)
-     文档 → yuque_update_toc(action="child", target=父节点uuid, doc_id=slug)
+     一级 → yuque_update_toc(action: "appendNode", action_mode: "sibling", target_uuid: "")
+     二级 → yuque_update_toc(action: "appendNode", action_mode: "child", target_uuid: 父节点uuid)
+     文档 → yuque_update_toc(action: "appendNode", action_mode: "child", target_uuid: 父节点uuid, doc_ids: [文档id])
 
 迁移重建：
   1. yuque_get_doc(源库) → yuque_create_doc(目标库) 逐篇复制
