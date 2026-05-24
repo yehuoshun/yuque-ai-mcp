@@ -110,6 +110,26 @@ const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".
 // （上传为附件 → 创建文档含下载链接，如需内容转换需外部工具 pandoc/pdftotext）
 const UNSUPPORTED_EXTS = new Set<string>([]);
 
+// 语雀支持上传的文件扩展名（不在 EXT_TO_LANG/IMAGE_EXTS/TEXT_EXTS 中的）
+// 来源：语雀上传接口实测 + 官方文档，未知扩展名上传会失败
+const UPLOAD_EXTS = new Set([
+  // 视频
+  "mp4", "mov", "m4v", "wmv", "avi", "flv", "rmvb", "rm", "mkv", "swf",
+  "webm", "mpeg", "mpg", "mts", "3gp", "f4v", "dv", "m2t", "mj2", "mjpeg",
+  "mpe", "ogg", "vob", "qt", "asf", "m3u8",
+  // 音频
+  "aac", "flac", "m4a", "mp3", "wav", "wma",
+  // 压缩包
+  "zip", "rar", "7z", "gz", "tar", "bz2", "xz",
+  // 文档（仅上传附件，不提取内容）
+  "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
+  "odt", "ods", "odp", "rtf", "wps", "chm",
+  // 设计稿
+  "ai", "xd", "sketch", "graffle", "psd", "cpt",
+  // 其他二进制
+  "rplib", "dat",
+].map(e => "." + e));
+
 // ===================== Obsidian Markdown 适配 =====================
 
 const CALLOUT_MAP: Record<string, string> = {
@@ -354,7 +374,14 @@ export async function importDoc(params: {
       body = raw;
       if (!title) title = fileName;
     } catch {
-      // 二进制文件 → 上传附件
+      // 非文本文件 → 检查是否语雀支持上传
+      if (!UPLOAD_EXTS.has(ext)) {
+        return JSON.stringify({
+          error: "UNSUPPORTED_EXTENSION",
+          message: `语雀不支持上传 ${ext} 格式。建议将文件打包为 .zip 后重新导入。`,
+        });
+      }
+      // 语雀支持的格式 → 上传附件
       if (skipImages) {
         return JSON.stringify({
           error: "NO_COOKIE",
