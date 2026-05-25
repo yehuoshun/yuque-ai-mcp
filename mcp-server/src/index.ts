@@ -21,6 +21,7 @@ import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tool
 import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
 import { kbSearch, createIndexDoc } from "./tools/kb.js";
+import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
 
 // ---- tool definitions ----
 const tools: Tool[] = [
@@ -507,6 +508,43 @@ const tools: Tool[] = [
       required: ["login"],
     },
   },
+
+  // --- 回收站 ---
+  {
+    name: "yuque_list_recycles",
+    description: "列出语雀回收站中的已删除项目（文档/小记/知识库等）。⚠️ 需要 Cookie 登录态，请在 config 中配置 cookie 和 ctoken",
+    inputSchema: {
+      type: "object",
+      properties: {
+        offset: { type: "number", description: "分页偏移（默认 0）" },
+        limit: { type: "number", description: "每页数量（默认 50，最大 100）" },
+        target_type: { type: "string", enum: ["Doc", "Note", "Repo"], description: "筛选目标类型（可选）" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "yuque_restore_recycle",
+    description: "从回收站恢复已删除的项目。⚠️ 需要 Cookie 登录态",
+    inputSchema: {
+      type: "object",
+      properties: {
+        recycle_id: { type: "number", description: "回收站项目 ID（从 yuque_list_recycles 获取）" },
+      },
+      required: ["recycle_id"],
+    },
+  },
+  {
+    name: "yuque_destroy_recycle",
+    description: "⚠️ 彻底删除回收站中的项目，不可恢复。⚠️ 需要 Cookie 登录态",
+    inputSchema: {
+      type: "object",
+      properties: {
+        recycle_id: { type: "number", description: "回收站项目 ID（从 yuque_list_recycles 获取）" },
+      },
+      required: ["recycle_id"],
+    },
+  },
 ];
 
 // ---- handler map ----
@@ -554,6 +592,10 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_get_member_stats: (a) => getMemberStats(a),
   yuque_get_book_stats: (a) => getBookStats(a),
   yuque_get_doc_stats: (a) => getDocStats(a),
+
+  yuque_list_recycles: (a) => listRecycles(a),
+  yuque_restore_recycle: (a) => restoreRecycle(a),
+  yuque_destroy_recycle: (a) => destroyRecycle(a),
 };
 
 // ---- server ----
