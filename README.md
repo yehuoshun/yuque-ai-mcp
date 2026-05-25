@@ -280,7 +280,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Skill | 说明 |
 |-------|------|
 | [archive](skills/batch/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
-| [backup](skills/batch/backup.md) | 知识库完整备份/快照到本地（全量/增量，含TOC结构+图片+附件+恢复） |
+| [backup](skills/batch/backup.md) | 知识库完整快照到本地（全量导出，含TOC结构+图片+附件） |
 | [audit](skills/batch/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
 | [classify](skills/batch/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
 | [dashboard](skills/batch/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
