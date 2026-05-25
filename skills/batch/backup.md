@@ -60,36 +60,52 @@ yuque_list_repos → 所有知识库
 
 ```
 yuque_get_doc(book_id, doc_id)
-  → body（Markdown 原文）+ 元数据（title/slug/updated_at/word_count/format）
+  → 完整 JSON（type/format/body/body_html/body_lake/body_sheet/body_table/...）
 
-含图片模式：
-  正则提取 body 中图片引用 → curl 下载到 images/
-  语雀 CDN 图片 → 替换为 ./images/{hash}_{文件名}
-  外链图片 → 尝试下载，失败保留原始 URL
+根据 format + type 选择输出：
+
+| format | type | 输出文件 | 内容来源 |
+|--------|------|---------|--------|
+| markdown | Doc | .md | body（Markdown 原文） |
+| lake | Doc | .lake.md | body（湖格式的 markdown 表达，含 Mermaid 等） |
+| html | Doc | .html | body_html |
+| — | Sheet | .sheet.json | body_sheet（JSON 二维数组） |
+| — | Table | .table.json | body_table（JSON records） |
+| — | Board | .board.json | 元数据（id/title，图集图片需单独处理） |
+| — | Thread | .md | body（话题正文） |
+
+> lake 格式的 body_lake 是语雀原生 JSON，不适合直接导出。用 body 字段
+> 的 markdown 表达即可保存完整内容（含 Mermaid 图表）。
+
+图片提取（所有格式通用）：
+  正则提取 body / body_html 中的图片引用
+  语雀 CDN → curl 下载到 images/ → 替换为 ./images/{hash}_{文件名}
+  外链 → 尝试下载，失败保留原始 URL
 
 写入：
   {输出目录}/
-  ├── {文档名}.md         ← 含 YAML frontmatter + body（图片路径已替换）
-  └── images/             ← 引用的图片
+  ├── {文档名}.{ext}       ← 含 YAML frontmatter + 内容
+  └── images/
       └── {hash}_{文件名}.png
 ```
 
 ## 输出文件格式
 
-```markdown
+```yaml
 ---
 doc_id: 123456
 slug: doc-slug
 book_id: 78276514
 book_name: 索引子库1
+type: Doc          # Doc/Sheet/Thread/Board/Table
+format: markdown   # markdown/lake/html/lakesheet
 created_at: "2026-05-20T10:00:00+08:00"
 updated_at: "2026-05-25T16:00:00+08:00"
 word_count: 1500
-format: markdown
 source: https://www.yuque.com/yehuoshun/index-sub-1/doc-slug
 ---
 
-{正文内容，图片已替换为本地路径}
+{内容，图片已替换为本地路径}
 ```
 
 ## 报告
@@ -139,21 +155,20 @@ doc_count > 200 → 提示分批
 doc_count == 0 → 结束
 ```
 
-## 阶段三：输出结构
+## 输出结构
 
 ```
 {根目录}/
-├── snapshot.json
+├── snapshot.json           ← 快照元数据（含 format/type 字段）
 ├── README.md
 ├── docs/                   ← 按 TOC 层级建子目录
 │   ├── 01-根级文档/
-│   │   └── 文档标题.md
+│   │   ├── 文档标题.md
+│   │   ├── 数据表格.table.json
+│   │   └── 网页存档.html
 │   ├── 02-分组名称/
-│   │   ├── 子文档.md
-│   │   └── 子分组/
-│   │       └── 更深层文档.md
+│   │   └── ...
 │   └── _orphaned/
-│       └── 孤儿文档.md
 ├── images/
 │   └── {md5}_{文件名}.png
 └── attachments/
@@ -163,7 +178,8 @@ doc_count == 0 → 结束
 TOC → 目录映射：
 ```
 type:TITLE → 子目录（title 清理非法字符）
-type:DOC   → {title}.md
+type:DOC   → {title}.{ext}（扩展名根据 format/type 决定，见格式表）
+type:LINK  → {title}.url（保存外链目标 URL）
 同名冲突 → 追加 (1)(2)
 文件名过长 → 截断 100 字符
 ```
@@ -174,9 +190,10 @@ type:DOC   → {title}.md
 并发数：5
 
 每篇文档：
-  yuque_get_doc → body + 元数据
+  yuque_get_doc → 完整 JSON
+  → 根据 format + type 选内容字段和扩展名（同单篇格式表）
   → 提取图片引用 → curl 下载 → 替换路径
-  → 写入 YAML frontmatter + body
+  → 写入 YAML frontmatter（含 type/format） + 内容
   → 进度计数
 ```
 
@@ -188,7 +205,7 @@ type:DOC   → {title}.md
   "repo": { "id": 78276514, "name": "...", "slug": "...", "namespace": "..." },
   "snapshot_at": "2026-05-25T16:00:00+08:00",
   "stats": { "total_docs": 150, "downloaded": 148, "failed": 2, "images": 320 },
-  "docs": [{ "doc_id": 123456, "title": "...", "local_path": "docs/.../xxx.md", "updated_at": "..." }],
+  "docs": [{ "doc_id": 123456, "title": "...", "type": "Doc", "format": "markdown", "local_path": "docs/.../xxx.md", "updated_at": "..." }],
   "failed_docs": [{ "doc_id": 789, "title": "...", "reason": "403" }]
 }
 ```
