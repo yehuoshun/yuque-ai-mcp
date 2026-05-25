@@ -19,50 +19,51 @@
 
 ## vs 官方生态
 
-官方生态由 3 个核心组件构成：[yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（MCP Server 核心） + [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem)（OpenClaw 插件，8 skills） + [yuque-plugin](https://github.com/yuque/yuque-plugin)（Claude Code 插件，4+2 skills）。以下按维度逐一对比。
+官方生态由 3 个核心组件构成：[yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（MCP Server 核心，16 tools） + [yuque-ecosystem](https://github.com/yuque/yuque-ecosystem)（OpenClaw 插件，8 skills） + [yuque-plugin](https://github.com/yuque/yuque-plugin)（Claude Code 插件，4+2 skills）。
 
-### 基本信息
+### MCP Tools 逐类对比
 
-| 维度 | 官方 | 🦞 本项目 |
-|------|------|--------|
-| 维护方 | 语雀官方 | 社区（yehuoshun） |
-| 定位 | MCP Server 核心 | 全功能 MCP + Agent Skill 套装 |
-| 安装方式 | `npx yuque-mcp install` | clone + `npm install` + 手动配置 |
-| npm 发布 | ✅ `npx yuque-mcp` | 🔜 规划中（当前 test 阶段本地构建） |
-| 适用平台 | 通用 MCP 客户端 | OpenClaw |
+| 分类 | 官方（yuque-mcp-server） | 🦞 本项目 |
+|------|--------------------------|--------|
+| 用户 | `get_user` | `get_user` + `health_check` 🆕 |
+| 搜索 | `search` | `search` + `kb_search` 🆕 + `batch_get_docs_body` 🆕 |
+| 知识库 | `list_books` `get_book` `create_book` `update_book` | 同左 + `delete_repo` 🆕 |
+| 文档 | `list_docs` `get_doc` `create_doc` `update_doc` | 同左 + `delete_doc` 🆕 + `list_doc_versions` 🆕 + `get_doc_version` 🆕 |
+| 目录 | `get_toc` `update_toc` | 同左 + `remove_toc_node` 🆕 |
+| 小记 | `list_notes` `get_note` `create_note` `update_note` | 同左 + `delete_note` 🆕 + `restore_note` 🆕 |
+| 回收站 | ❌ | `list_recycles` 🆕 `restore_recycle` 🆕 `destroy_recycle` 🆕 |
+| 群组 | ❌ | `list_group_users` 🆕 `update_group_user` 🆕 `remove_group_user` 🆕 |
+| 统计 | ❌ | `get_group_stats` 🆕 `get_member_stats` 🆕 `get_book_stats` 🆕 `get_doc_stats` 🆕 |
+| 上传 & 导入 | ❌ | `upload_attachment` 🆕 `import_doc` 🆕 |
+| 索引构建 | ❌ | `index_create` 🆕 |
+| **合计** | **16 个** | **39 个**（16 基础 + 23 独有） |
 
-### MCP Tools
-
-| 维度 | 官方 | 🦞 本项目 |
-|------|------|--------|
-| 工具总数 | 16 个 | **39 个** |
-| 删除操作 | ❌ | ✅ repo/doc 硬删除 + note 软删除+恢复 + 回收站管理 |
-| 版本管理 | ❌ | ✅ 版本历史 + 版本详情 |
-| 群组管理 | ❌ | ✅ 成员列表/角色变更/移除 |
-| 统计面板 | ❌ | ✅ group/member/book/doc 四维统计 |
-| 批量获取正文 | ❌ | ✅ batch_get_docs_body（并发 5） |
-| 上传 & 导入 | ❌ | ✅ CDN 上传 + Obsidian/Notion 导入 |
-| 健康检查 | ❌ | ✅ Token + 知识库连通性检查 |
+> 🦞 本项目覆盖官方全部 16 个工具，并多出 23 个独有工具：删除/恢复/版本历史/群组/统计/回收站/上传导入/索引构建/健康检查。
 
 ### Skills 矩阵
 
-| 维度 | 官方 | 🦞 本项目 |
-|------|------|--------|
-| Skills 总数 | 8 个（plugin 4+2） | **18 个** |
-| 知识库问答 | `smart-search` | **两层索引 + 多路并发 + 降级** |
-| 智能摘要 | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
-| 阅读摘录 | `reading-digest` | `digest`（五维提取 + 知识卡片） |
-| 碎片收集 | `daily-capture` | `inbox`（三种模式 + 可配置清理） |
-| 笔记打磨 | `note-refine` | `polish`（打磨 + 风格分析 + 迁移 + 模板） |
-| 风格分析 | `style-extract` | ↑ 合入 polish |
-| 知识关联 | `knowledge-connect` | `knowledge`（图谱 + 交叉引用 + 聚类） |
-| 过时检测 | `stale-detector` | `audit`（版本审计 + 变更追踪 + 对比） |
-| 批量运维 | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
-| 翻译 & 同步 | — | ✅ 批量翻译 + 文档镜像同步 |
-| 拆分 & 合并 | — | ✅ split + merge |
-| 外部导入 | — | ✅ 本地/Obsidian/Notion |
+| 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
+|------|-------------------|----------------|--------|
+| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **18 个** |
+| 知识库问答 | `smart-search` | `smart-search` | **两层索引 + 多路并发 + 降级** |
+| 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
+| 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
+| 碎片收集 | `daily-capture` | — | `inbox`（三种模式 + 可配置清理） |
+| 笔记打磨 | `note-refine` | — | `polish`（打磨 + 风格分析 + 迁移 + 模板） |
+| 风格分析 | `style-extract` | — | ↑ 合入 polish |
+| 知识关联 | `knowledge-connect` | — | `knowledge`（图谱 + 交叉引用 + 聚类） |
+| 过时检测 | `stale-detector` | — | `audit`（版本审计 + 变更追踪 + 对比） |
+| 会议纪要 | — | `meeting-notes` | 🟰 无专用模板 |
+| 技术方案 | — | `tech-design` | 🟰 无专用模板 |
+| 周报 | — | `weekly-report` | `dashboard`（维度远超周报） |
+| 入职指南 | — | `onboarding-guide`（团队） | ❌ 官方独有 |
+| 知识报告 | — | `knowledge-report`（团队） | `dashboard`（覆盖健康度+运营） |
+| 批量运维 | — | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
+| 翻译 & 同步 | — | — | ✅ 批量翻译 + 文档镜像同步 |
+| 拆分 & 合并 | — | — | ✅ split + merge |
+| 外部导入 | — | — | ✅ 本地/Obsidian/Notion |
 
-> 🦞 官方优势仅在 CLI 开箱体验。Skill 数量、工具能力、业务深度本项目全面超越。
+> 🦞 官方优势仅在 CLI 开箱体验 + `meeting-notes`/`tech-design`/`onboarding-guide` 三个专用模板，其余维度本项目全面超越。
 
 ---
 
@@ -127,7 +128,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ### 3. 在 MCP 客户端配置
 
-**方式一：npm 安装（推荐，规划中）**
+**方式一：npm 安装（规划中）**
 
 ```json
 {
