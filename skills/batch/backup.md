@@ -36,6 +36,7 @@
 | 所属知识库 | ❌ | 从文档名搜索 | book_id / namespace / 名称 |
 | 输出目录 | ❌ | `./yuque-backups/{文档名}_{日期}/` | 相对/绝对路径 |
 | 含图片 | ❌ | true | 「不带图」「纯文本」→ 跳过 |
+| 含附件 | ❌ | false | 「含附件」「下附件」→ 下载 |
 
 ## 阶段：定位文档
 
@@ -85,8 +86,19 @@ yuque_get_doc(book_id, doc_id)
 写入：
   {输出目录}/
   ├── {文档名}.{ext}       ← 含 YAML frontmatter + 内容
-  └── images/
-      └── {hash}_{文件名}.png
+  ├── images/               ← 引用的图片
+  │   └── {hash}_{文件名}.png
+  └── attachments/          ← 附件（仅当含附件模式）
+      └── {hash}_{文件名}.pdf
+
+附件下载（含附件模式）：
+  从 body / body_html 中提取附件引用：
+    Markdown: [文本](url)  排除图片后缀(.png/.jpg/.gif/.webp/.svg)
+    HTML: <a href="url">  排除图片链接
+  筛选语雀域名附件：
+    cdn.nlark.com / yuque.com / *.yuque.com
+  并发 curl 下载到 attachments/ → 替换引用为 ./attachments/{hash}_{文件名}
+  非语雀域名的外链附件 → 尝试下载（超时 15s），失败保留原始 URL 记录 warning
 ```
 
 ## 输出文件格式
@@ -114,8 +126,8 @@ source: https://www.yuque.com/yehuoshun/index-sub-1/doc-slug
 ✅ 导出完成
 文档：《{title}》
 格式：{format} ｜ 字数：{word_count}
-图片：{N} 张
-📁 输出：{目录}/{文件名}.md
+图片：{N} 张 ｜ 附件：{M} 个
+📁 输出：{目录}/{文件名}.{ext}
 ```
 
 ---
@@ -192,9 +204,18 @@ type:LINK  → {title}.url（保存外链目标 URL）
 每篇文档：
   yuque_get_doc → 完整 JSON
   → 根据 format + type 选内容字段和扩展名（同单篇格式表）
-  → 提取图片引用 → curl 下载 → 替换路径
+  → 提取图片引用 → curl 下载到 images/ → 替换路径
+  → 提取附件引用 → curl 下载到 attachments/（仅含附件模式）→ 替换路径
   → 写入 YAML frontmatter（含 type/format） + 内容
   → 进度计数
+```
+
+附件提取规则（含附件模式）：
+```
+Markdown: [文本](url) 排除图片后缀(.png/.jpg/.gif/.webp/.svg)
+HTML: <a href="url"> 排除图片链接
+语雀域名附件（cdn.nlark.com / yuque.com）→ curl 下载
+外链附件 → 尝试下载（超时 15s），失败保留原始 URL
 ```
 
 ## 阶段五：生成清单
@@ -204,7 +225,7 @@ type:LINK  → {title}.url（保存外链目标 URL）
   "version": "1.0",
   "repo": { "id": 78276514, "name": "...", "slug": "...", "namespace": "..." },
   "snapshot_at": "2026-05-25T16:00:00+08:00",
-  "stats": { "total_docs": 150, "downloaded": 148, "failed": 2, "images": 320 },
+  "stats": { "total_docs": 150, "downloaded": 148, "failed": 2, "images": 320, "attachments": 15 },
   "docs": [{ "doc_id": 123456, "title": "...", "type": "Doc", "format": "markdown", "local_path": "docs/.../xxx.md", "updated_at": "..." }],
   "failed_docs": [{ "doc_id": 789, "title": "...", "reason": "403" }]
 }
@@ -215,7 +236,7 @@ type:LINK  → {title}.url（保存外链目标 URL）
 ```
 ✅ 全库备份完成
 源库：{name}（{total} 篇）
-📊 文档 ✅ {success} / ❌ {failed} ｜ 图片 {image_count} 张
+📊 文档 ✅ {success} / ❌ {failed} ｜ 图片 {image_count} 张 ｜ 附件 {attachment_count} 个
 📁 {local_root}
 📄 {local_root}/snapshot.json
 ```
@@ -234,6 +255,7 @@ type:LINK  → {title}.url（保存外链目标 URL）
 | 单篇读取失败(403/404) | 记录失败，继续 |
 | API 限流(429) | 等 Retry-After，最多 3 次 |
 | 图片下载超时 | 保留原始 URL，记录 warning |
+| 附件下载超时 | 保留原始 URL，记录 warning |
 | 文件名冲突 | 追加 (1)(2) |
 
 ## 依赖工具
