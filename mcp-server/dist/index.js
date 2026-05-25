@@ -10,7 +10,7 @@ import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, 
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { batchGetDocsBody } from "./tools/export.js";
-import { healthCheck, getUser } from "./tools/user.js";
+import { healthCheck, getUser, getUserStats } from "./tools/user.js";
 import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups.js";
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
@@ -337,6 +337,15 @@ const tools = [
             required: ["docs"],
         },
     },
+    {
+        name: "yuque_get_user_stats",
+        description: "获取个人写作统计仪表盘（知识库/文档/编辑/字数/社交/小记全维度，含总量+30天+365天）。⚠️ 需要 Cookie 登录态",
+        inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
+        },
+    },
     // --- 健康检查 ---
     {
         name: "yuque_health_check",
@@ -559,6 +568,7 @@ const handlers = {
     yuque_upload_attachment: (a) => uploadAttachment(a),
     yuque_health_check: () => healthCheck(),
     yuque_get_user: () => getUser(),
+    yuque_get_user_stats: () => getUserStats(),
     yuque_list_group_users: (a) => listGroupUsers(a),
     yuque_update_group_user: (a) => updateGroupUser(a),
     yuque_remove_group_user: (a) => removeGroupUser(a),
