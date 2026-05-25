@@ -20,6 +20,7 @@ import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
+import { kbSearch, createIndexDoc } from "./tools/kb.js";
 
 // ---- tool definitions ----
 const tools: Tool[] = [
@@ -399,6 +400,51 @@ const tools: Tool[] = [
     },
   },
 
+  // ═══════════ 知识库搜索 & 索引构建 ═══════════
+  {
+    name: "yuque_kb_search",
+    description: "知识库管道搜索：输入搜索 token 数组，N 路并行搜索子索引库 → 去重 → 读索引文档 body → 解析 entries → 合并去重 → 返回源文档指针。纯 API 机械操作，不涉及 LLM。Agent 负责用 LLM 生成 token 后传入。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tokens: { type: "array", items: { type: "string" }, description: "搜索 token 数组（由 Agent LLM 生成，每个 token 独立并行搜）" },
+        index_book_ns: { type: "string", description: "子索引库 namespace（如 yehuoshun/idx-misc-1）" },
+        index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+      },
+      required: ["tokens", "index_book_ns", "index_book_id"],
+    },
+  },
+  {
+    name: "yuque_index_create",
+    description: "在子索引库中创建一篇关键词索引文档（[索引] {keyword}），body 按标准三层格式组装：# 搜索面 + # 摘要 + entries JSON。自动挂 TOC。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        keyword: { type: "string", description: "索引关键词（如 Spring、事务、JVM）" },
+        search_surface: { type: "string", description: "搜索面文本（穷举同义词/缩写/口语问法）" },
+        summary: { type: "string", description: "摘要（100-200 字）" },
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              did: { type: "number", description: "源文档 ID" },
+              bid: { type: "number", description: "源知识库 ID" },
+              ns: { type: "string", description: "源知识库 namespace" },
+              t: { type: "string", description: "源文档标题" },
+              s: { type: "string", description: "源文档 slug" },
+              wc: { type: "number", description: "字数（可选）" },
+            },
+            required: ["did", "bid", "ns", "t"],
+          },
+          description: "源文档指针数组",
+        },
+        index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+      },
+      required: ["keyword", "search_surface", "summary", "entries", "index_book_id"],
+    },
+  },
+
   // --- 统计（需 statistic:read 权限）---
   {
     name: "yuque_get_group_stats",
@@ -499,6 +545,10 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_list_group_users: (a) => listGroupUsers(a),
   yuque_update_group_user: (a) => updateGroupUser(a),
   yuque_remove_group_user: (a) => removeGroupUser(a),
+
+  // 知识库搜索 & 索引构建
+  yuque_kb_search: (a) => kbSearch(a),
+  yuque_index_create: (a) => createIndexDoc(a),
 
   yuque_get_group_stats: (a) => getGroupStats(a),
   yuque_get_member_stats: (a) => getMemberStats(a),
