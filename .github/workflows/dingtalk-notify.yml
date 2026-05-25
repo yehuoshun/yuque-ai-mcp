@@ -17,3 +17,4 @@ jobs:
       - uses: yehuoshun/yehuoshun-notify@main
         with:
           webhook: ${{ secrets.DINGTALK_WEBHOOK }}
+          create_release: 'false'
