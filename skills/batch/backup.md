@@ -168,7 +168,7 @@ doc_count == 0 → 结束
 
 ```
 {根目录}/
-├── snapshot.json           ← 快照元数据（含 format/type 字段）
+├── manifest.json           ← 下载清单（时间戳 + 文档列表 + 统计）
 ├── README.md
 ├── docs/                   ← 按 TOC 层级建子目录
 │   ├── 01-根级文档/
@@ -221,7 +221,7 @@ HTML: <a href="url"> 排除图片链接
 {
   "version": "1.0",
   "repo": { "id": 78276514, "name": "...", "slug": "...", "namespace": "..." },
-  "snapshot_at": "2026-05-25T16:00:00+08:00",
+  "downloaded_at": "2026-05-25T16:00:00+08:00",
   "stats": { "total_docs": 150, "downloaded": 148, "failed": 2, "images": 320, "attachments": 15 },
   "docs": [{ "doc_id": 123456, "title": "...", "type": "Doc", "format": "markdown", "local_path": "docs/.../xxx.md", "updated_at": "..." }],
   "failed_docs": [{ "doc_id": 789, "title": "...", "reason": "403" }]
@@ -235,7 +235,7 @@ HTML: <a href="url"> 排除图片链接
 源库：{name}（{total} 篇）
 📊 文档 ✅ {success} / ❌ {failed} ｜ 图片 {image_count} 张 ｜ 附件 {attachment_count} 个
 📁 {local_root}
-📄 {local_root}/snapshot.json
+📄 {local_root}/manifest.json
 ```
 
 ---
