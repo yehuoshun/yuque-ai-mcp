@@ -1,4 +1,4 @@
-import { get } from "../client.js";
+import { get, post, put } from "../client.js";
 import { loadConfig } from "../config.js";
 /**
  * 知识库搜索 — 管道全自动
@@ -103,67 +103,38 @@ export async function createIndexDoc(params) {
         ``,
         JSON.stringify({ e: entries }),
     ].join("\n");
-    // 调用创建文档 API（走 createDoc 函数简化版）
+    const { default_book } = loadConfig();
+    const bookId = index_book_id || default_book.book_id;
+    if (!bookId)
+        throw new Error("未指定 index_book_id 且未配置 default_book");
     const payload = {
         title: `[索引] ${keyword}`,
         body,
         format: "markdown",
     };
+    const data = await post(`/repos/${bookId}/docs`, payload);
+    const created = data.data || data;
+    const docId = created.id;
+    // 自动挂 TOC
     try {
-        const { default_book } = loadConfig();
-        const bookId = index_book_id || default_book.book_id;
-        if (!bookId)
-            throw new Error("未指定 index_book_id 且未配置 default_book");
-        const data = await fetch(`https://www.yuque.com/api/v2/repos/${bookId}/docs`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Auth-Token": loadConfig().token,
-            },
-            body: JSON.stringify(payload),
+        await put(`/repos/${bookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            target_uuid: "",
+            type: "DOC",
+            doc_ids: [docId],
         });
-        if (!data.ok) {
-            const text = await data.text();
-            throw new Error(`创建失败 HTTP ${data.status}: ${text.slice(0, 200)}`);
-        }
-        const doc = (await data.json());
-        const created = doc.data || doc;
-        const docId = created.id;
-        // 自动挂 TOC
-        try {
-            await fetch(`https://www.yuque.com/api/v2/repos/${bookId}/toc`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Auth-Token": loadConfig().token,
-                },
-                body: JSON.stringify({
-                    action: "appendNode",
-                    action_mode: "child",
-                    target_uuid: "",
-                    type: "DOC",
-                    doc_ids: [docId],
-                }),
-            });
-        }
-        catch {
-            // TOC 挂载失败不阻塞
-        }
-        return JSON.stringify({
-            created: true,
-            doc_id: docId,
-            keyword,
-            entries_count: entries.length,
-            title: `[索引] ${keyword}`,
-        }, null, 2);
     }
-    catch (err) {
-        return JSON.stringify({
-            error: "INDEX_CREATE_FAILED",
-            message: err.message,
-            keyword,
-        }, null, 2);
+    catch {
+        // TOC 挂载失败不阻塞
     }
+    return JSON.stringify({
+        created: true,
+        doc_id: docId,
+        keyword,
+        entries_count: entries.length,
+        title: `[索引] ${keyword}`,
+    }, null, 2);
 }
 // ─── helpers ──────────────────────────────────────────
 /**
