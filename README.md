@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 40 MCP Tools + 18 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 40 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
@@ -44,7 +44,7 @@
 
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
-| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **18 个** |
+| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **19 个** |
 | 知识库问答 | `smart-search` | `smart-search` | **两层索引 + 多路并发 + 降级** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
@@ -61,6 +61,7 @@
 | 批量运维 | — | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
 | 翻译 & 同步 | — | — | ✅ 批量翻译 + 文档镜像同步 |
 | 拆分 & 合并 | — | — | ✅ split + merge |
+| 备份 & 快照 | — | — | ✅ 全量/增量备份到本地，含目录+图片+恢复 |
 | 外部导入 | — | — | ✅ 本地/Obsidian/Notion |
 
 > 🦞 官方优势仅在 CLI 开箱体验 + `meeting-notes`/`tech-design`/`onboarding-guide` 三个专用模板，其余维度本项目全面超越。
@@ -72,7 +73,7 @@
 ```
 yuque-mcp (MCP Server)     ← 40 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查）
     ↓
-业务 Skills                ← 18 个 Skill Markdown（batch/write/map 三分类）
+业务 Skills                ← 19 个 Skill Markdown（batch/write/map 三分类）
     ↓
 LLM Agent                  ← 问答编排 & 业务流转
 ```
@@ -80,7 +81,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
 | `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 40 个 tools |
-| `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，18 个技能） |
+| `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，19 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
 ---
@@ -279,6 +280,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Skill | 说明 |
 |-------|------|
 | [archive](skills/batch/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
+| [backup](skills/batch/backup.md) | 知识库完整备份/快照到本地（全量/增量，含TOC结构+图片+附件+恢复） |
 | [audit](skills/batch/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
 | [classify](skills/batch/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
 | [dashboard](skills/batch/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
