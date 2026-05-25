@@ -61,7 +61,7 @@
 | 批量运维 | — | — | ✅ 归档/分类/格式化/重命名/重构/仪表盘/审计 |
 | 翻译 & 同步 | — | — | ✅ 批量翻译 + 文档镜像同步 |
 | 拆分 & 合并 | — | — | ✅ split + merge |
-| 备份 & 快照 | — | — | ✅ 全量快照到本地，含TOC结构+图片+附件 |
+| 备份 & 下载 | — | — | ✅ 全量下载到本地，含TOC结构+图片+附件 |
 | 外部导入 | — | — | ✅ 本地/Obsidian/Notion |
 
 > 🦞 官方优势仅在 CLI 开箱体验 + `meeting-notes`/`tech-design`/`onboarding-guide` 三个专用模板，其余维度本项目全面超越。
@@ -280,7 +280,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Skill | 说明 |
 |-------|------|
 | [archive](skills/batch/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
-| [backup](skills/batch/backup.md) | 知识库完整快照到本地（全量导出，含TOC结构+图片+附件） |
+| [backup](skills/batch/backup.md) | 知识库完整下载到本地（全量导出，含TOC结构+图片+附件） |
 | [audit](skills/batch/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
 | [classify](skills/batch/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
 | [dashboard](skills/batch/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
