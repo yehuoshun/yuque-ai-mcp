@@ -307,7 +307,7 @@ flowchart TD
 yuque-ai-mcp/
 ├── SKILL.md              # AI Agent 执行规范
 ├── README.md             # 本文件
-├── skills/               # 业务 Skills（14 个）
+├── skills/               # 业务 Skills（17 个）
 │   ├── batch/            # 批量运维（13 个）
 │   │   ├── archive.md     # 批量归档/备份
 │   │   ├── audit.md       # 版本审计 & 变更追踪

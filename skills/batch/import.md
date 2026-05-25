@@ -19,15 +19,14 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
   "token": "...",
   "group": "yehuoshun",
   "default_book": { ... },
-  "cookie": "_yuque_session=xxx; yuque_ctoken=xxx",
-  "ctoken": "xxx"
+  "cookie": "<从浏览器复制的完整 Cookie 字符串>",
+  "ctoken": "<CSRF Token>"
 }
 
 获取方式：
   浏览器打开 yuque.com 登录 → F12 → Application → Cookies
-  → 复制 _yuque_session 和 yuque_ctoken 的值
-  → cookie 字段填完整 Cookie 字符串
-  → ctoken 字段填 yuque_ctoken 的值
+  → 复制 Cookie 字符串填到 cookie 字段
+  → 复制 CSRF Token 填到 ctoken 字段
 
 ⚠️ cookie 会过期，过期后需重新获取。
 运行前检测：无 cookie → 提示配置后重试。

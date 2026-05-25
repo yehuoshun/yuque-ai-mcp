@@ -362,7 +362,7 @@ export async function importDoc(params: {
 
   // 1. 检查文件
   if (!existsSync(filePath)) {
-    return JSON.stringify({ error: "FILE_NOT_FOUND", message: `文件不存在: ${filePath}` });
+    throw new Error(`文件不存在: ${filePath}`);
   }
 
   const ext = extname(filePath).toLowerCase();
