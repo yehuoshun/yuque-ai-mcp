@@ -56,17 +56,31 @@ export async function healthCheck() {
     catch (e) {
         results.push(`❌ 默认知识库不可用: ${e.message}`);
     }
-    // 3. 索引库检查
+    // 3. 索引总库 + 子索引库检查
     try {
-        const { index_book } = await import("../config.js").then((m) => ({
-            index_book: m.loadConfig().index_book,
+        const { route_book, route_sub } = await import("../config.js").then((m) => ({
+            route_book: m.loadConfig().route_book,
+            route_sub: m.loadConfig().route_sub,
         }));
-        if (index_book.book_id) {
-            await get(`/repos/${index_book.book_id}`);
-            results.push(`✅ 索引库: id=${index_book.book_id}`);
+        if (route_book.length > 0) {
+            results.push(`✅ 索引总库: ${route_book.length} 个`);
+            for (const rb of route_book) {
+                await get(`/repos/${rb.book_id}`);
+                results.push(`   ✅ ${rb.namespace} (id=${rb.book_id})`);
+            }
         }
         else {
-            results.push("⏭️ 未配置索引库");
+            results.push("⏭️ 未配置索引总库 (route_book)");
+        }
+        if (route_sub.length > 0) {
+            results.push(`✅ 默认子索引库: ${route_sub.length} 个`);
+            for (const rs of route_sub) {
+                await get(`/repos/${rs.book_id}`);
+                results.push(`   ✅ ${rs.namespace} (id=${rs.book_id})`);
+            }
+        }
+        else {
+            results.push("⏭️ 未配置默认子索引库 (route_sub)");
         }
     }
     catch (e) {

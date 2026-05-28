@@ -1,5 +1,5 @@
 import { get, post, put } from "../client.js";
-import { loadConfig } from "../config.js";
+import { loadConfig, YuqueBook } from "../config.js";
 
 // ─── 类型 ──────────────────────────────────────────────
 
@@ -66,18 +66,21 @@ export async function kbSearch(params: {
   route_id?: number | string;
 }): Promise<string> {
   const { route_book } = loadConfig();
-  const route_ns = params.route_ns || route_book.namespace;
-  const route_id = params.route_id || route_book.book_id;
+  const { tokens } = params;
+  const routeErrors: { token: string; reason: string }[] = [];
 
-  if (!route_ns || !route_id) {
-    return `⚠️ 索引总库未配置。请设置环境变量：\nYUQUE_ROUTE_BOOK_ID=<总库 book_id>\nYUQUE_ROUTE_BOOK_NS=<总库 namespace>\n或传入 route_ns / route_id 参数。`;
+  // 确定要搜哪些总库：用户显式传入 > 配置的全部 route_book
+  let routeBooks: YuqueBook[];
+  if (params.route_ns && params.route_id) {
+    routeBooks = [{ book_id: params.route_id, namespace: params.route_ns }];
+  } else if (route_book.length > 0) {
+    routeBooks = route_book;
+  } else {
+    return `⚠️ 索引总库未配置。请在 config 中设置 route_book 数组，或传入 route_ns / route_id 参数。`;
   }
 
-  const { tokens } = params;
-
-  // ROOT Step: 路由定位
-  const routeErrors: { token: string; reason: string }[] = [];
-  const subIndexes = await findSubIndexes(tokens, route_ns, route_id, routeErrors);
+  // ROOT Step: 并行搜所有总库 → 收集路由
+  const subIndexes = await findSubIndexesFromAll(tokens, routeBooks, routeErrors);
 
   if (subIndexes.length === 0) {
     const lines: string[] = [];
@@ -158,7 +161,31 @@ export async function kbSearch(params: {
   return lines.join("\n");
 }
 
-// ─── 路由定位 ──────────────────────────────────────────
+// ─── 路由定位（多总库）──────────────────────────────────
+
+/**
+ * 搜索所有总库 → 找 [路由] 文档 → 解析子索引库指针，合并去重
+ */
+async function findSubIndexesFromAll(
+  tokens: string[],
+  routeBooks: YuqueBook[],
+  errors: { token: string; reason: string }[]
+): Promise<SubIndexPointer[]> {
+  const allPointers = new Map<string, SubIndexPointer>(); // namespace → pointer
+
+  await Promise.all(
+    routeBooks.map(async (rb) => {
+      const ptrs = await findSubIndexes(tokens, rb.namespace, rb.book_id, errors);
+      for (const p of ptrs) {
+        if (!allPointers.has(p.namespace)) {
+          allPointers.set(p.namespace, p);
+        }
+      }
+    })
+  );
+
+  return Array.from(allPointers.values());
+}
 
 /**
  * 搜索索引总库 → 找 [路由] 文档 → 解析子索引库指针
@@ -405,9 +432,9 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   // 标题清洗
   const cleanTitle = cleanSearchText(source_title) || source_title;
 
-  const { default_book } = loadConfig();
-  const bookId = index_book_id || default_book.book_id;
-  if (!bookId) throw new Error("未指定 index_book_id 且未配置 default_book");
+  const { route_sub, default_book } = loadConfig();
+  const bookId = index_book_id || route_sub[0]?.book_id || default_book.book_id;
+  if (!bookId) throw new Error("未指定 index_book_id 且未配置 route_sub 或 default_book");
 
   const payload = {
     title: `[索引] ${cleanTitle}`,

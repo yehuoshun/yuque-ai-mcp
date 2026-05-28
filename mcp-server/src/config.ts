@@ -13,8 +13,8 @@ export interface YuqueConfig {
   token: string;
   group: string;
   default_book: YuqueBook;
-  index_book: YuqueBook;
-  route_book: YuqueBook;     // 索引总库（存 [路由] 文档）
+  route_book: YuqueBook[];   // 索引总库列表（存 [路由] 文档，可多总库分片）
+  route_sub: YuqueBook[];    // 默认子索引库列表（创建索引文档时未指定目标用）
   cookie?: string;
   ctoken?: string;
   user_id?: string;
@@ -43,14 +43,8 @@ export function loadConfig(): YuqueConfig {
         book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
         namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
       }),
-      index_book: normalizeBook({
-        book_id: process.env.YUQUE_INDEX_BOOK_ID ? parseInt(process.env.YUQUE_INDEX_BOOK_ID) : 0,
-        namespace: process.env.YUQUE_INDEX_BOOK_NS || "",
-      }),
-      route_book: normalizeBook({
-        book_id: process.env.YUQUE_ROUTE_BOOK_ID ? parseInt(process.env.YUQUE_ROUTE_BOOK_ID) : 0,
-        namespace: process.env.YUQUE_ROUTE_BOOK_NS || "",
-      }),
+      route_book: parseBookList("YUQUE_ROUTE_BOOK"),
+      route_sub: parseBookList("YUQUE_ROUTE_SUB"),
       cookie: process.env.YUQUE_COOKIE || undefined,
       ctoken: process.env.YUQUE_CTOKEN || undefined,
       user_id: process.env.YUQUE_USER_ID || undefined,
@@ -71,8 +65,8 @@ export function loadConfig(): YuqueConfig {
     token: raw.token || "",
     group: raw.group || "",
     default_book: normalizeBook(raw.default_book),
-    index_book: normalizeBook(raw.index_book),
-    route_book: normalizeBook(raw.route_book),
+    route_book: normalizeBooks(raw.route_book),
+    route_sub: normalizeBooks(raw.route_sub || raw.index_book),
     cookie: raw.cookie || undefined,
     ctoken: raw.ctoken || undefined,
     user_id: raw.user_id || undefined,
@@ -90,6 +84,25 @@ function normalizeBook(raw: any): YuqueBook {
     book_id: raw?.book_id ?? 0,
     namespace: raw?.namespace ?? "",
   };
+}
+
+function normalizeBooks(raw: any): YuqueBook[] {
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map(normalizeBook).filter((b: YuqueBook) => b.book_id && b.namespace);
+}
+
+/** 从环境变量解析 JSON 数组格式的 book 列表 */
+function parseBookList(prefix: string): YuqueBook[] {
+  // YUQUE_ROUTE_BOOK='[{"book_id":123,"namespace":"xx"}]'
+  const raw = process.env[prefix];
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return normalizeBooks(arr);
+  } catch {
+    return [];
+  }
 }
 
 export function updateConfig(updates: Partial<YuqueConfig>): void {
