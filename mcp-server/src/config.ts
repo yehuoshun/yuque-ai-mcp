@@ -14,6 +14,7 @@ export interface YuqueConfig {
   group: string;
   default_book: YuqueBook;
   index_book: YuqueBook;
+  route_book: YuqueBook;     // 索引总库（存 [路由] 文档）
   cookie?: string;
   ctoken?: string;
   user_id?: string;
@@ -46,6 +47,10 @@ export function loadConfig(): YuqueConfig {
         book_id: process.env.YUQUE_INDEX_BOOK_ID ? parseInt(process.env.YUQUE_INDEX_BOOK_ID) : 0,
         namespace: process.env.YUQUE_INDEX_BOOK_NS || "",
       }),
+      route_book: normalizeBook({
+        book_id: process.env.YUQUE_ROUTE_BOOK_ID ? parseInt(process.env.YUQUE_ROUTE_BOOK_ID) : 0,
+        namespace: process.env.YUQUE_ROUTE_BOOK_NS || "",
+      }),
       cookie: process.env.YUQUE_COOKIE || undefined,
       ctoken: process.env.YUQUE_CTOKEN || undefined,
       user_id: process.env.YUQUE_USER_ID || undefined,
@@ -67,6 +72,7 @@ export function loadConfig(): YuqueConfig {
     group: raw.group || "",
     default_book: normalizeBook(raw.default_book),
     index_book: normalizeBook(raw.index_book),
+    route_book: normalizeBook(raw.route_book),
     cookie: raw.cookie || undefined,
     ctoken: raw.ctoken || undefined,
     user_id: raw.user_id || undefined,

@@ -111,6 +111,7 @@ cp config/yuque-config.example.json config/yuque-config.json
   "group": "yehuoshun",
   "default_book": { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" },
   "index_book": { "book_id": 51689762, "namespace": "yehuoshun/rqgc16" },
+  "route_book": { "book_id": 51689762, "namespace": "yehuoshun/rqgc16" },
   "user_id": "25689388",
   "cookie": "完整的浏览器 Cookie 字符串（文件上传/回收站管理必填）",
   "ctoken": "从 Cookie 中提取 yuque_ctoken 的值"
@@ -122,7 +123,8 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `token` | ✅ | 语雀 API Token（需 doc:read/doc:write/repo:read/repo:write） |
 | `group` | ✅ | 语雀用户名/login |
 | `default_book` | ✅ | 默认知识库（创建文档时未指定目标则用此库） |
-| `index_book` | ✅ | 索引库（知识库问答用） |
+| `route_book` | ✅ | 索引总库（存 [路由] 文档，kb_search 路由层用） |
+| `index_book` | 按需 | 默认子索引库（可选，创建索引文档时未指定目标用） |
 | `user_id` | 按需 | 用户 ID（文件上传必填，`yuque_get_user` 可查） |
 | `cookie` | 按需 | 浏览器 Cookie 完整字符串（文件上传/回收站管理必填） |
 | `ctoken` | 按需 | 从 Cookie 中提取 `yuque_ctoken` 的值 |
@@ -144,6 +146,8 @@ cp config/yuque-config.example.json config/yuque-config.json
         "YUQUE_DEFAULT_BOOK_NS": "<namespace>",
         "YUQUE_INDEX_BOOK_ID": "<索引库ID>",
         "YUQUE_INDEX_BOOK_NS": "<namespace>",
+        "YUQUE_ROUTE_BOOK_ID": "<索引总库ID>",
+        "YUQUE_ROUTE_BOOK_NS": "<namespace>",
         "YUQUE_COOKIE": "<Cookie>",
         "YUQUE_CTOKEN": "<CSRF Token>",
         "YUQUE_USER_ID": "<用户ID>"
@@ -241,14 +245,14 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Tool | 说明 |
 |------|------|
-| `yuque_kb_search` | 知识库管道搜索：token 数组 → N 路并行搜索子索引库 → 去重 → entries 解析 |
-| `yuque_index_create` | 在子索引库创建关键词索引文档，标准三层格式 + 自动挂 TOC |
+| `yuque_kb_search` | 知识库管道搜索（双层路由）：token 数组 → 搜总库 [路由] → 并行搜子索引库 → Markdown 输出（含关键词/摘要/脏块） |
+| `yuque_index_create` | 创建文档索引（v2 格式）：一篇源文档一篇索引，多主题 `---` 分块，关键词行 `cleanSearchText` 清洗 + 自动挂 TOC |
 
 ### 搜索 & 批量获取 & 元信息
 
 | Tool | 说明 |
 |------|------|
-| `yuque_search` | 搜索语雀内容（文档/知识库，支持 scope 限定范围） |
+| `yuque_search` | 搜索语雀内容（文档/知识库，支持 scope 限定范围），Markdown 输出（分页+去重+URL） |
 | `yuque_batch_get_docs_body` | 批量获取多篇文档 Markdown 正文（并发 5） |
 | `yuque_get_user` | 当前 Token 用户详情 |
 | `yuque_get_user_stats` | 个人写作统计仪表盘（知识库/文档/编辑/字数/社交/小记全维度，⚠️ 需 Cookie） |

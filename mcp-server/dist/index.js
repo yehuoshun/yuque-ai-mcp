@@ -272,7 +272,7 @@ const tools = [
     // --- 搜索 ---
     {
         name: "yuque_search",
-        description: "搜索语雀内容（文档/知识库等）",
+        description: "搜索语雀内容（文档/知识库等），返回 Markdown 文本：分页信息 + 去重结果列表（标题/链接/摘要）",
         inputSchema: {
             type: "object",
             properties: {
@@ -399,45 +399,43 @@ const tools = [
     // ═══════════ 知识库搜索 & 索引构建 ═══════════
     {
         name: "yuque_kb_search",
-        description: "知识库管道搜索：输入搜索 token 数组，N 路并行搜索子索引库 → 去重 → 读索引文档 body → 解析 entries → 合并去重 → 返回源文档指针。纯 API 机械操作，不涉及 LLM。Agent 负责用 LLM 生成 token 后传入。",
+        description: "知识库管道搜索（双层：路由 + 子索引库）。输入搜索 token 数组，自动从 config 读索引总库，路由到匹配的子索引库并行搜索。返回 Markdown 文本（title/url/summary/keywords + 脏块标记）。错误和脏块不静默。",
         inputSchema: {
             type: "object",
             properties: {
                 tokens: { type: "array", items: { type: "string" }, description: "搜索 token 数组（由 Agent LLM 生成，每个 token 独立并行搜）" },
-                index_book_ns: { type: "string", description: "子索引库 namespace（如 yehuoshun/idx-misc-1）" },
-                index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+                route_ns: { type: "string", description: "索引总库 namespace（可选，默认读 config YUQUE_ROUTE_BOOK_NS）" },
+                route_id: { type: ["number", "string"], description: "索引总库 book_id（可选，默认读 config YUQUE_ROUTE_BOOK_ID）" },
             },
-            required: ["tokens", "index_book_ns", "index_book_id"],
+            required: ["tokens"],
         },
     },
     {
         name: "yuque_index_create",
-        description: "在子索引库中创建一篇关键词索引文档（[索引] {keyword}），body 按标准三层格式组装：# 搜索面 + # 摘要 + entries JSON。自动挂 TOC。",
+        description: "创建一篇源文档的索引文档（[索引] {source_title}）。一篇源文档 → 一篇索引文档，多主题用 --- 分块。每块包含关键词行 + 摘要 + id=doc_id | namespace=xxx。关键词行经 cleanSearchText 强制清洗（去符号去空格）。自动挂 TOC。",
         inputSchema: {
             type: "object",
             properties: {
-                keyword: { type: "string", description: "索引关键词（如 Spring、事务、JVM）" },
-                search_surface: { type: "string", description: "搜索面文本（穷举同义词/缩写/口语问法）" },
-                summary: { type: "string", description: "摘要（100-200 字）" },
-                entries: {
+                source_title: { type: "string", description: "源文档标题（用于索引文档标题）" },
+                blocks: {
                     type: "array",
                     items: {
                         type: "object",
                         properties: {
-                            did: { type: "number", description: "源文档 ID" },
-                            bid: { type: "number", description: "源知识库 ID" },
-                            ns: { type: "string", description: "源知识库 namespace" },
-                            t: { type: "string", description: "源文档标题" },
-                            s: { type: "string", description: "源文档 slug" },
-                            wc: { type: "number", description: "字数（可选）" },
+                            keywords: { type: "string", description: "关键词行（穷举同义词/缩写/口语问法/拼音，空格分隔，写入前代码层 cleanSearchText 逐个 token 清洗）" },
+                            summary: { type: "string", description: "摘要（100-200 字，覆盖该专题的核心内容）" },
+                            doc_id: { type: "number", description: "源文档 ID" },
+                            namespace: { type: "string", description: "源知识库 namespace（如 yehuoshun/dil9w3）" },
+                            title: { type: "string", description: "源文档标题（可选，搜索后输出）" },
+                            slug: { type: "string", description: "源文档 slug（可选，拼接 URL）" },
                         },
-                        required: ["did", "bid", "ns", "t"],
+                        required: ["keywords", "summary", "doc_id", "namespace"],
                     },
-                    description: "源文档指针数组",
+                    description: "主题块数组（至少一个块，多主题用多个块）",
                 },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
             },
-            required: ["keyword", "search_surface", "summary", "entries", "index_book_id"],
+            required: ["blocks", "source_title", "index_book_id"],
         },
     },
     // --- 统计（需 statistic:read 权限）---
