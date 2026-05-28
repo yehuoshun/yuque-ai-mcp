@@ -7,7 +7,7 @@ export interface YuqueConfig {
     group: string;
     default_book: YuqueBook;
     route_book: YuqueBook[];
-    route_sub: YuqueBook[];
+    route_book_sub: YuqueBook[];
     cookie?: string;
     ctoken?: string;
     user_id?: string;

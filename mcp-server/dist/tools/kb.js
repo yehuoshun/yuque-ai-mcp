@@ -317,10 +317,10 @@ export async function createIndexDoc(params) {
     const body = blockTexts.join("\n\n---\n\n");
     // 标题清洗
     const cleanTitle = cleanSearchText(source_title) || source_title;
-    const { route_sub, default_book } = loadConfig();
-    const bookId = index_book_id || route_sub[0]?.book_id || default_book.book_id;
+    const { route_book_sub, default_book } = loadConfig();
+    const bookId = index_book_id || route_book_sub[0]?.book_id || default_book.book_id;
     if (!bookId)
-        throw new Error("未指定 index_book_id 且未配置 route_sub 或 default_book");
+        throw new Error("未指定 index_book_id 且未配置 route_book_sub 或 default_book");
     const payload = {
         title: `[索引] ${cleanTitle}`,
         body,

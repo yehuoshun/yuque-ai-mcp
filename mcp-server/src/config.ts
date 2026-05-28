@@ -14,7 +14,7 @@ export interface YuqueConfig {
   group: string;
   default_book: YuqueBook;
   route_book: YuqueBook[];   // 索引总库列表（存 [路由] 文档，可多总库分片）
-  route_sub: YuqueBook[];    // 默认子索引库列表（创建索引文档时未指定目标用）
+  route_book_sub: YuqueBook[];    // 默认子索引库列表（创建索引文档时未指定目标用）
   cookie?: string;
   ctoken?: string;
   user_id?: string;
@@ -44,7 +44,7 @@ export function loadConfig(): YuqueConfig {
         namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
       }),
       route_book: parseBookList("YUQUE_ROUTE_BOOK"),
-      route_sub: parseBookList("YUQUE_ROUTE_SUB"),
+      route_book_sub: parseBookList("YUQUE_ROUTE_SUB"),
       cookie: process.env.YUQUE_COOKIE || undefined,
       ctoken: process.env.YUQUE_CTOKEN || undefined,
       user_id: process.env.YUQUE_USER_ID || undefined,
@@ -66,7 +66,7 @@ export function loadConfig(): YuqueConfig {
     group: raw.group || "",
     default_book: normalizeBook(raw.default_book),
     route_book: normalizeBooks(raw.route_book),
-    route_sub: normalizeBooks(raw.route_sub || raw.index_book),
+    route_book_sub: normalizeBooks(raw.route_book_sub || raw.index_book),
     cookie: raw.cookie || undefined,
     ctoken: raw.ctoken || undefined,
     user_id: raw.user_id || undefined,

@@ -100,7 +100,7 @@ npm run build
 
 ```bash
 cp config/yuque-config.example.json config/yuque-config.json
-# 编辑填入 token、group、default_book、route_book、route_sub
+# 编辑填入 token、group、default_book、route_book、route_book_sub
 ```
 
 配置格式：
@@ -113,7 +113,7 @@ cp config/yuque-config.example.json config/yuque-config.json
   "route_book": [
     { "book_id": 51689762, "namespace": "yehuoshun/rqgc16" }
   ],
-  "route_sub": [
+  "route_book_sub": [
     { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" }
   ],
   "user_id": "25689388",
@@ -128,7 +128,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `group` | ✅ | 语雀用户名/login |
 | `default_book` | ✅ | 默认知识库（创建文档时未指定目标则用此库） |
 | `route_book` | ✅ | 索引总库列表（存 [路由] 文档，kb_search 路由层用，支持多总库分片） |
-| `route_sub` | 按需 | 默认子索引库列表（创建索引文档时未指定目标则用首个） |
+| `route_book_sub` | 按需 | 默认子索引库列表（创建索引文档时未指定目标则用首个） |
 | `user_id` | 按需 | 用户 ID（文件上传必填，`yuque_get_user` 可查） |
 | `cookie` | 按需 | 浏览器 Cookie 完整字符串（文件上传/回收站管理必填） |
 | `ctoken` | 按需 | 从 Cookie 中提取 `yuque_ctoken` 的值 |

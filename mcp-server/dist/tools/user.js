@@ -58,9 +58,9 @@ export async function healthCheck() {
     }
     // 3. 索引总库 + 子索引库检查
     try {
-        const { route_book, route_sub } = await import("../config.js").then((m) => ({
+        const { route_book, route_book_sub } = await import("../config.js").then((m) => ({
             route_book: m.loadConfig().route_book,
-            route_sub: m.loadConfig().route_sub,
+            route_book_sub: m.loadConfig().route_book_sub,
         }));
         if (route_book.length > 0) {
             results.push(`✅ 索引总库: ${route_book.length} 个`);
@@ -72,15 +72,15 @@ export async function healthCheck() {
         else {
             results.push("⏭️ 未配置索引总库 (route_book)");
         }
-        if (route_sub.length > 0) {
-            results.push(`✅ 默认子索引库: ${route_sub.length} 个`);
-            for (const rs of route_sub) {
+        if (route_book_sub.length > 0) {
+            results.push(`✅ 默认子索引库: ${route_book_sub.length} 个`);
+            for (const rs of route_book_sub) {
                 await get(`/repos/${rs.book_id}`);
                 results.push(`   ✅ ${rs.namespace} (id=${rs.book_id})`);
             }
         }
         else {
-            results.push("⏭️ 未配置默认子索引库 (route_sub)");
+            results.push("⏭️ 未配置默认子索引库 (route_book_sub)");
         }
     }
     catch (e) {
