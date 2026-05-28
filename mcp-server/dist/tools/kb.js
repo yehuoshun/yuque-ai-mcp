@@ -278,7 +278,9 @@ async function searchOneSubIndex(tokens, scope, bookId) {
  * 字符清洗：只去空格（语雀 search token 之间 AND 匹配，空格拆词）
  */
 export function cleanSearchText(text) {
-    return text.replace(/\s+/g, "");
+    return text
+        .replace(/\s+/g, "") // 空格拆 token → 粘连
+        .replace(/[@#$%`;；《》…—]/g, ""); // 确认破坏搜索的符号
 }
 /**
  * 创建单篇文档索引（新格式 v2 — 文档中心）
