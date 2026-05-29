@@ -8,6 +8,7 @@ export interface SourceEntry {
   summary?: string;
   sub_index_ns?: string;
   parse_error?: string;
+  weight?: number;  // 来自 DocEntry.w，LLM 拟合度 1-10
 }
 
 // 源文档指针（写入索引文档的 entries）
@@ -17,6 +18,7 @@ export interface DocEntry {
   t?: string;
   s?: string;
   url?: string;
+  w?: number;  // 权重 1-10，LLM 判断该文档与关键词的拟合度
 }
 
 // 解析后的单篇索引文档

@@ -107,7 +107,7 @@
 | `keyword` | 索引关键词（直接用作文档标题，不含前缀符号） |
 | `keywords` | 搜索面关键词数组 `string[]`（同义词/变体/缩写/口语问法） |
 | `summary` | 摘要（100-200 字） |
-| `entries` | 源文档指针数组 `[{did, ns, t?, s?, url?}]` |
+| `entries` | 源文档指针数组 `[{did, ns, t?, s?, url?, w?}]` |
 | `index_book_id` | 子索引库 book_id |
 
 ---

@@ -162,9 +162,13 @@ async function searchOneSubIndex(
         keywords: parsed.keywords,
         summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
         sub_index_ns: scope,
+        weight: de.w,
       });
     }
   }
+
+  // 按权重降序
+  entries.sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
 
   return {
     entries,
@@ -250,7 +254,12 @@ function formatSearchResults(
     totalDirty += r.dirtyBlocks;
     errors.push(...r.errors);
     for (const e of r.entries) {
-      if (!allEntryMap.has(e.did)) allEntryMap.set(e.did, e);
+      if (!allEntryMap.has(e.did)) {
+        allEntryMap.set(e.did, e);
+      } else if ((e.weight ?? 0) > (allEntryMap.get(e.did)!.weight ?? 0)) {
+        // 同一 did 来自多个关键词索引 → 保留权重高的
+        allEntryMap.set(e.did, e);
+      }
     }
   }
 
@@ -270,7 +279,7 @@ function formatSearchResults(
     } else {
       lines.push(
         `---`,
-        `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : ""),
+        `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""),
         ...(e.url ? [e.url] : []),
         ...(e.summary ? [`摘要：${e.summary}`] : []),
         ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []),
