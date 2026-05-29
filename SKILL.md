@@ -171,20 +171,33 @@ entries 字段：
 
 > 索引是给搜索用的，不是给维护用的。搜索是主场景。
 
-### 2.5 索引构建流程
+### 2.5 索引构建流程（v4 — 文档中心）
+
+> 以文档为中心：每篇源文档只读一次 body，LLM 一次性输出它属于哪些关键词 + 权重。
+> 聚合后再按关键词维度写入索引文档。避免逐关键词重复读文档。
 
 ```
 1. yuque_create_repo → 创建子索引库（命名: index-{domain}）
 2. yuque_update_repo → 写入 description（source_books）
-3. yuque_list_docs → 列出源库全部文档
-4. LLM 扫全量标题 → 输出关键词清单
-5. 逐关键词：
-   a. LLM 读关联源文档正文 → 判断拟合度
-   b. LLM 生成搜索面（keywords[]）+ 摘要 + entries
-   c. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
-   d. 构建后验证：搜 2-3 个预期 query → 0 命中修复
-6. 更新子索引库 description 的 last_built
-7. yuque_create_doc → 总库创建/更新路由文档
+3. yuque_list_docs → 列出源库全部文档（标题 + id + slug）
+
+4. 逐文档评分（每文档只读一次 body）：
+   ├─ body 可读（Markdown/代码）→ yuque_get_doc 读全文 → LLM 提取关键词 + 权重
+   │   prompt：「分析这篇文档，输出它属于哪些关键词，各多少分（1-10）」
+   ├─ body 为空/Lake 乱码/附件 → 降级：只用标题提取关键词，权重统一标 5
+   └─ 代码文档 → LLM 从 import/注解/类名/方法签名提取，处理能力等同自然语言
+
+5. 聚合：所有文档的关键词输出汇总 → 去重归一化
+    "SpringBoot" / "Spring Boot" / "springboot" → 统一规范名
+    生成规范关键词清单
+
+6. 逐关键词写入：
+   a. LLM 汇总该关键词下所有 {did, w} → 生成搜索面（keywords[]）+ 摘要
+   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
+   c. 构建后验证：搜 2-3 个预期 query → 0 命中修复
+
+7. 更新子索引库 description 的 last_built
+8. yuque_create_doc → 总库创建/更新路由文档
 ```
 
 > 一篇源文档可被多个关键词索引覆盖（如 doc 584 同时被 `SpringBoot` 和 `ConditionalOnClass` 两个关键词索引引用）。
@@ -314,38 +327,73 @@ entries 字段：
 > 3. 未完成 → 保存已覆盖清单 → 自动 spawn 续跑子代理
 > 4. 重复直到 100% 覆盖
 
-## 1. 新建索引域
+## 1. 新建索引域（v4 — 文档中心）
 
 ```
 1. yuque_create_repo → 创建子索引库（命名: index-{domain}）
 2. yuque_update_repo → 写入 description（source_books）
 3. yuque_list_docs → 列出源库全部文档（标题 + slug + id）
-4. LLM 扫全量标题 → 输出关键词清单 + 每篇文档的预分配
-5. 逐关键词构建（可并行子代理）：
-   a. yuque_get_doc 读该关键词关联的所有源文档正文
-   b. LLM 判断每篇文档的拟合度 → 筛掉不符合的
-   c. LLM 生成搜索面 + 摘要 + entries
-      → 见 §2 的「单关键词索引构建 Prompt」
-   d. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
-   e. 构建后验证：搜 2-3 个预期 query → 0 命中立即修复
-6. 更新子索引库 description 的 last_built
-7. yuque_create_doc → 总库创建/更新路由文档
+
+4. 逐文档评分（核心步骤，每文档只读一次 body）：
+   a. yuque_get_doc 读文档 body
+      ├─ body 可读（Markdown/代码）→ LLM 从正文提取关键词 + 权重
+      ├─ body 为空/Lake 乱码/附件 → 降级：只用标题提取关键词，w=5
+      └─ 代码文档 → LLM 从 import/注解/类名/方法签名提取，信息密度高
+   b. LLM 输出：该文档属于哪些关键词，每个得分多少
+      → 见 §2 的「逐文档评分 Prompt」
+
+5. 聚合：所有文档的输出汇总
+   → 去重归一化：同义不同名 → 统一规范关键词
+   → 按关键词维度分发：每个关键词收集所有 {did, w, t, s}
+
+6. 逐关键词写入（可并行子代理）：
+   a. LLM 汇总该关键词下所有 entries → 生成搜索面 + 摘要
+      → 见 §2 的「单关键词写入 Prompt」
+   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
+   c. 构建后验证：搜 2-3 个预期 query → 0 命中立即修复
+
+7. 更新子索引库 description 的 last_built
+8. yuque_create_doc → 总库创建/更新路由文档
 ```
 
-## 2. 单关键词索引构建 Prompt
+## 2. Prompt 模板
+
+### 2a. 逐文档评分 Prompt
 
 ```
-你是一个搜索索引构建器。当前关键词是「{keyword}」，阅读以下文档，为该关键词生成一篇索引文档。
+你是一个文档分类器。阅读以下文档，判断它的核心内容属于哪些技术关键词，每个关键词的拟合度 1-10 分。
+
+⚠️ 语雀搜索 API 只匹配字母数字中文，不匹配符号和表情。
+关键词用纯字母/数字/中文，如 SpringBoot/JVM/多数据源。
+
+## 评分标准
+- 核心主题：本文档就是讲这个的 → 8-10 分
+- 大段涉及：文档有大量相关内容（≥30% 篇幅）→ 5-7 分
+- 一笔带过：只有一两句提到 → 不输出
+- 完全不相关 → 不输出
+
+## 关键词数量
+一篇文档通常归属 1-5 个关键词。不要强行凑——只输出真正相关的。
+
+## 输出格式
+输出 JSON 数组，每项含 keyword 和 w：
+
+[
+  {"keyword": "SpringBoot", "w": 10},
+  {"keyword": "自动配置", "w": 9},
+  {"keyword": "多数据源", "w": 6}
+]
+```
+
+### 2b. 单关键词写入 Prompt
+
+```
+你是一个搜索索引构建器。当前关键词是「{keyword}」，以下文档都属于该关键词：
+
+{entries_summary}
 
 ⚠️ 语雀搜索 API 只匹配字母数字中文，空格拆分 token 做 AND 匹配，不匹配符号和表情。
 （输出 keywords 为 string[]，代码层 cleanToken 自动清洗）
-
-## 拟合度判断（必须先做）
-对于每篇文档，先判断其核心主题是否与当前关键词相关：
-- ✅ 核心主题匹配 → 加入 entries，权重 8-10
-- ⚠️ 只是提到/涉及 → 看占比：大段相关则加入，权重 5-7；一笔带过则跳过
-- ❌ 完全不相关 → 跳过
-- 权重 w 必须是整数，越高越相关，用于搜索排序
 
 ## 搜索面（keywords 数组，不限长）
 1. 核心词 + 同义词 + 缩写：中英文变体、驼峰形式、简写
@@ -358,7 +406,7 @@ entries 字段：
 概括该关键词下所有源文档的核心内容。
 
 ## entries
-源文档指针数组，每项含 did/ns/t/s/w。w 为权重（1-10）。
+源文档指针数组，每项含 did/ns/t/s/w。w 已在评分阶段确定，这里不需要改。
 
 ## 输出格式
 

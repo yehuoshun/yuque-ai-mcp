@@ -76,28 +76,27 @@
 
 **一个关键词 = 一篇索引文档。** 标题就是关键词本身，命中直接对得上。
 
-### Phase 1 — 关键词规划
+### Phase 1 — 逐文档评分（v4 文档中心）
 
 ```
 1. yuque_list_docs → 列出源库全部文档（标题 + ID）
-2. LLM 扫全量标题 → 输出关键词清单 + 每篇文档的预分配
+2. 逐文档 yuque_get_doc 读 body → LLM 提取关键词 + 权重
 
-规划原则：
-- 同一概念的多种表述合并为一个关键词
-- 密集领域细分（>15 篇 → 拆分）
-- 稀疏领域合并（<3 篇 → 合并）
-- 每篇文档至少归属 1 个关键词
+   文档类型处理：
+   - Markdown/代码可读 → 从正文提取关键词（1-5 个），w=1-10
+   - Lake 乱码/附件/body 为空 → 降级标题提取，w=5
+   - 代码文档 → 从 import/注解/类名/方法签名提取
+
+3. 聚合去重 → 同义归一化 → 生成规范关键词清单
 ```
 
-### Phase 2 — 逐关键词构建
+### Phase 2 — 逐关键词写入
 
 ```
 对每个关键词：
-1. yuque_get_doc 读关联源文档正文
-2. LLM 判断拟合度（提到 Java ≠ Java 主题）
-3. LLM 生成 keywords[] + summary + entries
-4. 调 yuque_index_create(keyword, keywords, summary, entries, index_book_id)
-5. 构建后验证：搜 2-3 个预期 query → 0 命中立即修复
+1. LLM 汇总该关键词下所有 {did, w} → 生成 keywords[] + summary
+2. 调 yuque_index_create(keyword, keywords, summary, entries, index_book_id)
+3. 构建后验证：搜 2-3 个预期 query → 0 命中立即修复
 ```
 
 ### yuque_index_create 参数
