@@ -3,21 +3,17 @@ import { loadConfig } from "../../config.js";
 import { CreateIndexDocParams, DocEntry, ParsedIndexDoc } from "./types.js";
 import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywords } from "./utils.js";
 
-// 容量上限阈值
-const SUB_INDEX_LIMIT = 200;  // 子索引库上限
-const ROUTE_LIMIT = 300;      // 总库路由文档上限
+// 容量上限（语雀单库文档上限约 5000，远远大于索引规模，此检查仅兜底）
+const REPO_DOC_LIMIT = 5000;
 
-/** 检查知识库文档数是否接近上限，返回提示字符串（无问题返回空字符串） */
-async function checkRepoCapacity(bookId: number | string, limit: number, label: string): Promise<string> {
+/** 静默检查知识库容量，仅超限时警告（几乎不会触发） */
+async function checkRepoCapacity(bookId: number | string, label: string): Promise<string> {
   try {
     const data = await get(`/repos/${bookId}`) as any;
     const repo = data.data || data;
     const count = repo.items_count || 0;
-    if (count >= limit) {
-      return `⚠️ ${label}（${repo.name || bookId}）当前已有 ${count} 篇文档，已达到上限（${limit}）。\n请新建一个库或申请扩容后重试。`;
-    }
-    if (count >= limit * 0.8) {
-      return `⚠️ ${label}（${repo.name || bookId}）已有 ${count} 篇文档，接近上限（${limit}）。\n如继续构建可能受限，建议提前新建库或申请扩容。请确认是否继续。`;
+    if (count >= REPO_DOC_LIMIT * 0.95) {
+      return `⚠️ ${label}（${repo.name || bookId}）已有 ${count} 篇文档，接近语雀上限（${REPO_DOC_LIMIT}），请手动处理。`;
     }
   } catch {}
   return "";
@@ -62,7 +58,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   if (!bookId) throw new Error("未指定 index_book_id 且未配置 route_book_sub 或 default_book");
 
   // 容量检查
-  const capacityWarn = await checkRepoCapacity(bookId, SUB_INDEX_LIMIT, "子索引库");
+  const capacityWarn = await checkRepoCapacity(bookId, "子索引库");
   if (capacityWarn) {
     return JSON.stringify({ warning: capacityWarn, created: false });
   }
