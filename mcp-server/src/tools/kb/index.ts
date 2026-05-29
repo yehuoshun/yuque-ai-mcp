@@ -11,7 +11,7 @@ import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywo
  *   关键词：["SpringBoot","SpringBoot启动","自动配置"]
  *   摘要：...
  *   entries：
- *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc"}]
+ *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc"}]
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
   const { keyword, keywords, summary, entries, index_book_id } = params;
@@ -22,13 +22,19 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   const cleanKw = cleanToken(keyword);
   const cleanKeywords = cleanKeywordsArray(keywords);
 
+  // 为每个 entry 补 url（https://www.yuque.com/{ns}/{s}）
+  const enrichedEntries = entries.map(e => ({
+    ...e,
+    url: e.url || (e.ns && e.s ? `https://www.yuque.com/${e.ns}/${e.s}` : undefined),
+  }));
+
   const body = [
     `关键词：${cleanKeywords}`,
     ``,
     `摘要：${summary}`,
     ``,
     `entries：`,
-    JSON.stringify(entries),
+    JSON.stringify(enrichedEntries),
   ].join("\n");
 
   const { route_book_sub, default_book } = loadConfig();

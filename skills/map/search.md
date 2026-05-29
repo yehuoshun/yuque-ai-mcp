@@ -107,7 +107,7 @@
 | `keyword` | 索引关键词（直接用作文档标题，不含前缀符号） |
 | `keywords` | 搜索面关键词数组 `string[]`（同义词/变体/缩写/口语问法） |
 | `summary` | 摘要（100-200 字） |
-| `entries` | 源文档指针数组 `[{did, ns, t?, s?}]` |
+| `entries` | 源文档指针数组 `[{did, ns, t?, s?, url?}]` |
 | `index_book_id` | 子索引库 book_id |
 
 ---
@@ -124,7 +124,7 @@
 摘要：SpringBoot 通过 @EnableAutoConfiguration 实现自动配置，条件装配注解按 classpath 动态决定 Bean 注册。多数据源场景通过 @ConfigurationProperties 分别配置 DataSource。
 
 entries：
-[{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc"},{"did":591,"ns":"yehuoshun/dil9w3","t":"条件装配与多数据源","s":"def"}]
+[{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc"},{"did":591,"ns":"yehuoshun/dil9w3","t":"条件装配与多数据源","s":"def","url":"https://www.yuque.com/yehuoshun/dil9w3/def"}]
 ```
 
 ### keywords 规则

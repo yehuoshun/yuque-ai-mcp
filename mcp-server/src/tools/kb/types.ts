@@ -16,6 +16,7 @@ export interface DocEntry {
   ns: string;
   t?: string;
   s?: string;
+  url?: string;
 }
 
 // 解析后的单篇索引文档
