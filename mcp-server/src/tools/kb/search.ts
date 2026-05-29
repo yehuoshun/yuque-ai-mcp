@@ -75,10 +75,11 @@ async function findSubIndexes(
 ): Promise<SubIndexPointer[]> {
   const seenDocs = new Map<number, string>();
 
-  // N 路并行搜路由总库（总库只存路由文档，无需标题前缀过滤）
+  // N 路并行搜路由总库 — 用 in:title 精确匹配关键词标题
   await Promise.all(tokens.map(async (token) => {
     try {
-      const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${ns}`) as any;
+      const q = encodeURIComponent(`${token} in:title`);
+      const data = await get(`/search?q=${q}&type=doc&scope=${ns}`) as any;
       for (const r of (data.data || [])) {
         const info = r.target || r;
         const id = info.id || r.id;
