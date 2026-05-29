@@ -80,12 +80,14 @@ export async function deleteRepo(params: { id_or_namespace: string }): Promise<s
 // ---------- 工具 ----------
 
 function generateSlug(name: string): string {
+  // {拼音缩写}-{时间戳秒}
+  // 取前几个字符做缩写，时间戳秒避免冲突
   const base = name
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  const ts = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `${base}-${ts}${rand}`;
+    .replace(/^-|-$/g, "")
+    .slice(0, 12);
+  const ts = Math.floor(Date.now() / 1000);
+  return `${base}-${ts}`;
 }
