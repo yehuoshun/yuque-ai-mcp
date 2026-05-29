@@ -13,7 +13,7 @@ export interface YuqueConfig {
   token: string;
   group: string;
   default_book: YuqueBook;
-  route_book: YuqueBook[];   // 索引总库列表（存 [路由] 文档，可多总库分片）
+  route_book: YuqueBook[];   // 索引总库列表（存路由文档，可多总库分片）
   route_book_sub: YuqueBook[];    // 默认子索引库列表（创建索引文档时未指定目标用）
   cookie?: string;
   ctoken?: string;

@@ -23,16 +23,16 @@
 ② 调 yuque_kb_search(tokens, index_book_ns, index_book_id)
   → N 路并行搜索子索引库
   → doc_id 去重
-  → 并发读索引文档 body
-  → 解析 entries JSON
-  → did 去重合并
+  → 5 并发读索引文档 body
+  → parseIndexDoc 解析 keywords / summary / entries
+  → 展开 entries → did 去重合并
   → 返回 source_entries（源文档指针列表）
   ↓
 ③ 命中 0？→ 二轮搜新 token 或降级全库搜索
   ↓
-④ 候选 > 5 篇？→ 读 #摘要 → LLM 重排 → Top 5
+④ 候选 > 5 篇？→ 用 summary + keywords → LLM 重排 → Top 5
   ↓
-⑤ 并发 yuque_get_doc 读源文档原文 → LLM 生成答案 + 引用
+⑤ 5 并发 yuque_get_doc 读源文档原文 → LLM 生成答案 + 引用
 ```
 
 ### Token 生成 Prompt
@@ -43,8 +43,8 @@
 要求：
 1. 提取 2-5 个最核心的技术术语，每个 ≤1 个词
 2. 覆盖不同角度：核心概念、同义表达、俗称、缩写、英文
-3. 严禁空格、符号、emoji——token 内部必须是纯字母/数字/中文
-4. 复合术语用无空格形式：SpringBoot 不用 Spring Boot
+3. 严禁符号、emoji——token 内部必须是纯字母/数字/中文
+4. token 无空格（如 SpringBoot），代码层 cleanToken 自动清洗
 5. 禁止泛词："方法""怎么""搞""啥"等
 
 用户问题：{question}
@@ -72,7 +72,9 @@
 
 ---
 
-## 索引构建
+## 索引构建（关键词中心）
+
+**一个关键词 = 一篇索引文档。** 标题就是关键词本身，命中直接对得上。
 
 ### Phase 1 — 关键词规划
 
@@ -93,8 +95,8 @@
 对每个关键词：
 1. yuque_get_doc 读关联源文档正文
 2. LLM 判断拟合度（提到 Java ≠ Java 主题）
-3. LLM 生成搜索面 + 摘要 + entries
-4. 调 yuque_index_create(keyword, search_surface, summary, entries, index_book_id)
+3. LLM 生成 keywords[] + summary + entries
+4. 调 yuque_index_create(keyword, keywords, summary, entries, index_book_id)
 5. 构建后验证：搜 2-3 个预期 query → 0 命中立即修复
 ```
 
@@ -102,33 +104,34 @@
 
 | 参数 | 说明 |
 |------|------|
-| `keyword` | 关键词（如 Spring、事务、JVM） |
-| `search_surface` | 搜索面文本（LLM 生成，穷举同义词/缩写/口语问法） |
-| `summary` | 摘要（100-200 字，LLM 生成） |
-| `entries` | 源文档指针数组 [{did, bid, ns, t, s?, wc?}] |
+| `keyword` | 索引关键词（直接用作文档标题，不含前缀符号） |
+| `keywords` | 搜索面关键词数组 `string[]`（同义词/变体/缩写/口语问法） |
+| `summary` | 摘要（100-200 字） |
+| `entries` | 源文档指针数组 `[{did, ns, t?, s?}]` |
 | `index_book_id` | 子索引库 book_id |
 
 ---
 
 ## 索引文档格式
 
-每篇索引文档 body 三层结构：
+标题：`{关键词}`（如 `SpringBoot`）——直接用关键词作标题，不加前缀
+
+> ⚠️ 语雀搜索对符号匹配极差，标题不用 `[]` 等符号包裹。
 
 ```
-# 搜索面
-核心词 + 同义词 + 缩写 + 相关概念 + 口语问法
-（全部围绕一个关键词穷举）
+关键词：["SpringBoot","SpringBoot启动","自动配置","EnableAutoConfiguration","条件装配"]
 
-# 摘要
-100-200 字概括该关键词覆盖的源文档核心内容
+摘要：SpringBoot 通过 @EnableAutoConfiguration 实现自动配置，条件装配注解按 classpath 动态决定 Bean 注册。多数据源场景通过 @ConfigurationProperties 分别配置 DataSource。
 
-{"e":[{"did":584,"bid":70910909,"ns":"yehuoshun/dil9w3","t":"Spring 事务管理"},...]}
+entries：
+[{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc"},{"did":591,"ns":"yehuoshun/dil9w3","t":"条件装配与多数据源","s":"def"}]
 ```
 
-### 搜索面规则
+### keywords 规则
 
 1. 核心词 + 同义词 + 缩写：中英文变体、驼峰形式、简写
 2. 相关概念：该关键词涉及的下位概念、相关技术/工具/框架
 3. 口语问法："xxx怎么用""xxx是什么""xxx不生效"等自然问句
 4. 区分易混淆术语：如 Autowired 和 AutoConfiguration 是不同的概念
 5. 搜索视角自检：用户不知道有这个文档，会用什么词搜？
+6. 输出为 JSON 字符串数组，代码层 `cleanToken` 每元素去空格去符号

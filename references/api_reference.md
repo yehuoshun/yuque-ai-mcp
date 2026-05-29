@@ -492,6 +492,10 @@ DELETE /api/v2/repos/{book_id}/docs/{doc_id}
 ## 搜索 API
 
 > ⚠️ 搜索只能用 `/api/v2/search`，`list_docs` 端点无搜索参数。
+>
+> ⚠️ **符号匹配极差**：语雀搜索对符号（`[]`、`-`、`_` 等）的分词/匹配能力很弱。
+> 文档标题中避免使用括号、连字符等符号前缀，直接用纯文本关键词。
+> 例如：用 `SpringBoot` 而非 `[索引] SpringBoot`，用 `路由 Java` 而非 `[路由] Java`。
 
 ```http
 GET /api/v2/search?q={query}&type={type}&scope={scope}&page={page}

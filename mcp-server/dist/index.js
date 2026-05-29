@@ -412,30 +412,34 @@ const tools = [
     },
     {
         name: "yuque_index_create",
-        description: "创建一篇源文档的索引文档（[索引] {source_title}）。一篇源文档 → 一篇索引文档，多主题用 --- 分块。每块包含关键词行 + 摘要 + id=doc_id | namespace=xxx。关键词行经 cleanSearchText 强制清洗（去符号去空格）。自动挂 TOC。",
+        description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题就是关键词本身（不含符号前缀，语雀搜索符号匹配差）。body 含关键词 JSON 数组 + 摘要 + entries 源文档指针。自动挂 TOC。",
         inputSchema: {
             type: "object",
             properties: {
-                source_title: { type: "string", description: "源文档标题（用于索引文档标题）" },
-                blocks: {
+                keyword: { type: "string", description: "索引关键词（直接用作文档标题，不含符号）" },
+                keywords: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "搜索面关键词数组（同义词/变体/缩写/口语问法/拼音），代码层 cleanToken 清洗每元素后 JSON 序列化存入",
+                },
+                summary: { type: "string", description: "摘要（100-200 字，覆盖该关键词下所有源文档的核心内容）" },
+                entries: {
                     type: "array",
                     items: {
                         type: "object",
                         properties: {
-                            keywords: { type: "string", description: "关键词行（穷举同义词/缩写/口语问法/拼音，空格分隔，写入前代码层 cleanSearchText 逐个 token 清洗）" },
-                            summary: { type: "string", description: "摘要（100-200 字，覆盖该专题的核心内容）" },
-                            doc_id: { type: "number", description: "源文档 ID" },
-                            namespace: { type: "string", description: "源知识库 namespace（如 yehuoshun/dil9w3）" },
-                            title: { type: "string", description: "源文档标题（可选，搜索后输出）" },
-                            slug: { type: "string", description: "源文档 slug（可选，拼接 URL）" },
+                            did: { type: "number", description: "源文档 ID" },
+                            ns: { type: "string", description: "源知识库 namespace（如 yehuoshun/dil9w3）" },
+                            t: { type: "string", description: "源文档标题" },
+                            s: { type: "string", description: "源文档 slug" },
                         },
-                        required: ["keywords", "summary", "doc_id", "namespace"],
+                        required: ["did", "ns"],
                     },
-                    description: "主题块数组（至少一个块，多主题用多个块）",
+                    description: "源文档指针列表",
                 },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
             },
-            required: ["blocks", "source_title", "index_book_id"],
+            required: ["keyword", "keywords", "summary", "entries", "index_book_id"],
         },
     },
     // --- 统计（需 statistic:read 权限）---
