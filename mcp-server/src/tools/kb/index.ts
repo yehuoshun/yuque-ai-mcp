@@ -136,12 +136,47 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     createdDocs.push({ doc_id: docId, title, entries: batch.length });
   }
 
+  // 同步总库：创建关键词文档（entries 指向子索引库）
+  let routeSynced = 0;
+  try {
+    const { route_book } = loadConfig();
+    // 从配置中获取子索引库 namespace（bookId 匹配的第一个）
+    const subNs = route_book_sub.find(b => String(b.book_id) === String(bookId))?.namespace ||
+                  route_book_sub[0]?.namespace ||
+                  default_book.namespace;
+
+    const routeBody = `关键词：${JSON.stringify(cleanKeywords)}
+
+摘要：${summary}
+
+entries：
+${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
+
+    for (const rb of route_book) {
+      const rdata = await post(`/repos/${rb.book_id}/docs`, {
+        title: cleanKw,
+        body: routeBody,
+        format: "markdown",
+      }) as any;
+      const rdoc = (rdata.data || rdata);
+      await put(`/repos/${rb.book_id}/toc`, {
+        action: "appendNode",
+        action_mode: "child",
+        target_uuid: "",
+        type: "DOC",
+        doc_ids: [rdoc.id],
+      });
+      routeSynced++;
+    }
+  } catch { /* 总库同步失败不影响子库写入 */ }
+
   return JSON.stringify({
     created: true,
     shards: batches.length,
     docs: createdDocs,
     keyword: cleanKw,
     total_entries: entries.length,
+    route_synced: routeSynced,
   }, null, 2);
 }
 

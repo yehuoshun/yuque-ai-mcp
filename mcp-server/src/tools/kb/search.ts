@@ -95,17 +95,36 @@ async function findSubIndexes(
 
   if (seenDocs.size === 0) return [];
 
-  // 并发读路由 body → 解析 JSON
+  // 并发读路由 body → 解析 entries（新格式：关键词文档 + entries JSON）
   const pointers = new Map<string, SubIndexPointer>();
   await Promise.all(Array.from(seenDocs.keys()).map(async (docId) => {
     try {
       const data = await get(`/repos/${bookId}/docs/${docId}`) as any;
       const body: string = (data.data || data).body || "";
-      const list: any[] = Array.isArray(JSON.parse(body)) ? JSON.parse(body) : (JSON.parse(body).e || []);
-      for (const item of list) {
-        const ns = item.namespace || item.ns;
-        const bid = item.book_id || item.bid;
-        if (ns && bid && !pointers.has(ns)) pointers.set(ns, { book_id: bid, namespace: ns });
+
+      // 新格式：关键词文档（entries 行包含 JSON 指针）
+      const entriesMatch = body.match(/entries[：:]\s*\n?(\[.+?\])\s*$/m);
+      if (entriesMatch) {
+        const list: any[] = JSON.parse(entriesMatch[1]);
+        for (const item of list) {
+          const ns = item.namespace || item.ns;
+          const bid = item.book_id || item.bid;
+          if (ns && bid && !pointers.has(ns)) pointers.set(ns, { book_id: bid, namespace: ns });
+        }
+        return;
+      }
+
+      // 旧格式兼容：纯 JSON 数组 [{book_id, namespace}]
+      try {
+        const parsed = JSON.parse(body);
+        const list: any[] = Array.isArray(parsed) ? parsed : (parsed.e || []);
+        for (const item of list) {
+          const ns = item.namespace || item.ns;
+          const bid = item.book_id || item.bid;
+          if (ns && bid && !pointers.has(ns)) pointers.set(ns, { book_id: bid, namespace: ns });
+        }
+      } catch {
+        errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 entries（非新格式关键词文档且非 JSON 路由）` });
       }
     } catch (err: any) {
       errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
