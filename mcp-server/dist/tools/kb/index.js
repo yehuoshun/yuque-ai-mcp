@@ -3,6 +3,8 @@ import { loadConfig } from "../../config.js";
 import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywords } from "./utils.js";
 // 容量上限（语雀单库文档上限约 5000，远远大于索引规模，此检查仅兜底）
 const REPO_DOC_LIMIT = 5000;
+// 语雀单篇文档 body 上限约 200KB，留 5KB 安全余量
+const YUQUE_BODY_MAX = 195 * 1024;
 /** 静默检查知识库容量，仅超限时警告（几乎不会触发） */
 async function checkRepoCapacity(bookId, label) {
     try {
@@ -16,10 +18,55 @@ async function checkRepoCapacity(bookId, label) {
     catch { }
     return "";
 }
+/** 构建索引文档 body */
+function buildIndexBody(keywords, summary, entries) {
+    return [
+        `关键词：${keywords}`,
+        ``,
+        `摘要：${summary}`,
+        ``,
+        `entries：`,
+        JSON.stringify(entries),
+    ].join("\n");
+}
+/** body 模板开销（不含 entries JSON），用于估算单篇可容纳的 entry 数 */
+function buildBodyOverhead(keywords, summary) {
+    return [
+        `关键词：${keywords}`,
+        ``,
+        `摘要：${summary}`,
+        ``,
+        `entries：`,
+    ].join("\n");
+}
+/** 将 entries 按 body 上限拆分为多批 */
+function splitEntries(entries, keywords, summary) {
+    const overhead = Buffer.byteLength(buildBodyOverhead(keywords, summary), "utf-8");
+    const batches = [];
+    let current = [];
+    let currentSize = overhead;
+    for (const entry of entries) {
+        // 估算单个 entry 的大小（JSON 序列化 + 逗号分隔）
+        const entryStr = (current.length > 0 ? "," : "") + JSON.stringify(entry);
+        const entrySize = Buffer.byteLength(entryStr, "utf-8");
+        if (currentSize + entrySize > YUQUE_BODY_MAX && current.length > 0) {
+            // 当前批次满了，开新批次
+            batches.push(current);
+            current = [];
+            currentSize = overhead;
+        }
+        current.push(entry);
+        currentSize += entrySize;
+    }
+    if (current.length > 0)
+        batches.push(current);
+    return batches;
+}
 /**
  * 创建关键词索引文档（v3 — 关键词中心）
  *
  * 一个关键词 = 一篇索引文档。标题就是关键词本身，命中直接对得上。
+ * body 超过 195KB 时自动分片：关键词(1)、关键词(2) ...
  *
  *   关键词：["SpringBoot","SpringBoot启动","自动配置"]
  *   摘要：...
@@ -39,14 +86,6 @@ export async function createIndexDoc(params) {
         ...e,
         url: e.url || (e.ns && e.s ? `https://www.yuque.com/${e.ns}/${e.s}` : undefined),
     }));
-    const body = [
-        `关键词：${cleanKeywords}`,
-        ``,
-        `摘要：${summary}`,
-        ``,
-        `entries：`,
-        JSON.stringify(enrichedEntries),
-    ].join("\n");
     const { route_book_sub, default_book } = loadConfig();
     const bookId = index_book_id || route_book_sub[0]?.book_id || default_book.book_id;
     if (!bookId)
@@ -56,26 +95,35 @@ export async function createIndexDoc(params) {
     if (capacityWarn) {
         return JSON.stringify({ warning: capacityWarn, created: false });
     }
-    const data = await post(`/repos/${bookId}/docs`, {
-        title: cleanKw,
-        body,
-        format: "markdown",
-    });
-    const created = data.data || data;
-    const docId = created.id;
-    await put(`/repos/${bookId}/toc`, {
-        action: "appendNode",
-        action_mode: "child",
-        target_uuid: "",
-        type: "DOC",
-        doc_ids: [docId],
-    });
+    // 按 body 上限分片
+    const batches = splitEntries(enrichedEntries, cleanKeywords, summary);
+    const createdDocs = [];
+    for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const title = batches.length > 1 ? `${cleanKw}(${i + 1})` : cleanKw;
+        const body = buildIndexBody(cleanKeywords, summary, batch);
+        const data = await post(`/repos/${bookId}/docs`, {
+            title,
+            body,
+            format: "markdown",
+        });
+        const created = data.data || data;
+        const docId = created.id;
+        await put(`/repos/${bookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            target_uuid: "",
+            type: "DOC",
+            doc_ids: [docId],
+        });
+        createdDocs.push({ doc_id: docId, title, entries: batch.length });
+    }
     return JSON.stringify({
         created: true,
-        doc_id: docId,
+        shards: batches.length,
+        docs: createdDocs,
         keyword: cleanKw,
-        entries: entries.length,
-        title: cleanKw,
+        total_entries: entries.length,
     }, null, 2);
 }
 /**
