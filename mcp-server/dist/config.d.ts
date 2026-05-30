@@ -21,3 +21,9 @@ export declare function getConfigPath(): string;
 export declare function reloadConfig(force?: boolean): YuqueConfig;
 export declare function loadConfig(): YuqueConfig;
 export declare function updateConfig(updates: Partial<YuqueConfig>): void;
+/** 持久化配置到 config/yuque-config.json */
+export declare function saveConfig(): void;
+/** 追加总库路由条目 */
+export declare function addRouteBook(book: YuqueBook): void;
+/** 追加子索引库条目 */
+export declare function addRouteBookSub(book: YuqueBook): void;

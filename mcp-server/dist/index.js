@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
 import { loadDarkArts } from "./tools/dark-arts-loader.js";
+import { addRouteBook, addRouteBookSub, loadConfig, reloadConfig } from "./config.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
@@ -17,7 +18,6 @@ import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
 import { kbSearch, createIndexDoc } from "./tools/kb.js";
 import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
-import { reloadConfig } from "./config.js";
 // ---- tool definitions ----
 const tools = [
     // --- 知识库 ---
@@ -433,10 +433,12 @@ const tools = [
                             ns: { type: "string", description: "源知识库 namespace（如 yehuoshun/dil9w3）" },
                             t: { type: "string", description: "源文档标题" },
                             s: { type: "string", description: "源文档 slug" },
+                            url: { type: "string", description: "源文档完整链接（如 https://www.yuque.com/{ns}/{s}）" },
+                            w: { type: "number", description: "权重 1-10，LLM 判断该文档与关键词的拟合度" },
                         },
-                        required: ["did", "ns"],
+                        required: ["did", "ns", "t", "s", "url", "w"],
                     },
-                    description: "源文档指针列表",
+                    description: "源文档指针列表（did/ns/t/s/url/w 全部必填）",
                 },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
             },
@@ -505,11 +507,40 @@ const tools = [
             required: ["login"],
         },
     },
-    // --- 回收站 ---
+    // --- 配置管理 & 状态检查 ---
     {
         name: "yuque_reload_config",
         description: "重新加载 config/yuque-config.json 配置文件（修改配置后无需重启 MCP Server）",
         inputSchema: { type: "object", properties: {}, required: [] },
+    },
+    {
+        name: "yuque_config_status",
+        description: "检查索引配置状态：总库/子库是否已配、子库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
+        inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
+        },
+    },
+    {
+        name: "yuque_config_update",
+        description: "更新索引配置（追加 route_book 或 route_book_sub 条目，自动持久化到配置文件并重载）。创建新总库/子索引库后调此工具写入配置。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                route_book_add: {
+                    type: "array",
+                    items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
+                    description: "追加到 route_book 的条目",
+                },
+                route_book_sub_add: {
+                    type: "array",
+                    items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
+                    description: "追加到 route_book_sub 的条目",
+                },
+            },
+            required: [],
+        },
     },
     {
         name: "yuque_list_recycles",
@@ -591,6 +622,8 @@ const handlers = {
     yuque_restore_recycle: (a) => restoreRecycle(a),
     yuque_destroy_recycle: (a) => destroyRecycle(a),
     yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book.length} 个总库 / ${c.route_book_sub.length} 个子库）`; },
+    yuque_config_status: async () => configStatus(),
+    yuque_config_update: async (a) => configUpdate(a),
 };
 // ---- server ----
 const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
@@ -622,6 +655,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
     }
 });
+// ─── 配置管理 handler ──────────────────────────────────
+async function configStatus() {
+    const cfg = loadConfig();
+    const lines = [];
+    lines.push("## 索引总库 (route_book)");
+    if (cfg.route_book.length === 0) {
+        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建总库。");
+    }
+    else {
+        for (const b of cfg.route_book) {
+            lines.push(`✅ book_id=${b.book_id} ns=${b.namespace}`);
+        }
+    }
+    lines.push("", "## 子索引库 (route_book_sub)");
+    if (cfg.route_book_sub.length === 0) {
+        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建子索引库。");
+    }
+    else {
+        for (const b of cfg.route_book_sub) {
+            try {
+                const { get } = await import("./client.js");
+                const data = await get(`/repos/${b.book_id}`);
+                const repo = data.data || data;
+                const count = repo.items_count || 0;
+                const limit = 5000;
+                const pct = Math.round((count / limit) * 1000) / 10;
+                const icon = count >= limit * 0.97 ? "🛑" : count >= limit * 0.9 ? "⚠️" : "✅";
+                lines.push(`${icon} book_id=${b.book_id} ns=${b.namespace} | 文档: ${count}/${limit} (${pct}%) | 名称: ${repo.name || "—"}`);
+            }
+            catch {
+                lines.push(`❓ book_id=${b.book_id} ns=${b.namespace} | 无法获取详情`);
+            }
+        }
+    }
+    lines.push("");
+    const hasRoute = cfg.route_book.length > 0;
+    const hasSub = cfg.route_book_sub.length > 0;
+    if (hasRoute && hasSub) {
+        lines.push("💡 索引配置完整，可直接构建索引。");
+    }
+    else {
+        const missing = [!hasRoute && "总库", !hasSub && "子库"].filter(Boolean).join("/");
+        lines.push(`⚠️ 索引配置不完整：缺 ${missing}。构建前需补齐。`);
+    }
+    return lines.join("\n");
+}
+async function configUpdate(args) {
+    const lines = [];
+    let changed = false;
+    if (args.route_book_add?.length) {
+        for (const b of args.route_book_add) {
+            addRouteBook(b);
+            lines.push(`✅ 总库追加: book_id=${b.book_id} ns=${b.namespace}`);
+        }
+        changed = true;
+    }
+    if (args.route_book_sub_add?.length) {
+        for (const b of args.route_book_sub_add) {
+            addRouteBookSub(b);
+            lines.push(`✅ 子库追加: book_id=${b.book_id} ns=${b.namespace}`);
+        }
+        changed = true;
+    }
+    if (!changed) {
+        return "⚠️ 未指定 route_book_add 或 route_book_sub_add，无变更。";
+    }
+    reloadConfig(true);
+    return lines.join("\n");
+}
 async function main() {
     // 🕶️ 动态加载邪修玩法（子模块不存在则跳过）
     const darkArts = await loadDarkArts();

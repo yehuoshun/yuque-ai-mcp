@@ -14,8 +14,8 @@ export interface DocEntry {
     ns: string;
     t: string;
     s: string;
-    url?: string;
-    w?: number;
+    url: string;
+    w: number;
 }
 export interface ParsedIndexDoc {
     keywords: string[];

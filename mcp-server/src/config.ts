@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, statSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -156,4 +156,54 @@ function parseBookList(prefix: string): YuqueBook[] {
 export function updateConfig(updates: Partial<YuqueConfig>): void {
   if (!cached) loadConfig();
   cached = { ...cached!, ...updates };
+}
+
+/** 持久化配置到 config/yuque-config.json */
+export function saveConfig(): void {
+  if (!cached) throw new Error("配置未加载，无法保存");
+  const configPath = getConfigPath();
+
+  // 确保目录存在
+  const dir = dirname(configPath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  // 读现有文件（保留非路由字段）
+  let raw: any = {};
+  try {
+    if (existsSync(configPath)) {
+      raw = JSON.parse(readFileSync(configPath, "utf-8"));
+    }
+  } catch { /* 文件损坏则覆盖 */ }
+
+  // 覆盖路由配置
+  raw.route_book = cached.route_book;
+  raw.route_book_sub = cached.route_book_sub;
+  if (cached.default_book.book_id) raw.default_book = cached.default_book;
+
+  writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf-8");
+
+  // 更新 mtime 避免重读循环
+  try {
+    lastMtimeMs = statSync(configPath).mtimeMs;
+  } catch {}
+}
+
+/** 追加总库路由条目 */
+export function addRouteBook(book: YuqueBook): void {
+  if (!cached) loadConfig();
+  const exists = cached!.route_book.some(b => String(b.book_id) === String(book.book_id));
+  if (!exists) {
+    cached!.route_book = [...cached!.route_book, book];
+    saveConfig();
+  }
+}
+
+/** 追加子索引库条目 */
+export function addRouteBookSub(book: YuqueBook): void {
+  if (!cached) loadConfig();
+  const exists = cached!.route_book_sub.some(b => String(b.book_id) === String(book.book_id));
+  if (!exists) {
+    cached!.route_book_sub = [...cached!.route_book_sub, book];
+    saveConfig();
+  }
 }

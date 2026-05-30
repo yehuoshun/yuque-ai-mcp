@@ -21,7 +21,17 @@ export async function kbSearch(params) {
         routeBooks = route_book;
     }
     else {
-        return `⚠️ 索引总库未配置。请在 config 中设置 route_book 数组，或传入 route_ns / route_id 参数。`;
+        return [
+            "⚠️ 索引总库未配置。",
+            "",
+            "索引搜索需要 route_book（索引总库）做路由层。请执行：",
+            "1. yuque_create_repo → 创建总库（如 route-book）",
+            "2. yuque_config_update → 追加 route_book",
+            "",
+            "或通知 Agent 代为创建。",
+            "",
+            "降级方案：传 route_ns + route_id 参数直接指定总库。",
+        ].join("\n");
     }
     // Step 1: 搜索总库 → 找关键词路由文档
     const routeEntries = await findRouteEntries(tokens, routeBooks, routeErrors);
