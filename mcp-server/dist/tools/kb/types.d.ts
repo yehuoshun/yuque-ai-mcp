@@ -12,8 +12,8 @@ export interface SourceEntry {
 export interface DocEntry {
     did: number;
     ns: string;
-    t?: string;
-    s?: string;
+    t: string;
+    s: string;
     url?: string;
     w?: number;
 }

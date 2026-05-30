@@ -90,10 +90,18 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   const cleanKw = cleanToken(keyword);
   const cleanKeywords = cleanKeywordsArray(keywords);
 
+  // 校验必填字段
+  for (const e of entries) {
+    if (!e.did) throw new Error("每个 entry 必须有 did");
+    if (!e.ns) throw new Error("每个 entry 必须有 ns");
+    if (!e.t) throw new Error("每个 entry 必须有 t（标题）");
+    if (!e.s) throw new Error("每个 entry 必须有 s（slug）");
+  }
+
   // 为每个 entry 补 url（https://www.yuque.com/{ns}/{s}）
   const enrichedEntries = entries.map(e => ({
     ...e,
-    url: e.url || (e.ns && e.s ? `https://www.yuque.com/${e.ns}/${e.s}` : undefined),
+    url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`,
   }));
 
   const { route_book_sub, default_book } = loadConfig();

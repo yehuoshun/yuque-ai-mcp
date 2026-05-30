@@ -15,8 +15,8 @@ export interface SourceEntry {
 export interface DocEntry {
   did: number;
   ns: string;
-  t?: string;
-  s?: string;
+  t: string;
+  s: string;
   url?: string;
   w?: number;  // 权重 1-10，LLM 判断该文档与关键词的拟合度
 }

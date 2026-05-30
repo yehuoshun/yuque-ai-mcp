@@ -178,7 +178,7 @@ async function searchOneSubIndex(
         did: de.did,
         ns: de.ns,
         title: de.t,
-        url: de.url || (de.ns && de.s ? `https://www.yuque.com/${de.ns}/${de.s}` : undefined),
+        url: de.url || `https://www.yuque.com/${de.ns}/${de.s}`,
         keywords: parsed.keywords,
         summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
         sub_index_ns: scope,
