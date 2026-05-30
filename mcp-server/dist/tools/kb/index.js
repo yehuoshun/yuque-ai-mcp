@@ -155,44 +155,15 @@ export async function createIndexDoc(params) {
         });
         createdDocs.push({ doc_id: docId, title, entries: batch.length });
     }
-    // 同步总库：关键词文档，entries 指向子库里刚创建的索引文档
-    let routeSynced = 0;
-    try {
-        const { route_book } = loadConfig();
-        // 从配置中获取子索引库 namespace（bookId 匹配的第一个）
-        const subNs = route_book_sub.find(b => String(b.book_id) === String(bookId))?.namespace ||
-            route_book_sub[0]?.namespace ||
-            default_book.namespace;
-        const routeBody = `关键词：${cleanKeywords}
-
-摘要：${summary}
-
-entries：${JSON.stringify(createdDocs.map(d => ({ did: d.doc_id, ns: subNs })))}`;
-        for (const rb of route_book) {
-            const rdata = await post(`/repos/${rb.book_id}/docs`, {
-                title: cleanKw,
-                body: routeBody,
-                format: "markdown",
-            });
-            const rdoc = (rdata.data || rdata);
-            await put(`/repos/${rb.book_id}/toc`, {
-                action: "appendNode",
-                action_mode: "child",
-                target_uuid: "",
-                type: "DOC",
-                doc_ids: [rdoc.id],
-            });
-            routeSynced++;
-        }
-    }
-    catch { /* 总库同步失败不影响子库写入 */ }
+    // 总库路由文档由 Agent 按域名级手动管理（新建域步骤 6 / 复用子库步骤 6）
+    // 路由文档格式：{index_books: [{did, ns}], source_books: [{book_id, namespace, last_built}]}
+    // createIndexDoc 只负责子索引库写入，不自动同步总库
     return JSON.stringify({
         created: true,
         shards: batches.length,
         docs: createdDocs,
         keyword: cleanKw,
         total_entries: entries.length,
-        route_synced: routeSynced,
         book_id: bookId,
         ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
     }, null, 2);

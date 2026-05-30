@@ -6,7 +6,7 @@ import { parseIndexDoc } from "./index.js";
  * 知识库搜索 — 双层路由：总库关键词文档 → 子库索引文档
  *
  * 1. tokens in:title 搜总库 → 找到关键词路由文档
- * 2. 读取路由文档 entries → 拿到子库索引文档的 {did, ns} 指针
+ * 2. 读取路由文档 body → 解析 index_books 拿到子库索引文档 {did, ns} 指针
  * 3. 直接 GET 子库索引文档 → parseIndexDoc 展开 → 返回源文档列表
  */
 export async function kbSearch(params) {
@@ -82,13 +82,33 @@ async function findRouteEntries(tokens, routeBooks, errors) {
             try {
                 const data = await get(`/repos/${rb.book_id}/docs/${docId}`);
                 const body = (data.data || data).body || "";
-                // 解析 entries JSON — [{did, ns}] 指向子库索引文档
-                const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-                if (!entriesMatch) {
-                    errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 entries` });
+                // 解析路由文档 body — 两段式 JSON: {index_books, source_books}
+                // index_books: [{did, ns}] 指向子库索引文档
+                let list = [];
+                // 新格式：JSON 对象 { index_books: [...] }
+                try {
+                    const parsed = JSON.parse(body);
+                    if (parsed.index_books && Array.isArray(parsed.index_books)) {
+                        list = parsed.index_books;
+                    }
+                }
+                catch {
+                    // 兼容旧格式：纯数组 [{did, ns}, ...]
+                    try {
+                        list = JSON.parse(body);
+                    }
+                    catch {
+                        // 兼容旧格式：markdown entries 段
+                        const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+                        if (entriesMatch) {
+                            list = JSON.parse(entriesMatch[1]);
+                        }
+                    }
+                }
+                if (list.length === 0) {
+                    errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 index_books` });
                     return;
                 }
-                const list = JSON.parse(entriesMatch[1]);
                 for (const item of list) {
                     const did = item.did;
                     const ns = item.ns || item.namespace;
