@@ -12,11 +12,6 @@ import { CreateIndexDocParams, ParsedIndexDoc } from "./types.js";
  */
 export declare function createIndexDoc(params: CreateIndexDocParams): Promise<string>;
 /**
- * 解析索引文档 body → keywords / summary / entries
- *
- * 兼容三种 entries 格式：
- *   JSON:     entries：[{"did":1,"ns":"x/x","t":"T","s":"s","w":10}]
- *   key-val:  entries：\n- did: 1, ns: x/x, t: T, s: s
- *   pipe:     entries：\n- 标题 | doc_id=1 | slug=s
+ * 解析索引文档 body → keywords / summary / entries（仅 JSON 格式）
  */
 export declare function parseIndexDoc(body: string): ParsedIndexDoc;
