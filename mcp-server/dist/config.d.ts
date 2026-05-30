@@ -8,6 +8,8 @@ export interface YuqueConfig {
     default_book: YuqueBook;
     route_book: YuqueBook[];
     route_book_sub: YuqueBook[];
+    index_concurrency: number;
+    search_concurrency: number;
     cookie?: string;
     ctoken?: string;
     user_id?: string;

@@ -41,6 +41,8 @@ npx yuque-mcp
 | `YUQUE_DEFAULT_BOOK_NS` | | 默认知识库 namespace |
 | `YUQUE_INDEX_BOOK_ID` | | 索引知识库 ID |
 | `YUQUE_INDEX_BOOK_NS` | | 索引知识库 namespace |
+| `YUQUE_INDEX_CONCURRENCY` | | 索引构建并发数（默认 1） |
+| `YUQUE_SEARCH_CONCURRENCY` | | 搜索/批量读取并发数（默认 5） |
 | `YUQUE_COOKIE` | | 登录 Cookie（上传附件用） |
 | `YUQUE_CTOKEN` | | CSRF Token |
 | `YUQUE_USER_ID` | | 用户 ID |

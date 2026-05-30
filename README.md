@@ -255,7 +255,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_search` | 搜索语雀内容（文档/知识库，支持 scope 限定范围），Markdown 输出（分页+去重+URL） |
-| `yuque_batch_get_docs_body` | 批量获取多篇文档 Markdown 正文（并发 5） |
+| `yuque_batch_get_docs_body` | 批量获取多篇文档 Markdown 正文（并发数由 config 控制，默认 5） |
 | `yuque_get_user` | 当前 Token 用户详情 |
 | `yuque_get_user_stats` | 个人写作统计仪表盘（知识库/文档/编辑/字数/社交/小记全维度，⚠️ 需 Cookie） |
 | `yuque_health_check` | 健康检查（Token 有效性 + 知识库连通性） |

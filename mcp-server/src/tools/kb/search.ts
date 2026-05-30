@@ -140,7 +140,8 @@ async function readIndexDocs(
   const allEntries: Map<number, SourceEntry> = new Map();
   let dirtyBlocks = 0;
 
-  const CONCURRENCY = 5;
+  const config = loadConfig();
+  const CONCURRENCY = config.search_concurrency || 5;
   const deduped = dedupByDidNs(routeEntries);
 
   // 分批并发读索引文档

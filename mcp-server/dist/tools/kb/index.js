@@ -135,25 +135,31 @@ export async function createIndexDoc(params) {
     // 按 body 上限分片
     const batches = splitEntries(enrichedEntries, cleanKeywords, summary);
     const createdDocs = [];
-    for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        const title = batches.length > 1 ? `${cleanKw}(${i + 1})` : cleanKw;
-        const body = buildIndexBody(cleanKeywords, summary, batch);
-        const data = await post(`/repos/${bookId}/docs`, {
-            title,
-            body,
-            format: "markdown",
-        });
-        const created = data.data || data;
-        const docId = created.id;
-        await put(`/repos/${bookId}/toc`, {
-            action: "appendNode",
-            action_mode: "child",
-            target_uuid: "",
-            type: "DOC",
-            doc_ids: [docId],
-        });
-        createdDocs.push({ doc_id: docId, title, entries: batch.length });
+    // 索引构建并发（默认 1，语雀 API 限流严格建议保守）
+    const CONCURRENCY = config.index_concurrency || 1;
+    for (let i = 0; i < batches.length; i += CONCURRENCY) {
+        const chunk = batches.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(chunk.map(async (batch, chunkIdx) => {
+            const globalIdx = i + chunkIdx;
+            const title = batches.length > 1 ? `${cleanKw}(${globalIdx + 1})` : cleanKw;
+            const body = buildIndexBody(cleanKeywords, summary, batch);
+            const data = await post(`/repos/${bookId}/docs`, {
+                title,
+                body,
+                format: "markdown",
+            });
+            const created = data.data || data;
+            const docId = created.id;
+            await put(`/repos/${bookId}/toc`, {
+                action: "appendNode",
+                action_mode: "child",
+                target_uuid: "",
+                type: "DOC",
+                doc_ids: [docId],
+            });
+            return { doc_id: docId, title, entries: batch.length };
+        }));
+        createdDocs.push(...results);
     }
     // 总库路由文档由 Agent 按域名级手动管理（新建域步骤 6 / 复用子库步骤 6）
     // 路由文档格式：{index_books: [{did, ns}], source_books: [{book_id, namespace, last_built}]}

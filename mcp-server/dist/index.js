@@ -318,7 +318,7 @@ const tools = [
     },
     {
         name: "yuque_batch_get_docs_body",
-        description: "批量获取多篇文档的 Markdown 正文（并发 5，底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
+        description: "批量获取多篇文档的 Markdown 正文（并发数由 config.search_concurrency 控制，默认 5。底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
         inputSchema: {
             type: "object",
             properties: {
@@ -692,6 +692,9 @@ async function configStatus() {
     lines.push("");
     const hasRoute = cfg.route_book.length > 0;
     const hasSub = cfg.route_book_sub.length > 0;
+    lines.push("## 并发配置");
+    lines.push(`🔧 index_concurrency=${cfg.index_concurrency || 1} | search_concurrency=${cfg.search_concurrency || 5}`);
+    lines.push("");
     if (hasRoute && hasSub) {
         lines.push("💡 索引配置完整，可直接构建索引。");
     }

@@ -15,6 +15,8 @@ export interface YuqueConfig {
   default_book: YuqueBook;
   route_book: YuqueBook[];   // 索引总库列表（存路由文档，可多总库分片）
   route_book_sub: YuqueBook[];    // 默认子索引库列表（创建索引文档时未指定目标用）
+  index_concurrency: number;  // 索引构建并发数（默认 1，语雀 API 限流严格建议保守）
+  search_concurrency: number; // 搜索并发数（默认 5）
   cookie?: string;
   ctoken?: string;
   user_id?: string;
@@ -82,6 +84,8 @@ export function loadConfig(): YuqueConfig {
       }),
       route_book: parseBookList("YUQUE_ROUTE_BOOK"),
       route_book_sub: parseBookList("YUQUE_ROUTE_SUB"),
+      index_concurrency: parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
+      search_concurrency: parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
       cookie,
       ctoken,
       user_id: process.env.YUQUE_USER_ID || fileUserId || undefined,
@@ -115,6 +119,8 @@ export function loadConfig(): YuqueConfig {
     default_book: normalizeBook(raw.default_book),
     route_book: normalizeBooks(raw.route_book),
     route_book_sub: normalizeBooks(raw.route_book_sub || raw.index_book),
+    index_concurrency: raw.index_concurrency || 1,
+    search_concurrency: raw.search_concurrency || 5,
     cookie: raw.cookie || undefined,
     ctoken: raw.ctoken || undefined,
     user_id: raw.user_id || undefined,

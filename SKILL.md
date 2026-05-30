@@ -223,7 +223,7 @@ entries 字段：
          │
          ├─[4] 候选 > 5 篇？→ 用 summary + keywords 让 LLM 重排 → Top 5
          │
-         ├─[5] 5 并发 yuque_get_doc 读源文档原文
+         ├─[5] 并发 yuque_get_doc 读源文档原文
          │
          ├─[6] LLM 生成答案 + 引用出处
          │
@@ -311,9 +311,13 @@ entries 字段：
 | 阶段 | 并发数 | 说明 |
 |------|--------|------|
 | 搜索子索引库 | N（token 数） | 每个 token 独立并行搜，结果去重合并 |
-| 读索引文档 body | 5（分批并发） | 每批 5 个并发 yuque_get_doc |
+| 读索引文档 body | `search_concurrency`（默认 5） | 分批并发 yuque_get_doc，由 config 控制 |
 | 重排序 | - | LLM 单次调用，直接用 summary 字段 |
-| 读源文档原文 | 5 | 并发 yuque_get_doc |
+| 读源文档原文 | `search_concurrency`（默认 5） | 并发 yuque_get_doc |
+| 索引构建写文档 | `index_concurrency`（默认 1） | 分批并发创建索引文档，由 config 控制 |
+
+> 并发数可通过配置文件 `index_concurrency` / `search_concurrency` 或环境变量 `YUQUE_INDEX_CONCURRENCY` / `YUQUE_SEARCH_CONCURRENCY` 调整。
+> 索引构建默认并发 1：语雀 API 写操作限流严格，高频并发写入容易触发 429，建议保守配置。
 
 ---
 
