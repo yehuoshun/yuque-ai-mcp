@@ -1,11 +1,15 @@
 import { get } from "../../client.js";
 import { loadConfig, YuqueBook } from "../../config.js";
-import { SourceEntry, SubIndexPointer, SubIndexResult } from "./types.js";
+import { SourceEntry, RouteEntry } from "./types.js";
 import { cleanToken } from "./utils.js";
 import { parseIndexDoc } from "./index.js";
 
 /**
- * 知识库搜索 — 管道全自动（双层：路由 + 子索引库）
+ * 知识库搜索 — 双层路由：总库关键词文档 → 子库索引文档
+ *
+ * 1. tokens in:title 搜总库 → 找到关键词路由文档
+ * 2. 读取路由文档 entries → 拿到子库索引文档的 {did, ns} 指针
+ * 3. 直接 GET 子库索引文档 → parseIndexDoc 展开 → 返回源文档列表
  */
 export async function kbSearch(params: {
   tokens: string[];
@@ -25,9 +29,10 @@ export async function kbSearch(params: {
     return `⚠️ 索引总库未配置。请在 config 中设置 route_book 数组，或传入 route_ns / route_id 参数。`;
   }
 
-  const subIndexes = await findSubIndexesFromAll(tokens, routeBooks, routeErrors);
+  // Step 1: 搜索总库 → 找关键词路由文档
+  const routeEntries = await findRouteEntries(tokens, routeBooks, routeErrors);
 
-  if (subIndexes.length === 0) {
+  if (routeEntries.length === 0) {
     const lines = [
       `🔍 搜索 token：${tokens.join(", ")}`,
       ...routeErrors.map(e => `- ${e.token}: ${e.reason}`),
@@ -38,219 +43,150 @@ export async function kbSearch(params: {
     return lines.join("\n");
   }
 
-  const subResults = await Promise.all(
-    subIndexes.map(si => searchOneSubIndex(tokens, si.namespace, si.book_id))
-  );
+  // Step 2: 直接读取子库索引文档 → 展开源文档 entries
+  const { entries, dirtyBlocks, errors } = await readIndexDocs(routeEntries);
 
-  return formatSearchResults(tokens, subIndexes, subResults, routeErrors);
+  return formatSearchResults(tokens, routeEntries, entries, dirtyBlocks, routeErrors, errors);
 }
 
 // ─── 路由定位 ──────────────────────────────────────────
 
-/** 搜索所有总库 → 找 路由 文档 → 解析子索引库指针 */
-async function findSubIndexesFromAll(
+/** 搜索总库 → 获取指向子库索引文档的 RouteEntry 列表 */
+async function findRouteEntries(
   tokens: string[],
   routeBooks: YuqueBook[],
   errors: { token: string; reason: string }[]
-): Promise<SubIndexPointer[]> {
-  const all = new Map<string, SubIndexPointer>();
-
-  await Promise.all(
-    routeBooks.map(async (rb) => {
-      const ptrs = await findSubIndexes(tokens, rb.namespace, rb.book_id, errors);
-      for (const p of ptrs) {
-        if (!all.has(p.namespace)) all.set(p.namespace, p);
-      }
-    })
-  );
-
-  return Array.from(all.values());
-}
-
-async function findSubIndexes(
-  tokens: string[],
-  ns: string,
-  bookId: number | string,
-  errors: { token: string; reason: string }[]
-): Promise<SubIndexPointer[]> {
+): Promise<RouteEntry[]> {
   const seenDocs = new Map<number, string>();
 
-  // N 路并行搜路由总库 — 用 in:title 精确匹配关键词标题
-  await Promise.all(tokens.map(async (token) => {
-    try {
-      const q = encodeURIComponent(`${token} in:title`);
-      const data = await get(`/search?q=${q}&type=doc&scope=${ns}`) as any;
-      for (const r of (data.data || [])) {
-        const info = r.target || r;
-        const id = info.id || r.id;
-        const title = info.title || r.title || "";
-        if (id && !seenDocs.has(id)) {
-          seenDocs.set(id, title);
+  // N 路并行搜总库 — in:title 精确匹配
+  await Promise.all(routeBooks.map(async (rb) => {
+    await Promise.all(tokens.map(async (token) => {
+      try {
+        const q = encodeURIComponent(`${token} in:title`);
+        const data = await get(`/search?q=${q}&type=doc&scope=${rb.namespace}`) as any;
+        for (const r of (data.data || [])) {
+          const info = r.target || r;
+          const id = info.id || r.id;
+          const title = info.title || r.title || "";
+          if (id && !seenDocs.has(id)) seenDocs.set(id, title);
         }
+      } catch (err: any) {
+        errors.push({ token, reason: `路由搜索失败: ${err.message || err}` });
       }
-    } catch (err: any) {
-      errors.push({ token, reason: `路由搜索失败: ${err.message || err}` });
-    }
+    }));
   }));
 
   if (seenDocs.size === 0) return [];
 
-  // 并发读路由 body → 解析 entries（新格式：关键词文档 + entries JSON）
-  const pointers = new Map<string, SubIndexPointer>();
-  await Promise.all(Array.from(seenDocs.keys()).map(async (docId) => {
-    try {
-      const data = await get(`/repos/${bookId}/docs/${docId}`) as any;
-      const body: string = (data.data || data).body || "";
+  // 并发读总库文档 body → 解析 RouteEntry [{did, ns}]
+  const allEntries: RouteEntry[] = [];
 
-      // 新格式：关键词文档（entries 行包含 JSON 指针）
-      const entriesMatch = body.match(/entries[：:]\s*\n?(\[.+?\])\s*$/m);
-      if (entriesMatch) {
-        const list: any[] = JSON.parse(entriesMatch[1]);
-        for (const item of list) {
-          const ns = item.namespace || item.ns;
-          const bid = item.book_id || item.bid;
-          if (ns && bid && !pointers.has(ns)) pointers.set(ns, { book_id: bid, namespace: ns });
+  await Promise.all(
+    routeBooks.map(async (rb) => {
+      await Promise.all(Array.from(seenDocs.keys()).map(async (docId) => {
+        try {
+          const data = await get(`/repos/${rb.book_id}/docs/${docId}`) as any;
+          const body: string = (data.data || data).body || "";
+
+          // 解析 entries JSON — [{did, ns}] 指向子库索引文档
+          const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+          if (!entriesMatch) {
+            errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 entries` });
+            return;
+          }
+
+          const list: any[] = JSON.parse(entriesMatch[1]);
+          for (const item of list) {
+            const did = item.did;
+            const ns = item.ns || item.namespace;
+            if (did && ns) {
+              allEntries.push({ did: Number(did), ns });
+            }
+          }
+        } catch (err: any) {
+          errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
         }
-        return;
-      }
+      }));
+    })
+  );
 
-      // 旧格式兼容：纯 JSON 数组 [{book_id, namespace}]
-      try {
-        const parsed = JSON.parse(body);
-        const list: any[] = Array.isArray(parsed) ? parsed : (parsed.e || []);
-        for (const item of list) {
-          const ns = item.namespace || item.ns;
-          const bid = item.book_id || item.bid;
-          if (ns && bid && !pointers.has(ns)) pointers.set(ns, { book_id: bid, namespace: ns });
-        }
-      } catch {
-        errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 entries（非新格式关键词文档且非 JSON 路由）` });
-      }
-    } catch (err: any) {
-      errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
-    }
-  }));
-
-  return Array.from(pointers.values());
+  return allEntries;
 }
 
-// ─── 单子库搜索 ────────────────────────────────────────
+// ─── 读取子库索引文档 ──────────────────────────────────
 
-async function searchOneSubIndex(
-  tokens: string[],
-  scope: string,
-  bookId: number | string
-): Promise<SubIndexResult> {
+/** 直接按 did/ns 读取子库索引文档，展开源文档指针 */
+async function readIndexDocs(
+  routeEntries: RouteEntry[]
+): Promise<{ entries: SourceEntry[]; dirtyBlocks: number; errors: { token: string; reason: string }[] }> {
   const errors: { token: string; reason: string }[] = [];
-
-  // Step 1: N 路并行翻页搜索
-  const hitsByToken = await Promise.all(tokens.map(token => fetchAllPages(token, scope, errors)));
-
-  // Step 2: doc_id 去重
-  const seen = new Map<number, { doc_id: number; title: string }>();
-  for (const { hits } of hitsByToken) {
-    for (const h of hits) { if (!seen.has(h.doc_id)) seen.set(h.doc_id, h); }
-  }
-
-  const indexDocs = Array.from(seen.values());
-  if (indexDocs.length === 0) {
-    return { entries: [], indexDocsHit: 0, sourceDocsHit: 0, dirtyBlocks: 0, errors, ns: scope };
-  }
-
-  // Step 3: 分批并发读 body（并发 5）
-  const bodies = await batchReadBodies(indexDocs, bookId, errors);
-
-  // Step 4: 解析 → 展开 entries
-  const entries: SourceEntry[] = [];
+  const allEntries: Map<number, SourceEntry> = new Map();
   let dirtyBlocks = 0;
 
-  for (const b of bodies) {
-    const parsed = parseIndexDoc(b.body);
-    if (parsed.parse_error) {
-      dirtyBlocks++;
-      entries.push({ did: 0, ns: "", parse_error: parsed.parse_error, sub_index_ns: scope });
-      continue;
-    }
-
-    const indexKeyword = b.title?.trim();
-    for (const de of parsed.entries) {
-      entries.push({
-        did: de.did,
-        ns: de.ns,
-        title: de.t,
-        url: de.url || `https://www.yuque.com/${de.ns}/${de.s}`,
-        keywords: parsed.keywords,
-        summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
-        sub_index_ns: scope,
-        weight: de.w,
-      });
-    }
-  }
-
-  // 按权重降序
-  entries.sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
-
-  return {
-    entries,
-    indexDocsHit: indexDocs.length,
-    sourceDocsHit: entries.filter(e => !e.parse_error).length,
-    dirtyBlocks,
-    errors,
-    ns: scope,
-  };
-}
-
-// ─── 翻页搜 ────────────────────────────────────────────
-
-async function fetchAllPages(
-  token: string, scope: string, errors: { token: string; reason: string }[]
-): Promise<{ token: string; hits: { doc_id: number; title: string }[] }> {
-  const allHits: { doc_id: number; title: string }[] = [];
-  let page = 1;
-  let hasMore = true;
-
-  while (hasMore && page <= 5) {
-    try {
-      const data = await get(
-        `/search?q=${encodeURIComponent(token)}&type=doc&scope=${scope}&page=${page}`
-      ) as any;
-      const hits: any[] = data.data || [];
-      for (const r of hits) allHits.push({ doc_id: r.id || r.doc_id, title: r.title || "" });
-      hasMore = (data.meta?.total || 0) > page * 20;
-      page++;
-    } catch (err: any) {
-      errors.push({ token, reason: err.message || String(err) });
-      hasMore = false;
-    }
-  }
-
-  return { token, hits: allHits };
-}
-
-// ─── 分批读 body ───────────────────────────────────────
-
-async function batchReadBodies(
-  docs: { doc_id: number; title: string }[],
-  bookId: number | string,
-  errors: { token: string; reason: string }[]
-): Promise<{ doc_id: number; title: string; body: string }[]> {
   const CONCURRENCY = 5;
-  const result: { doc_id: number; title: string; body: string }[] = [];
+  const deduped = dedupByDidNs(routeEntries);
 
-  for (let i = 0; i < docs.length; i += CONCURRENCY) {
-    const chunk = docs.slice(i, i + CONCURRENCY);
-    const batch = await Promise.all(chunk.map(async doc => {
+  // 分批并发读索引文档
+  for (let i = 0; i < deduped.length; i += CONCURRENCY) {
+    const chunk = deduped.slice(i, i + CONCURRENCY);
+
+    const results = await Promise.all(chunk.map(async (re) => {
       try {
-        const data = await get(`/repos/${bookId}/docs/${doc.doc_id}`) as any;
-        return { doc_id: doc.doc_id, title: doc.title, body: (data.data || data).body || "" };
+        const data = await get(`/repos/${re.ns}/docs/${re.did}`) as any;
+        return {
+          did: re.did,
+          ns: re.ns,
+          title: (data.data || data).title || "",
+          body: (data.data || data).body || "",
+        };
       } catch (err: any) {
-        errors.push({ token: 'body_read', reason: `doc_id=${doc.doc_id}: ${err.message || String(err)}` });
-        return { doc_id: doc.doc_id, title: doc.title, body: "" };
+        errors.push({ token: 'body_read', reason: `did=${re.did}, ns=${re.ns}: ${err.message || String(err)}` });
+        return { did: re.did, ns: re.ns, title: "", body: "" };
       }
     }));
-    result.push(...batch);
+
+    for (const doc of results) {
+      if (!doc.body) continue;
+
+      const parsed = parseIndexDoc(doc.body);
+      if (parsed.parse_error) {
+        dirtyBlocks++;
+        continue;
+      }
+
+      const indexKeyword = doc.title?.trim();
+      for (const de of parsed.entries) {
+        const existing = allEntries.get(de.did);
+        if (!existing || (de.w ?? 0) > (existing.weight ?? 0)) {
+          allEntries.set(de.did, {
+            did: de.did,
+            ns: de.ns,
+            title: de.t,
+            url: de.url || `https://www.yuque.com/${de.ns}/${de.s}`,
+            keywords: parsed.keywords,
+            summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
+            sub_index_ns: doc.ns,
+            weight: de.w,
+          });
+        }
+      }
+    }
   }
 
+  return { entries: Array.from(allEntries.values()), dirtyBlocks, errors };
+}
+
+function dedupByDidNs(entries: RouteEntry[]): RouteEntry[] {
+  const seen = new Set<string>();
+  const result: RouteEntry[] = [];
+  for (const e of entries) {
+    const key = `${e.ns}/${e.did}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(e);
+    }
+  }
   return result;
 }
 
@@ -258,54 +194,37 @@ async function batchReadBodies(
 
 function formatSearchResults(
   tokens: string[],
-  subIndexes: SubIndexPointer[],
-  results: SubIndexResult[],
-  routeErrors: { token: string; reason: string }[]
+  routeEntries: RouteEntry[],
+  entries: SourceEntry[],
+  dirtyBlocks: number,
+  routeErrors: { token: string; reason: string }[],
+  readErrors: { token: string; reason: string }[]
 ): string {
-  const allEntryMap = new Map<number, SourceEntry>();
-  let totalIndex = 0, totalSource = 0, totalDirty = 0;
-  const errors = [...routeErrors];
-  const hitNS: string[] = [];
-
-  for (const r of results) {
-    if (r.indexDocsHit > 0) hitNS.push(r.ns);
-    totalIndex += r.indexDocsHit;
-    totalSource += r.sourceDocsHit;
-    totalDirty += r.dirtyBlocks;
-    errors.push(...r.errors);
-    for (const e of r.entries) {
-      if (!allEntryMap.has(e.did)) {
-        allEntryMap.set(e.did, e);
-      } else if ((e.weight ?? 0) > (allEntryMap.get(e.did)!.weight ?? 0)) {
-        // 同一 did 来自多个关键词索引 → 保留权重高的
-        allEntryMap.set(e.did, e);
-      }
-    }
-  }
+  const errors = [...routeErrors, ...readErrors];
+  const hitNS = [...new Set(entries.map(e => e.sub_index_ns).filter(Boolean))];
 
   const lines: string[] = [
     `🔍 搜索 token：${tokens.join(", ")}`,
-    `路由命中 ${subIndexes.length} 个子索引库${hitNS.length ? `：${hitNS.join(", ")}` : ""}`,
-    `命中 ${totalIndex} 个关键词索引，展开 ${totalSource} 篇源文档${totalDirty ? `，${totalDirty} 个脏块` : ""}`,
+    `路由命中 ${routeEntries.length} 个索引文档${hitNS.length ? `，分布子库：${hitNS.join(", ")}` : ""}`,
+    `展开 ${entries.length} 篇源文档${dirtyBlocks ? `，${dirtyBlocks} 个脏块` : ""}`,
   ];
 
   if (errors.length > 0) {
     lines.push('', '⚠️ 错误：', ...errors.map(e => `- ${e.token}: ${e.reason}`), '');
   }
 
-  for (const e of allEntryMap.values()) {
-    if (e.parse_error) {
-      lines.push(`---`, `⚠️ 脏块 (did=${e.did}, ns=${e.ns}): ${e.parse_error}`);
-    } else {
-      lines.push(
-        `---`,
-        `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""),
-        ...(e.url ? [e.url] : []),
-        ...(e.summary ? [`摘要：${e.summary}`] : []),
-        ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []),
-        '',
-      );
-    }
+  // 按权重降序
+  const sorted = [...entries].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
+
+  for (const e of sorted) {
+    lines.push(
+      `---`,
+      `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""),
+      ...(e.url ? [e.url] : []),
+      ...(e.summary ? [`摘要：${e.summary}`] : []),
+      ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []),
+      '',
+    );
   }
 
   return lines.join("\n");

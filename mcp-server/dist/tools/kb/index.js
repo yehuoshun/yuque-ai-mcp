@@ -128,7 +128,7 @@ export async function createIndexDoc(params) {
         });
         createdDocs.push({ doc_id: docId, title, entries: batch.length });
     }
-    // 同步总库：创建关键词文档（entries 指向子索引库）
+    // 同步总库：关键词文档，entries 指向子库里刚创建的索引文档
     let routeSynced = 0;
     try {
         const { route_book } = loadConfig();
@@ -140,7 +140,7 @@ export async function createIndexDoc(params) {
 
 摘要：${summary}
 
-entries：${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
+entries：${JSON.stringify(createdDocs.map(d => ({ did: d.doc_id, ns: subNs })))}`;
         for (const rb of route_book) {
             const rdata = await post(`/repos/${rb.book_id}/docs`, {
                 title: cleanKw,

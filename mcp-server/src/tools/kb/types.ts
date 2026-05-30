@@ -29,17 +29,9 @@ export interface ParsedIndexDoc {
   parse_error?: string;
 }
 
-export interface SubIndexPointer {
-  book_id: number | string;
-  namespace: string;
-}
-
-export interface SubIndexResult {
-  entries: SourceEntry[];
-  indexDocsHit: number;
-  sourceDocsHit: number;
-  dirtyBlocks: number;
-  errors: { token: string; reason: string }[];
+// 总库路由指向的索引文档
+export interface RouteEntry {
+  did: number;
   ns: string;
 }
 

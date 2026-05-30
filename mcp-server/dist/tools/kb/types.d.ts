@@ -23,19 +23,8 @@ export interface ParsedIndexDoc {
     entries: DocEntry[];
     parse_error?: string;
 }
-export interface SubIndexPointer {
-    book_id: number | string;
-    namespace: string;
-}
-export interface SubIndexResult {
-    entries: SourceEntry[];
-    indexDocsHit: number;
-    sourceDocsHit: number;
-    dirtyBlocks: number;
-    errors: {
-        token: string;
-        reason: string;
-    }[];
+export interface RouteEntry {
+    did: number;
     ns: string;
 }
 export interface CreateIndexDocParams {
