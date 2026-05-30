@@ -99,27 +99,13 @@ async function findRouteEntries(
           const data = await get(`/repos/${rb.book_id}/docs/${docId}`) as any;
           const body: string = (data.data || data).body || "";
 
-          // 解析路由文档 body — 两段式 JSON: {index_books, source_books}
-          // index_books: [{did, ns}] 指向子库索引文档
+          // 解析路由文档 body — {index_books: [{did, ns}, ...], source_books: [...]}
           let list: any[] = [];
-
-          // 新格式：JSON 对象 { index_books: [{did, ns}, ...] }
-          // 旧格式：纯数组 [{did, ns}, ...] 或 markdown entries 段
           try {
             const parsed = JSON.parse(body);
-            if (parsed.index_books && Array.isArray(parsed.index_books)) {
-              // 新格式
-              list = parsed.index_books;
-            } else if (Array.isArray(parsed)) {
-              // 旧格式：纯数组
-              list = parsed;
-            }
+            list = parsed.index_books || [];
           } catch {
-            // 旧格式：markdown entries 段
-            const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-            if (entriesMatch) {
-              try { list = JSON.parse(entriesMatch[1]); } catch {}
-            }
+            // body 不是合法 JSON
           }
 
           if (list.length === 0) {
