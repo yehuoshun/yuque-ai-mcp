@@ -103,22 +103,22 @@ async function findRouteEntries(
           // index_books: [{did, ns}] 指向子库索引文档
           let list: any[] = [];
 
-          // 新格式：JSON 对象 { index_books: [...] }
+          // 新格式：JSON 对象 { index_books: [{did, ns}, ...] }
+          // 旧格式：纯数组 [{did, ns}, ...] 或 markdown entries 段
           try {
             const parsed = JSON.parse(body);
             if (parsed.index_books && Array.isArray(parsed.index_books)) {
+              // 新格式
               list = parsed.index_books;
+            } else if (Array.isArray(parsed)) {
+              // 旧格式：纯数组
+              list = parsed;
             }
           } catch {
-            // 兼容旧格式：纯数组 [{did, ns}, ...]
-            try {
-              list = JSON.parse(body);
-            } catch {
-              // 兼容旧格式：markdown entries 段
-              const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-              if (entriesMatch) {
-                list = JSON.parse(entriesMatch[1]);
-              }
+            // 旧格式：markdown entries 段
+            const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+            if (entriesMatch) {
+              try { list = JSON.parse(entriesMatch[1]); } catch {}
             }
           }
 

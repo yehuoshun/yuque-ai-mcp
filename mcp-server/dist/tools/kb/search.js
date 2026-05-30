@@ -85,24 +85,27 @@ async function findRouteEntries(tokens, routeBooks, errors) {
                 // 解析路由文档 body — 两段式 JSON: {index_books, source_books}
                 // index_books: [{did, ns}] 指向子库索引文档
                 let list = [];
-                // 新格式：JSON 对象 { index_books: [...] }
+                // 新格式：JSON 对象 { index_books: [{did, ns}, ...] }
+                // 旧格式：纯数组 [{did, ns}, ...] 或 markdown entries 段
                 try {
                     const parsed = JSON.parse(body);
                     if (parsed.index_books && Array.isArray(parsed.index_books)) {
+                        // 新格式
                         list = parsed.index_books;
+                    }
+                    else if (Array.isArray(parsed)) {
+                        // 旧格式：纯数组
+                        list = parsed;
                     }
                 }
                 catch {
-                    // 兼容旧格式：纯数组 [{did, ns}, ...]
-                    try {
-                        list = JSON.parse(body);
-                    }
-                    catch {
-                        // 兼容旧格式：markdown entries 段
-                        const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-                        if (entriesMatch) {
+                    // 旧格式：markdown entries 段
+                    const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+                    if (entriesMatch) {
+                        try {
                             list = JSON.parse(entriesMatch[1]);
                         }
+                        catch { }
                     }
                 }
                 if (list.length === 0) {
