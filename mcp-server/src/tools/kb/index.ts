@@ -29,8 +29,7 @@ function buildIndexBody(keywords: string, summary: string, entries: DocEntry[]):
     ``,
     `摘要：${summary}`,
     ``,
-    `entries：`,
-    JSON.stringify(entries),
+    `entries：${JSON.stringify(entries)}`,
   ].join("\n");
 }
 
@@ -145,12 +144,11 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
                   route_book_sub[0]?.namespace ||
                   default_book.namespace;
 
-    const routeBody = `关键词：${JSON.stringify(cleanKeywords)}
+    const routeBody = `关键词：${cleanKeywords}
 
 摘要：${summary}
 
-entries：
-${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
+entries：${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
 
     for (const rb of route_book) {
       const rdata = await post(`/repos/${rb.book_id}/docs`, {
@@ -189,7 +187,10 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
   const keywordsRaw = extractLine(body, "关键词：");
   const keywords = parseKeywords(keywordsRaw);
   const summary = extractSection(body, "摘要：", "entries：");
-  const entriesRaw = extractLine(body, "entries：");
+
+  // entries 兼容两种格式：同行 / 下一行
+  const entriesMatch = body.match(/entries[：:]\s*\n?(\[.+?\])\s*$/m);
+  const entriesRaw = entriesMatch ? entriesMatch[1] : "";
 
   const missing: string[] = [];
   if (!keywords || keywords.length === 0) missing.push("关键词");

@@ -56,6 +56,23 @@ export function loadConfig(): YuqueConfig {
 
   // 优先读环境变量（npm 包安装方式）
   if (process.env.YUQUE_TOKEN) {
+    let cookie = process.env.YUQUE_COOKIE || undefined;
+    let ctoken = process.env.YUQUE_CTOKEN || undefined;
+    let fileUserId: string | undefined;
+
+    // cookie/ctoken 是易变配置，优先 env，兜底读 config 文件避免硬编码在启动参数里
+    if (!cookie || !ctoken) {
+      try {
+        const configPath = resolveConfigPath();
+        if (existsSync(configPath)) {
+          const raw = JSON.parse(readFileSync(configPath, "utf-8"));
+          if (!cookie) cookie = raw.cookie;
+          if (!ctoken) ctoken = raw.ctoken;
+          if (!fileUserId) fileUserId = raw.user_id;
+        }
+      } catch { /* ignore file errors, use env values */ }
+    }
+
     cached = {
       token: process.env.YUQUE_TOKEN,
       group: process.env.YUQUE_GROUP || "",
@@ -65,9 +82,9 @@ export function loadConfig(): YuqueConfig {
       }),
       route_book: parseBookList("YUQUE_ROUTE_BOOK"),
       route_book_sub: parseBookList("YUQUE_ROUTE_SUB"),
-      cookie: process.env.YUQUE_COOKIE || undefined,
-      ctoken: process.env.YUQUE_CTOKEN || undefined,
-      user_id: process.env.YUQUE_USER_ID || undefined,
+      cookie,
+      ctoken,
+      user_id: process.env.YUQUE_USER_ID || fileUserId || undefined,
     };
     return cached;
   }

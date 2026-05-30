@@ -25,8 +25,7 @@ function buildIndexBody(keywords, summary, entries) {
         ``,
         `摘要：${summary}`,
         ``,
-        `entries：`,
-        JSON.stringify(entries),
+        `entries：${JSON.stringify(entries)}`,
     ].join("\n");
 }
 /** body 模板开销（不含 entries JSON），用于估算单篇可容纳的 entry 数 */
@@ -118,12 +117,44 @@ export async function createIndexDoc(params) {
         });
         createdDocs.push({ doc_id: docId, title, entries: batch.length });
     }
+    // 同步总库：创建关键词文档（entries 指向子索引库）
+    let routeSynced = 0;
+    try {
+        const { route_book } = loadConfig();
+        // 从配置中获取子索引库 namespace（bookId 匹配的第一个）
+        const subNs = route_book_sub.find(b => String(b.book_id) === String(bookId))?.namespace ||
+            route_book_sub[0]?.namespace ||
+            default_book.namespace;
+        const routeBody = `关键词：${cleanKeywords}
+
+摘要：${summary}
+
+entries：${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
+        for (const rb of route_book) {
+            const rdata = await post(`/repos/${rb.book_id}/docs`, {
+                title: cleanKw,
+                body: routeBody,
+                format: "markdown",
+            });
+            const rdoc = (rdata.data || rdata);
+            await put(`/repos/${rb.book_id}/toc`, {
+                action: "appendNode",
+                action_mode: "child",
+                target_uuid: "",
+                type: "DOC",
+                doc_ids: [rdoc.id],
+            });
+            routeSynced++;
+        }
+    }
+    catch { /* 总库同步失败不影响子库写入 */ }
     return JSON.stringify({
         created: true,
         shards: batches.length,
         docs: createdDocs,
         keyword: cleanKw,
         total_entries: entries.length,
+        route_synced: routeSynced,
     }, null, 2);
 }
 /**
@@ -135,7 +166,9 @@ export function parseIndexDoc(body) {
     const keywordsRaw = extractLine(body, "关键词：");
     const keywords = parseKeywords(keywordsRaw);
     const summary = extractSection(body, "摘要：", "entries：");
-    const entriesRaw = extractLine(body, "entries：");
+    // entries 兼容两种格式：同行 / 下一行
+    const entriesMatch = body.match(/entries[：:]\s*\n?(\[.+?\])\s*$/m);
+    const entriesRaw = entriesMatch ? entriesMatch[1] : "";
     const missing = [];
     if (!keywords || keywords.length === 0)
         missing.push("关键词");
