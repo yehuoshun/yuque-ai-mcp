@@ -180,6 +180,11 @@ entries：${JSON.stringify([{ book_id: bookId, namespace: subNs }])}`;
 
 /**
  * 解析索引文档 body → keywords / summary / entries
+ *
+ * 兼容三种 entries 格式：
+ *   JSON:     entries：[{"did":1,"ns":"x/x","t":"T","s":"s","w":10}]
+ *   key-val:  entries：\n- did: 1, ns: x/x, t: T, s: s
+ *   pipe:     entries：\n- 标题 | doc_id=1 | slug=s
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
   if (!body) return { keywords: [], summary: "", entries: [], parse_error: "空 body" };
@@ -188,25 +193,63 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
   const keywords = parseKeywords(keywordsRaw);
   const summary = extractSection(body, "摘要：", "entries：");
 
-  // entries 兼容两种格式：同行 / 下一行
-  const entriesMatch = body.match(/entries[：:]\s*\n?(\[.+?\])\s*$/m);
-  const entriesRaw = entriesMatch ? entriesMatch[1] : "";
+  // entries 兼容三种格式
+  const entries = parseEntries(body);
 
   const missing: string[] = [];
   if (!keywords || keywords.length === 0) missing.push("关键词");
-  if (!entriesRaw) missing.push("entries");
+  if (entries.length === 0) missing.push("entries");
 
   if (missing.length > 0) {
     return { keywords: keywords || [], summary: summary || "", entries: [], parse_error: `缺少字段: ${missing.join("/")}` };
   }
 
-  let entries: DocEntry[] = [];
-  try {
-    const parsed = JSON.parse(entriesRaw);
-    if (Array.isArray(parsed)) entries = parsed;
-  } catch {
-    return { keywords, summary, entries: [], parse_error: "entries JSON 解析失败" };
+  return { keywords, summary, entries };
+}
+
+/** 解析 entries 区域，兼容 JSON / key-val / pipe 三种格式 */
+function parseEntries(body: string): DocEntry[] {
+  // 格式1: JSON — entries：[...] 或 entries：\n[...]
+  const jsonMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[1]);
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "object") {
+        return parsed;
+      }
+    } catch { /* fall through */ }
   }
 
-  return { keywords, summary, entries };
+  // 格式2/3: 提取 entries 之后的所有行，逐行解析
+  const idx = body.search(/entries[：:]/);
+  if (idx === -1) return [];
+
+  const afterEntries = body.slice(idx).split(/\n/).slice(1); // entries 标签后的行
+  const lineEntries: DocEntry[] = [];
+
+  for (const line of afterEntries) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("关键词") || trimmed.startsWith("摘要")) break;
+
+    // 格式2: "- did: 228406956, ns: yehuoshun/sk6rfn, t: 标题, s: slug"
+    const kvMatch = trimmed.match(/^-\s*did:\s*(\d+).*?ns:\s*([^,]+).*?t:\s*(.+?),\s*s:\s*(\S+)/);
+    if (kvMatch) {
+      lineEntries.push({ did: Number(kvMatch[1]), ns: kvMatch[2], t: kvMatch[3].trim(), s: kvMatch[4] });
+      continue;
+    }
+
+    // 格式3: "- 标题 | doc_id=228611383 | slug=hfe0l0hfz1au0la3"
+    const pipeMatch = trimmed.match(/^-\s*(.+?)\s*\|\s*doc_id=(\d+)\s*\|\s*slug=(\S+)/);
+    if (pipeMatch) {
+      const title = pipeMatch[1].trim();
+      const did = Number(pipeMatch[2]);
+      const slug = pipeMatch[3];
+      // 从 title 中提取可能的序号前缀，或者保留完整标题
+      const cleanTitle = title.replace(/^\d+(\.\d+)*\s*/, "").trim();
+      lineEntries.push({ did, ns: "", t: cleanTitle, s: slug });
+      continue;
+    }
+  }
+
+  return lineEntries;
 }
