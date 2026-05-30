@@ -144,18 +144,18 @@ entries：
 |------|------|------|
 | 关键词 | `关键词：{JSON 数组}` | 搜索面：同义词/变体/缩写/口语问法，`cleanToken` 清洗 + JSON 序列化 |
 | 摘要 | `摘要：{100-200 字}` | LLM 重排序用，判断相关性 |
-| entries | `entries：{JSON 数组}` | 源文档指针列表 `[{did, ns, t?, s?}]` |
+| entries | `entries：{JSON 数组}` | 源文档指针列表 `[{did, ns, t, s, url, w}]`，**全部必填** |
 
 entries 字段：
 
-| 字段 | 说明 |
-|------|------|
-| `did` | 源文档 ID |
-| `ns` | 源知识库 namespace |
-| `t` | 源文档标题（可选） |
-| `s` | 源文档 slug（可选） |
-| `url` | 源文档完整链接（可选，写入时自动从 ns+s 拼接） |
-| `w` | 权重 1-10，LLM 判断该文档与关键词的拟合度（越高越相关） |
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `did` | ✅ | 源文档 ID |
+| `ns` | ✅ | 源知识库 namespace |
+| `t` | ✅ | 源文档标题 |
+| `s` | ✅ | 源文档 slug |
+| `url` | ✅ | 源文档完整链接（写入时自动从 ns+s 拼接兜底） |
+| `w` | ✅ | 权重 1-10，LLM 判断该文档与关键词的拟合度（越高越相关） |
 
 > ⚠️ **代码层清洗**：`createIndexDoc` 写入前 `cleanToken` 清洗每元素 → `JSON.stringify` 存入。LLM 输出 `keywords: string[]`，代码层兜底。
 
@@ -410,7 +410,7 @@ entries 字段：
 概括该关键词下所有源文档的核心内容。
 
 ## entries
-源文档指针数组，每项含 did/ns/t/s/w。w 已在评分阶段确定，这里不需要改。
+源文档指针数组，每项含 did/ns/t/s/url/w。w 已在评分阶段确定，这里不需要改。
 
 ## 输出格式
 
@@ -419,9 +419,11 @@ entries 字段：
   "keywords": ["词1", "词2", ...],
   "summary": "摘要内容",
   "entries": [
-    {"did": 584, "ns": "yehuoshun/dil9w3", "t": "源文档标题", "s": "slug", "w": 10}
+    {"did": 584, "ns": "yehuoshun/dil9w3", "t": "源文档标题", "s": "slug", "url": "https://www.yuque.com/yehuoshun/dil9w3/slug", "w": 10}
   ]
 }
+
+⚠️ entries 中 did/ns/t/s/url/w 全部必填，缺一不可。w 为 1-10 整数，url 格式 https://www.yuque.com/{ns}/{s}。
 ```
 
 ## 3. 增量更新

@@ -248,7 +248,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_kb_search` | 知识库管道搜索（多总库路由）：token 数组 → 并行搜所有总库路由文档 → 多子库并行搜 → Markdown 输出 |
-| `yuque_index_create` | 创建文档索引（v2 格式）：一篇源文档一篇索引，多主题 `---` 分块，关键词行 `cleanSearchText` 清洗 + 自动挂 TOC |
+| `yuque_index_create` | 创建关键词索引文档（v3 格式）：一个关键词一篇索引文档，标题即关键词。body 含关键词搜索面 + 摘要 + entries 指针（did/ns/t/s/url/w 全部必填，w 为 1-10 权重） |
 
 ### 搜索 & 批量获取 & 元信息
 

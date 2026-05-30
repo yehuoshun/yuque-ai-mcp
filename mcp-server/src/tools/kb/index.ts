@@ -96,6 +96,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     if (!e.ns) throw new Error("每个 entry 必须有 ns");
     if (!e.t) throw new Error("每个 entry 必须有 t（标题）");
     if (!e.s) throw new Error("每个 entry 必须有 s（slug）");
+    if (e.w == null || e.w < 1 || e.w > 10) throw new Error("每个 entry 必须有 w（权重 1-10）");
   }
 
   // 为每个 entry 补 url（https://www.yuque.com/{ns}/{s}）
@@ -211,7 +212,16 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
   let entries: DocEntry[] = [];
   try {
     const parsed = JSON.parse(entriesRaw);
-    if (Array.isArray(parsed)) entries = parsed;
+    if (Array.isArray(parsed)) {
+      entries = parsed.map((e: any) => ({
+        did: e.did,
+        ns: e.ns,
+        t: e.t || "",
+        s: e.s || "",
+        url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`,
+        w: e.w ?? 5,  // 旧索引无 w 时默认 5
+      }));
+    }
   } catch {
     return { keywords, summary, entries: [], parse_error: "entries JSON 解析失败" };
   }

@@ -17,8 +17,8 @@ export interface DocEntry {
   ns: string;
   t: string;
   s: string;
-  url?: string;
-  w?: number;  // 权重 1-10，LLM 判断该文档与关键词的拟合度
+  url: string;
+  w: number;  // 权重 1-10，LLM 判断该文档与关键词的拟合度（必填）
 }
 
 // 解析后的单篇索引文档
