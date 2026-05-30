@@ -348,14 +348,18 @@ entries 字段：
    └─ 全部 OK → 进入步骤 1
 ```
 
-## 1. 新建索引域（v4 — 文档中心）
+## 1. 索引构建主流程（v4 — 文档中心）
 
-> ⚠️ 步骤 0 通过后才能执行步骤 1+。
+> ⚠️ 步骤 0 通过后才能执行。
+> 
+> **已有子库直接复用**：步骤 0 已确认 `route_book_sub` 配置了目标子库 → 跳过 1-2，从步骤 3 开始。
+> **新建域**：子库不存在或容量 ≥ 97% 需要新建 → 完整走 1-8。
 
 ```
-1. yuque_create_repo → 创建子索引库（命名: index-{domain}）
-2. yuque_update_repo → 写入 description（source_books）
-3. yuque_list_docs → 列出源库全部文档（标题 + slug + id）
+[新建域] 1. yuque_create_repo → 创建子索引库（命名: index-{domain}）
+[新建域] 2. yuque_update_repo → 写入 description（source_books）
+[复用]   跳过 1-2，直接用已有子库的 book_id
+         3. yuque_list_docs → 列出源库全部文档（标题 + slug + id）
 
 4. 逐文档评分（核心步骤，每文档只读一次 body）：
    a. yuque_get_doc 读文档 body
