@@ -49,10 +49,11 @@ async function findSubIndexesFromAll(tokens, routeBooks, errors) {
 }
 async function findSubIndexes(tokens, ns, bookId, errors) {
     const seenDocs = new Map();
-    // N 路并行搜路由总库（总库只存路由文档，无需标题前缀过滤）
+    // N 路并行搜路由总库 — 用 in:title 精确匹配关键词标题
     await Promise.all(tokens.map(async (token) => {
         try {
-            const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${ns}`);
+            const q = encodeURIComponent(`${token} in:title`);
+            const data = await get(`/search?q=${q}&type=doc&scope=${ns}`);
             for (const r of (data.data || [])) {
                 const info = r.target || r;
                 const id = info.id || r.id;
@@ -123,13 +124,16 @@ async function searchOneSubIndex(tokens, scope, bookId) {
                 did: de.did,
                 ns: de.ns,
                 title: de.t,
-                url: de.s ? `https://www.yuque.com/${de.ns}/${de.s}` : undefined,
+                url: de.url || (de.ns && de.s ? `https://www.yuque.com/${de.ns}/${de.s}` : undefined),
                 keywords: parsed.keywords,
                 summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
                 sub_index_ns: scope,
+                weight: de.w,
             });
         }
     }
+    // 按权重降序
+    entries.sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
     return {
         entries,
         indexDocsHit: indexDocs.length,
@@ -194,8 +198,13 @@ function formatSearchResults(tokens, subIndexes, results, routeErrors) {
         totalDirty += r.dirtyBlocks;
         errors.push(...r.errors);
         for (const e of r.entries) {
-            if (!allEntryMap.has(e.did))
+            if (!allEntryMap.has(e.did)) {
                 allEntryMap.set(e.did, e);
+            }
+            else if ((e.weight ?? 0) > (allEntryMap.get(e.did).weight ?? 0)) {
+                // 同一 did 来自多个关键词索引 → 保留权重高的
+                allEntryMap.set(e.did, e);
+            }
         }
     }
     const lines = [
@@ -211,7 +220,7 @@ function formatSearchResults(tokens, subIndexes, results, routeErrors) {
             lines.push(`---`, `⚠️ 脏块 (did=${e.did}, ns=${e.ns}): ${e.parse_error}`);
         }
         else {
-            lines.push(`---`, `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : ""), ...(e.url ? [e.url] : []), ...(e.summary ? [`摘要：${e.summary}`] : []), ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []), '');
+            lines.push(`---`, `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""), ...(e.url ? [e.url] : []), ...(e.summary ? [`摘要：${e.summary}`] : []), ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []), '');
         }
     }
     return lines.join("\n");

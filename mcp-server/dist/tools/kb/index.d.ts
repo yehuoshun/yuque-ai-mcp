@@ -7,7 +7,7 @@ import { CreateIndexDocParams, ParsedIndexDoc } from "./types.js";
  *   关键词：["SpringBoot","SpringBoot启动","自动配置"]
  *   摘要：...
  *   entries：
- *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc"}]
+ *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":10}]
  */
 export declare function createIndexDoc(params: CreateIndexDocParams): Promise<string>;
 /**

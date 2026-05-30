@@ -22,6 +22,7 @@ import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
 import { kbSearch, createIndexDoc } from "./tools/kb.js";
 import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
+import { reloadConfig } from "./config.js";
 
 // ---- tool definitions ----
 const tools: Tool[] = [
@@ -523,6 +524,11 @@ const tools: Tool[] = [
 
   // --- 回收站 ---
   {
+    name: "yuque_reload_config",
+    description: "重新加载 config/yuque-config.json 配置文件（修改配置后无需重启 MCP Server）",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
     name: "yuque_list_recycles",
     description: "列出语雀回收站中的已删除项目（文档/小记/知识库等）。⚠️ 需要 Cookie 登录态，请在 config 中配置 cookie 和 ctoken",
     inputSchema: {
@@ -609,6 +615,8 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_list_recycles: (a) => listRecycles(a),
   yuque_restore_recycle: (a) => restoreRecycle(a),
   yuque_destroy_recycle: (a) => destroyRecycle(a),
+
+  yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book.length} 个总库 / ${c.route_book_sub.length} 个子库）`; },
 };
 
 // ---- server ----

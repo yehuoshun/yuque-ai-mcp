@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 40 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 41 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
@@ -36,7 +36,7 @@
 | 统计 | ❌ | `get_group_stats` 🆕 `get_member_stats` 🆕 `get_book_stats` 🆕 `get_doc_stats` 🆕 |
 | 上传 & 导入 | ❌ | `upload_attachment` 🆕 `import_doc` 🆕 |
 | 索引构建 | ❌ | `index_create` 🆕 |
-| **合计** | **16 个** | **40 个**（16 基础 + 24 独有） |
+| **合计** | **16 个** | **41 个**（16 基础 + 25 独有） |
 
 > 🦞 本项目覆盖官方全部 16 个工具，并多出 24 个独有工具：删除/恢复/版本历史/群组/统计/回收站/上传导入/索引构建/个人仪表盘/健康检查。
 
@@ -71,7 +71,7 @@
 ## 架构
 
 ```
-yuque-mcp (MCP Server)     ← 40 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查）
+yuque-mcp (MCP Server)     ← 41 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载）
     ↓
 业务 Skills                ← 19 个 Skill Markdown（batch/write/map 三分类）
     ↓
@@ -80,7 +80,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 40 个 tools |
+| `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 41 个 tools |
 | `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，19 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
@@ -175,7 +175,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ---
 
-## MCP Tools 全览（40 个）
+## MCP Tools 全览（41 个）
 
 ### 知识库
 
@@ -267,6 +267,12 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `yuque_upload_attachment` | 上传文件到语雀 CDN（image/attachment/video，上限按类型） |
 | `yuque_import_doc` | 导入本地文件到知识库（自动适配格式/图片上传） |
 
+### 配置管理
+
+| Tool | 说明 |
+|------|------|
+| `yuque_reload_config` | 热重载配置文件，修改后无需重启 MCP Server |
+
 ---
 
 ## 知识库问答
@@ -279,7 +285,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 业务 Skills
 
-基于 MCP 40 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
+基于 MCP 41 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
 
 ### 批量运维（batch/）
 
@@ -336,7 +342,7 @@ yuque-ai-mcp/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       ├── index.ts           # Server 入口（注册 40 个 tools）
+│       ├── index.ts           # Server 入口（注册 41 个 tools）
 │       ├── client.ts          # 语雀 HTTP 客户端（v2 API + web API）
 │       ├── config.ts          # 配置读取（支持环境变量 + 配置文件）
 │       ├── shared/types.ts    # 共享类型

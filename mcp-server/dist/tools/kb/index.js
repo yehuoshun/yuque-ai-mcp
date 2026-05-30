@@ -1,6 +1,21 @@
-import { post, put } from "../../client.js";
+import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywords } from "./utils.js";
+// 容量上限（语雀单库文档上限约 5000，远远大于索引规模，此检查仅兜底）
+const REPO_DOC_LIMIT = 5000;
+/** 静默检查知识库容量，仅超限时警告（几乎不会触发） */
+async function checkRepoCapacity(bookId, label) {
+    try {
+        const data = await get(`/repos/${bookId}`);
+        const repo = data.data || data;
+        const count = repo.items_count || 0;
+        if (count >= REPO_DOC_LIMIT * 0.95) {
+            return `⚠️ ${label}（${repo.name || bookId}）已有 ${count} 篇文档，接近语雀上限（${REPO_DOC_LIMIT}），请手动处理。`;
+        }
+    }
+    catch { }
+    return "";
+}
 /**
  * 创建关键词索引文档（v3 — 关键词中心）
  *
@@ -9,7 +24,7 @@ import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywo
  *   关键词：["SpringBoot","SpringBoot启动","自动配置"]
  *   摘要：...
  *   entries：
- *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc"}]
+ *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":10}]
  */
 export async function createIndexDoc(params) {
     const { keyword, keywords, summary, entries, index_book_id } = params;
@@ -19,18 +34,28 @@ export async function createIndexDoc(params) {
         throw new Error("entries 不能为空");
     const cleanKw = cleanToken(keyword);
     const cleanKeywords = cleanKeywordsArray(keywords);
+    // 为每个 entry 补 url（https://www.yuque.com/{ns}/{s}）
+    const enrichedEntries = entries.map(e => ({
+        ...e,
+        url: e.url || (e.ns && e.s ? `https://www.yuque.com/${e.ns}/${e.s}` : undefined),
+    }));
     const body = [
         `关键词：${cleanKeywords}`,
         ``,
         `摘要：${summary}`,
         ``,
         `entries：`,
-        JSON.stringify(entries),
+        JSON.stringify(enrichedEntries),
     ].join("\n");
     const { route_book_sub, default_book } = loadConfig();
     const bookId = index_book_id || route_book_sub[0]?.book_id || default_book.book_id;
     if (!bookId)
         throw new Error("未指定 index_book_id 且未配置 route_book_sub 或 default_book");
+    // 容量检查
+    const capacityWarn = await checkRepoCapacity(bookId, "子索引库");
+    if (capacityWarn) {
+        return JSON.stringify({ warning: capacityWarn, created: false });
+    }
     const data = await post(`/repos/${bookId}/docs`, {
         title: cleanKw,
         body,

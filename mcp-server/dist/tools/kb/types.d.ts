@@ -7,12 +7,15 @@ export interface SourceEntry {
     summary?: string;
     sub_index_ns?: string;
     parse_error?: string;
+    weight?: number;
 }
 export interface DocEntry {
     did: number;
     ns: string;
     t?: string;
     s?: string;
+    url?: string;
+    w?: number;
 }
 export interface ParsedIndexDoc {
     keywords: string[];
