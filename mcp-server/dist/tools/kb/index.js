@@ -36,7 +36,10 @@ function buildIndexBody(keywords, summary, entries) {
         ``,
         `摘要：${summary}`,
         ``,
-        `entries：${JSON.stringify(entries)}`,
+        `entries：`,
+        `\`\`\`json`,
+        JSON.stringify(entries, null, 2),
+        `\`\`\``,
     ].join("\n");
 }
 /** body 模板开销（不含 entries JSON），用于估算单篇可容纳的 entry 数 */
@@ -47,6 +50,9 @@ function buildBodyOverhead(keywords, summary) {
         `摘要：${summary}`,
         ``,
         `entries：`,
+        `\`\`\`json`,
+        ``,
+        `\`\`\``,
     ].join("\n");
 }
 /** 将 entries 按 body 上限拆分为多批 */
@@ -56,11 +62,12 @@ function splitEntries(entries, keywords, summary) {
     let current = [];
     let currentSize = overhead;
     for (const entry of entries) {
-        // 估算单个 entry 的大小（JSON 序列化 + 逗号分隔）
-        const entryStr = (current.length > 0 ? "," : "") + JSON.stringify(entry);
-        const entrySize = Buffer.byteLength(entryStr, "utf-8");
+        // 估算单个 entry 的大小（JSON.stringify 带缩进，最后一条不加逗号）
+        const entryStr = JSON.stringify(entry, null, 2);
+        // 如果不是第一条，前面要加换行分隔（数组内元素）
+        const separator = current.length > 0 ? ",\n" : "";
+        const entrySize = Buffer.byteLength(separator + entryStr, "utf-8");
         if (currentSize + entrySize > YUQUE_BODY_MAX && current.length > 0) {
-            // 当前批次满了，开新批次
             batches.push(current);
             current = [];
             currentSize = overhead;
@@ -184,8 +191,11 @@ export function parseIndexDoc(body) {
     const keywordsRaw = extractLine(body, "关键词：");
     const keywords = parseKeywords(keywordsRaw);
     const summary = extractSection(body, "摘要：", "entries：");
-    const entriesMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-    const entriesRaw = entriesMatch ? entriesMatch[1] : "";
+    // 新版格式：entries 在 ```json 代码块内
+    const codeBlockMatch = body.match(/entries[：:]\s*\n```json\s*\n([\s\S]*?)\n```/);
+    // 兼容旧版：entries 裸 JSON
+    const oldMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+    const entriesRaw = codeBlockMatch ? codeBlockMatch[1] : (oldMatch ? oldMatch[1] : "");
     const missing = [];
     if (!keywords || keywords.length === 0)
         missing.push("关键词");

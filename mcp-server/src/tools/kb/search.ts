@@ -94,17 +94,19 @@ async function findRouteDocs(
 ): Promise<{ book_id: number | string; namespace: string; last_built?: string }[]> {
   const seenDocs = new Map<number, string>();
 
-  // N 路并行搜总库 — in:title 精确匹配
+  // N 路并行搜总库 — 语雀 v2 API 不支持 in:title，客户端过滤
   await Promise.all(routeBooks.map(async (rb) => {
     await Promise.all(tokens.map(async (token) => {
       try {
-        const q = encodeURIComponent(`${token} in:title`);
-        const data = await get(`/search?q=${q}&type=doc&scope=${rb.namespace}`) as any;
+        const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${rb.namespace}`) as any;
         for (const r of (data.data || [])) {
           const info = r.target || r;
           const id = info.id || r.id;
-          const title = info.title || r.title || "";
-          if (id && !seenDocs.has(id)) seenDocs.set(id, title);
+          const title = (info.title || r.title || "").trim();
+          // 客户端过滤：标题精确匹配 token（忽略大小写）
+          if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(id)) {
+            seenDocs.set(id, title);
+          }
         }
       } catch (err: any) {
         errors.push({ token, reason: `路由搜索失败: ${err.message || err}` });
@@ -173,13 +175,14 @@ async function searchSubIndexForTokens(
   await Promise.all(subBooks.map(async (sb) => {
     await Promise.all(tokens.map(async (token) => {
       try {
-        const q = encodeURIComponent(`${token} in:title`);
-        const data = await get(`/search?q=${q}&type=doc&scope=${sb.namespace}`) as any;
+        const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${sb.namespace}`) as any;
         for (const r of (data.data || [])) {
           const info = r.target || r;
           const id = info.id || r.id;
+          const title = (info.title || r.title || "").trim();
           const key = `${sb.namespace}/${id}`;
-          if (id && !seenDocs.has(key)) {
+          // 客户端过滤：标题精确匹配 token（忽略大小写）
+          if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(key)) {
             seenDocs.set(key, { did: Number(id), ns: sb.namespace });
           }
         }

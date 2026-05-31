@@ -76,18 +76,19 @@ export async function kbSearch(params) {
 /** 搜索总库 → 解析路由文档 body → 返回 source_books */
 async function findRouteDocs(tokens, routeBooks, errors) {
     const seenDocs = new Map();
-    // N 路并行搜总库 — in:title 精确匹配
+    // N 路并行搜总库 — 语雀 v2 API 不支持 in:title，客户端过滤
     await Promise.all(routeBooks.map(async (rb) => {
         await Promise.all(tokens.map(async (token) => {
             try {
-                const q = encodeURIComponent(`${token} in:title`);
-                const data = await get(`/search?q=${q}&type=doc&scope=${rb.namespace}`);
+                const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${rb.namespace}`);
                 for (const r of (data.data || [])) {
                     const info = r.target || r;
                     const id = info.id || r.id;
-                    const title = info.title || r.title || "";
-                    if (id && !seenDocs.has(id))
+                    const title = (info.title || r.title || "").trim();
+                    // 客户端过滤：标题精确匹配 token（忽略大小写）
+                    if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(id)) {
                         seenDocs.set(id, title);
+                    }
                 }
             }
             catch (err) {
@@ -144,13 +145,14 @@ async function searchSubIndexForTokens(tokens, subBooks, errors) {
     await Promise.all(subBooks.map(async (sb) => {
         await Promise.all(tokens.map(async (token) => {
             try {
-                const q = encodeURIComponent(`${token} in:title`);
-                const data = await get(`/search?q=${q}&type=doc&scope=${sb.namespace}`);
+                const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${sb.namespace}`);
                 for (const r of (data.data || [])) {
                     const info = r.target || r;
                     const id = info.id || r.id;
+                    const title = (info.title || r.title || "").trim();
                     const key = `${sb.namespace}/${id}`;
-                    if (id && !seenDocs.has(key)) {
+                    // 客户端过滤：标题精确匹配 token（忽略大小写）
+                    if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(key)) {
                         seenDocs.set(key, { did: Number(id), ns: sb.namespace });
                     }
                 }
