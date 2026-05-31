@@ -37,8 +37,14 @@ export function loadConfig() {
         let cookie = process.env.YUQUE_COOKIE || undefined;
         let ctoken = process.env.YUQUE_CTOKEN || undefined;
         let fileUserId;
-        // cookie/ctoken 是易变配置，优先 env，兜底读 config 文件避免硬编码在启动参数里
-        if (!cookie || !ctoken) {
+        let fileRouteBook;
+        let fileRouteBookSub;
+        let fileIndexConcurrency;
+        let fileSearchConcurrency;
+        const routeBookFromEnv = parseBookList("YUQUE_ROUTE_BOOK");
+        const routeBookSubFromEnv = parseBookList("YUQUE_ROUTE_SUB");
+        // cookie/ctoken/route_book/route_book_sub 优先 env，兜底读 config 文件
+        if (!cookie || !ctoken || routeBookFromEnv.length === 0 || routeBookSubFromEnv.length === 0) {
             try {
                 const configPath = resolveConfigPath();
                 if (existsSync(configPath)) {
@@ -49,6 +55,14 @@ export function loadConfig() {
                         ctoken = raw.ctoken;
                     if (!fileUserId)
                         fileUserId = raw.user_id;
+                    if (routeBookFromEnv.length === 0)
+                        fileRouteBook = normalizeBooks(raw.route_book);
+                    if (routeBookSubFromEnv.length === 0)
+                        fileRouteBookSub = normalizeBooks(raw.route_book_sub || raw.index_book);
+                    if (fileIndexConcurrency === undefined)
+                        fileIndexConcurrency = raw.index_concurrency;
+                    if (fileSearchConcurrency === undefined)
+                        fileSearchConcurrency = raw.search_concurrency;
                 }
             }
             catch { /* ignore file errors, use env values */ }
@@ -60,10 +74,10 @@ export function loadConfig() {
                 book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
                 namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
             }),
-            route_book: parseBookList("YUQUE_ROUTE_BOOK"),
-            route_book_sub: parseBookList("YUQUE_ROUTE_SUB"),
-            index_concurrency: parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
-            search_concurrency: parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
+            route_book: routeBookFromEnv.length > 0 ? routeBookFromEnv : (fileRouteBook || []),
+            route_book_sub: routeBookSubFromEnv.length > 0 ? routeBookSubFromEnv : (fileRouteBookSub || []),
+            index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
+            search_concurrency: fileSearchConcurrency || parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
             cookie,
             ctoken,
             user_id: process.env.YUQUE_USER_ID || fileUserId || undefined,
