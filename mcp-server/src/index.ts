@@ -429,7 +429,7 @@ const tools: Tool[] = [
   },
   {
     name: "yuque_index_create",
-    description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题就是关键词本身（不含符号前缀，语雀搜索符号匹配差）。body 含关键词 JSON 数组 + 摘要 + entries 源文档指针。自动挂 TOC。",
+    description: "创建关键词索引文档（细粒度知识检索锚点，不是文件夹分类）。一个关键词 = 一篇索引文档，标题为精确知识点名称。⚠️ 强制规则：每个关键词只对应 1-3 篇源文档（上下篇可合并，≤2篇），超过3篇必须拆分创建多个索引文档。body 含关键词 JSON 数组 + 摘要 + entries 源文档指针。自动挂 TOC。",
     inputSchema: {
       type: "object",
       properties: {
@@ -439,7 +439,7 @@ const tools: Tool[] = [
           items: { type: "string" },
           description: "搜索面关键词数组（同义词/变体/缩写/口语问法/拼音），代码层 cleanToken 清洗每元素后 JSON 序列化存入",
         },
-        summary: { type: "string", description: "摘要（100-200 字，覆盖该关键词下所有源文档的核心内容）" },
+        summary: { type: "string", description: "摘要（100-200 字，覆盖该 1-3 篇源文档的核心内容）" },
         entries: {
           type: "array",
           items: {
@@ -454,7 +454,7 @@ const tools: Tool[] = [
             },
             required: ["did", "ns", "t", "s", "url", "w"],
           },
-          description: "源文档指针列表（did/ns/t/s/url/w 全部必填）",
+          description: "源文档指针列表，⚠️ 最多 3 篇（did/ns/t/s/url/w 全部必填）。超过 3 篇源文档必须拆分为多个关键词索引",
         },
         index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
       },
