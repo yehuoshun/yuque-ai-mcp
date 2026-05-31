@@ -161,8 +161,9 @@ export async function createIndexDoc(params) {
         }));
         createdDocs.push(...results);
     }
-    // 总库路由文档由 Agent 按域名级手动管理（新建域步骤 6 / 复用子库步骤 6）
-    // 路由文档格式：{index_books: [{did, ns}], source_books: [{book_id, namespace, last_built}]}
+    // 总库路由文档由 Agent 按关键词级手动管理（新建域步骤 6 / 复用子库步骤 6）
+    // 路由文档格式：[{book_id, namespace, last_built?}]（source_books 数组）
+    // 路由文档标题 = 关键词，body = 源库元数据
     // createIndexDoc 只负责子索引库写入，不自动同步总库
     return JSON.stringify({
         created: true,
