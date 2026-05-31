@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -779,9 +780,77 @@ async function main() {
     console.error(`🕶️ dark-arts: ${darkArts.tools.length} tools 已加载`);
   }
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("🦞 yuque-mcp server started");
+  const args = process.argv.slice(2);
+  const httpMode = args.includes("--http") || args.includes("-h");
+
+  if (httpMode) {
+    // HTTP 模式：独立进程，网关通过 URL 连接
+    const portIdx = args.indexOf("--port");
+    const port = portIdx >= 0 ? parseInt(args[portIdx + 1], 10) : 3456;
+
+    // 用 express 适配 StreamableHTTP（SDK 内置 express helper）
+    const express = await import("@modelcontextprotocol/sdk/server/express.js");
+    const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+    const { randomUUID } = await import("node:crypto");
+
+    const app = express.createMcpExpressApp();
+
+    // 无状态模式：每次请求创建新的 transport，不维护 session
+    app.post("/mcp", async (req: any, res: any) => {
+      try {
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+        });
+        // 连接到全局 server（含 dark-arts），用完即弃
+        const tempServer = new Server(
+          { name: "yuque-mcp", version: "1.0.0" },
+          { capabilities: { tools: {} } }
+        );
+        tempServer.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+        tempServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+          const { name, arguments: args } = request.params;
+          const handler = handlers[name];
+          if (!handler) return { content: [{ type: "text", text: `未知工具: ${name}` }], isError: true };
+          try {
+            const result = await handler(args || {});
+            return { content: [{ type: "text", text: result }] };
+          } catch (error: any) {
+            return {
+              content: [{ type: "text", text: error instanceof YuqueAPIError
+                ? `❌ 语雀 API 错误 [${error.statusCode}]: ${error.message}`
+                : `❌ 执行失败: ${error.message}` }],
+              isError: true,
+            };
+          }
+        });
+        await tempServer.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+        await transport.close();
+      } catch (err) {
+        console.error("MCP request error:", err);
+        if (!res.headersSent) res.status(500).json({ error: "Internal error" });
+      }
+    });
+
+    // GET /mcp — SSE 流（streamable HTTP 需要）
+    app.get("/mcp", async (_req: any, res: any) => {
+      res.status(405).send("GET not supported in stateless mode");
+    });
+    
+    // DELETE /mcp — session 清理
+    app.delete("/mcp", async (_req: any, res: any) => {
+      res.status(204).end();
+    });
+
+    app.listen(port, () => {
+      console.error(`🦞 yuque-mcp HTTP server on http://localhost:${port}/mcp`);
+    });
+  } else {
+    // stdio 模式（默认）
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("🦞 yuque-mcp server started");
+  }
 }
 
 main().catch((err) => {
