@@ -439,7 +439,7 @@ const tools: Tool[] = [
           items: { type: "string" },
           description: "搜索面关键词数组（同义词/变体/缩写/口语问法/拼音），代码层 cleanToken 清洗每元素后 JSON 序列化存入",
         },
-        summary: { type: "string", description: "摘要（100-200 字，覆盖该源文档的核心内容）" },
+        summary: { type: "string", description: "摘要（100-200 字，覆盖该唯一源文档的核心内容，精准不泛化）" },
         entries: {
           type: "array",
           items: {
@@ -454,7 +454,7 @@ const tools: Tool[] = [
             },
             required: ["did", "ns", "t", "s", "url", "w"],
           },
-          description: "源文档指针列表，⚠️ 最多 3 篇（did/ns/t/s/url/w 全部必填）。超过 3 篇源文档必须拆分为多个关键词索引",
+          description: "源文档指针列表，⚠️ 必须且只有 1 篇（did/ns/t/s/url/w 全部必填）。一个关键词 = 一篇源文档，一对一精准锚点。权重 w 必须基于标题与关键词的语义拟合度评估（1-10），严禁一刀切填 5",
         },
         index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
       },
