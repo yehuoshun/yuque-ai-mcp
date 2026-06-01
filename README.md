@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
-[![MCP](https://img.shields.io/badge/MCP-Server-blue)](./mcp-server)
+[![MCP](https://img.shields.io/badge/MCP-Server-blue)](./server)
 
 ---
 
@@ -80,7 +80,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| `mcp-server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 44 个 tools |
+| `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 44 个 tools |
 | `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，19 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
@@ -91,7 +91,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 ### 1. 安装
 
 ```bash
-cd mcp-server
+cd server
 npm install
 npm run build
 ```
@@ -166,7 +166,7 @@ cp config/yuque-config.example.json config/yuque-config.json
   "mcpServers": {
     "yuque-mcp": {
       "command": "node",
-      "args": ["mcp-server/dist/index.js"],
+      "args": ["server/dist/index.js"],
       "cwd": "/path/to/yuque-ai-mcp"
     }
   }
@@ -341,7 +341,7 @@ yuque-ai-mcp/
 │   ├── batch/                # 批量运维（13 个，见上表）
 │   ├── write/                # 写作辅助（1 个）
 │   └── map/                  # 知识分析（4 个）
-├── mcp-server/               # MCP Server (TypeScript)
+├── server/               # MCP Server (TypeScript)
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/

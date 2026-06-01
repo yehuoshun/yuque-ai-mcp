@@ -27,7 +27,7 @@ function resolveConfigPath(): string {
   if (process.env.YUQUE_CONFIG_PATH) {
     return process.env.YUQUE_CONFIG_PATH;
   }
-  // 2. skill config (relative to mcp-server/src → ../../config/)
+  // 2. skill config (relative to server/src → ../../config/)
   return resolve(__dirname, "../../config/yuque-config.json");
 }
 
