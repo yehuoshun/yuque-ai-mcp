@@ -248,6 +248,6 @@
 ## 跨 Skill 联动
 
 ```
-文档镜像 ← map/knowledge（共用图谱文档存镜像关系）
+文档镜像 ← insight/knowledge（共用图谱文档存镜像关系）
 增量同步时间戳 ← 图谱文档 _sync_meta 段
 ```

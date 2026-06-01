@@ -220,7 +220,7 @@ LLM 按以下优先级分组：
 ```
 整理完成后，可联动：
   write/polish → 对生成的整理文档做深度打磨
-  map/knowledge → 检查新文档与已有文档的关联
+  insight/knowledge → 检查新文档与已有文档的关联
 ```
 
 ---

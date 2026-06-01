@@ -290,39 +290,49 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 基于 MCP 43 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
 
-### 批量运维（batch/）
+### 知识管理（manage/）
 
 | Skill | 说明 |
 |-------|------|
-| [archive](skills/batch/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
-| [backup](skills/batch/backup.md) | 知识库完整下载到本地（全量导出，含TOC结构+图片+附件） |
-| [audit](skills/batch/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
-| [classify](skills/batch/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
-| [dashboard](skills/batch/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
-| [format](skills/batch/format.md) | 批量格式标准化（预设风格 / 参考文档 / 自定义规则三种来源） |
-| [import](skills/batch/import.md) | 外部文档导入（本地/Obsidian/Notion，格式适配 + 图片上传） |
-| [merge](skills/batch/merge.md) | 多篇文档合并为单篇长文 |
-| [rebuild-toc](skills/batch/rebuild-toc.md) | 目录智能重构（保留意图优化现有结构） |
-| [rename](skills/batch/rename.md) | 批量重命名（前缀/后缀/序号/查找替换/正则/模板/移除） |
-| [split](skills/batch/split.md) | 长文按标题层级自动拆分为多篇 |
-| [summarize](skills/batch/summarize.md) | 多粒度智能摘要（L1-L4 四级 + 单篇/多篇/知识库） |
-| [sync](skills/batch/sync.md) | 文档镜像 & 知识库同步（单向/双向/增量/差异检测） |
-| [translate](skills/batch/translate.md) | AI 批量翻译（单篇/批量/多语言/增量，保留 Markdown 格式） |
+| [archive](skills/manage/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
+| [backup](skills/manage/backup.md) | 知识库完整下载到本地（全量导出，含TOC结构+图片+附件） |
+| [classify](skills/manage/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
+| [format](skills/manage/format.md) | 批量格式标准化（预设风格 / 参考文档 / 自定义规则三种来源） |
+| [import](skills/manage/import.md) | 外部文档导入（本地/Obsidian/Notion，格式适配 + 图片上传） |
+| [merge](skills/manage/merge.md) | 多篇文档合并为单篇长文 |
+| [rebuild-toc](skills/manage/rebuild-toc.md) | 目录智能重构（保留意图优化现有结构） |
+| [rename](skills/manage/rename.md) | 批量重命名（前缀/后缀/序号/查找替换/正则/模板/移除） |
+| [sync](skills/manage/sync.md) | 文档镜像 & 知识库同步（单向/双向/增量/差异检测） |
+
+### 内容加工（transform/）
+
+| Skill | 说明 |
+|-------|------|
+| [split](skills/transform/split.md) | 长文按标题层级自动拆分为多篇 |
+| [summarize](skills/transform/summarize.md) | 多粒度智能摘要（L1-L4 四级 + 单篇/多篇/知识库） |
+| [translate](skills/transform/translate.md) | AI 批量翻译（单篇/批量/多语言/增量，保留 Markdown 格式） |
+
+### 洞察分析（insight/）
+
+| Skill | 说明 |
+|-------|------|
+| [audit](skills/insight/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
+| [dashboard](skills/insight/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
+| [digest](skills/insight/digest.md) | 阅读摘录（核心观点/金句/行动项/疑思五维 + 知识卡片） |
+| [knowledge](skills/insight/knowledge.md) | 文档关联图谱（单篇关联/全库图谱/自动补引用） |
+| [search](skills/insight/search.md) | 知识库管道搜索 & 索引构建（N 路并行 + 去重 + entries 解析） |
+
+### 碎片收集（collect/）
+
+| Skill | 说明 |
+|-------|------|
+| [inbox](skills/collect/inbox.md) | 碎片收集整理（三种模式 + 可配置清理策略） |
 
 ### 写作辅助（write/）
 
 | Skill | 说明 |
 |-------|------|
 | [polish](skills/write/polish.md) | AI 写作工作室（风格分析/笔记打磨/风格迁移/模板写作） |
-
-### 知识分析（map/）
-
-| Skill | 说明 |
-|-------|------|
-| [digest](skills/map/digest.md) | 阅读摘录（核心观点/金句/行动项/疑思五维 + 知识卡片） |
-| [inbox](skills/map/inbox.md) | 碎片收集整理（三种模式 + 可配置清理策略） |
-| [knowledge](skills/map/knowledge.md) | 文档关联图谱（单篇关联/全库图谱/自动补引用） |
-| [search](skills/map/search.md) | 知识库管道搜索 & 索引构建（N 路并行 + 去重 + entries 解析） |
 
 ---
 
@@ -337,10 +347,12 @@ yuque-ai-mcp/
 │   └── yuque-config.json     # 不入库
 ├── references/
 │   └── api_reference.md      # 语雀 OpenAPI 完整参考
-├── skills/                   # 业务 Skills（18 个）
-│   ├── batch/                # 批量运维（13 个，见上表）
-│   ├── write/                # 写作辅助（1 个）
-│   └── map/                  # 知识分析（4 个）
+├── skills/                   # 业务 Skills（19 个）
+│   ├── manage/               # 知识管理（9 个）
+│   ├── transform/            # 内容加工（3 个）
+│   ├── insight/              # 洞察分析（5 个）
+│   ├── collect/              # 碎片收集（1 个）
+│   └── write/                # 写作辅助（1 个）
 ├── server/               # MCP Server (TypeScript)
 │   ├── package.json
 │   ├── tsconfig.json

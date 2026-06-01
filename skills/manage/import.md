@@ -307,7 +307,7 @@ yuque_import_doc(file_path="/notes/Docker.md", book_id=123, body="LLM处理后�
 ```
 导入后 TOC > 3 级 → batch/rebuild-toc
 导入后格式问题 → batch/format
-导入后想分类 → batch/classify
+导入后想分类 → manage/classify
 ```
 
 ---
