@@ -429,7 +429,7 @@ const tools: Tool[] = [
   },
   {
     name: "yuque_index_create",
-    description: "创建关键词索引文档（细粒度知识检索锚点，不是文件夹分类）。一个关键词 = 一篇索引文档，标题为精确知识点名称。⚠️ 强制规则：每个关键词只对应 1-3 篇源文档（上下篇可合并，≤2篇），超过3篇必须拆分创建多个索引文档。body 含关键词 JSON 数组 + 摘要 + entries 源文档指针。自动挂 TOC。",
+    description: "创建关键词索引文档（细粒度知识检索锚点，不是文件夹分类）。一个关键词 = 一篇索引文档，标题为精确知识点名称。⚠️ 强制规则：每个关键词只对应 1 篇源文档，一个 entry。body 含关键词 JSON 数组 + 摘要 + entries 源文档指针。自动挂 TOC。",
     inputSchema: {
       type: "object",
       properties: {
@@ -439,7 +439,7 @@ const tools: Tool[] = [
           items: { type: "string" },
           description: "搜索面关键词数组（同义词/变体/缩写/口语问法/拼音），代码层 cleanToken 清洗每元素后 JSON 序列化存入",
         },
-        summary: { type: "string", description: "摘要（100-200 字，覆盖该 1-3 篇源文档的核心内容）" },
+        summary: { type: "string", description: "摘要（100-200 字，覆盖该源文档的核心内容）" },
         entries: {
           type: "array",
           items: {
