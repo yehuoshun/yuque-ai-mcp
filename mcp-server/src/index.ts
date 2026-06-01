@@ -13,6 +13,7 @@ import { addRouteBook, addRouteBookSub, loadConfig, reloadConfig, getConfigPath,
 
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
+import { listRepoGroups } from "./tools/repo-groups.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
@@ -78,6 +79,15 @@ const tools: Tool[] = [
       type: "object",
       properties: { id_or_namespace: { type: "string", description: "知识库 ID 或 namespace" } },
       required: ["id_or_namespace"],
+    },
+  },
+  {
+    name: "yuque_list_repo_groups",
+    description: "列出知识库分组（仪表盘视图，返回分组结构和每个分组下的知识库列表）。⚠️ 需要 Cookie 登录态",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
     },
   },
   {
@@ -604,6 +614,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_create_repo: (a) => createRepo(a),
   yuque_update_repo: (a) => updateRepo(a),
   yuque_delete_repo: (a) => deleteRepo(a),
+  yuque_list_repo_groups: () => listRepoGroups(),
   yuque_list_toc: (a) => listToc(a),
   yuque_update_toc: (a) => updateToc(a),
   yuque_remove_toc_node: (a) => removeTocNode(a),
