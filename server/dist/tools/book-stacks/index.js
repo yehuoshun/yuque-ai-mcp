@@ -1,4 +1,4 @@
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../../config.js";
 /** 通用的 headers（Cookie 登录态） */
 function webHeaders(config) {
     return {
@@ -188,4 +188,4 @@ export async function moveBooks(args) {
         return JSON.stringify({ error: "NETWORK_ERROR", message: e.message || String(e) });
     }
 }
-//# sourceMappingURL=book-stacks.js.map
+//# sourceMappingURL=index.js.map

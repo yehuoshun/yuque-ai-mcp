@@ -1,5 +1,5 @@
-import { loadConfig } from "../config.js";
-import type { YuqueConfig } from "../config.js";
+import { loadConfig } from "../../config.js";
+import type { YuqueConfig } from "../../config.js";
 
 /** 通用的 headers（Cookie 登录态） */
 function webHeaders(config: YuqueConfig): Record<string, string> {
