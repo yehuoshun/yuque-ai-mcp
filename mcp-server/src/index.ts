@@ -49,11 +49,11 @@ const tools: Tool[] = [
       type: "object",
       properties: {
         name: { type: "string", description: "知识库名称" },
-        slug: { type: "string", description: "知识库 slug（可选，自动生成）" },
+        slug: { type: "string", description: "知识库 slug（必填，语雀不再自动生成）。索引类知识库统一命名：idx-{domain}-{n}，如 idx-python-1、idx-finance-1、idx-law-1。domain 根据源库内容领域推断（不限于技术栈），n 为序号。非索引类知识库：{拼音缩写}-{时间戳}，如 javamst-1714473600" },
         description: { type: "string", description: "简介（可选）" },
         public: { type: "number", enum: [0, 1, 2], description: "0=私有 1=公开 2=团队内公开" },
       },
-      required: ["name"],
+      required: ["name", "slug"],
     },
   },
   {

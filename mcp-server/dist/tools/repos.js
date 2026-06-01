@@ -26,8 +26,7 @@ export async function getRepo(params) {
  */
 export async function createRepo(params) {
     const { group } = loadConfig();
-    const slug = params.slug || generateSlug(params.name);
-    const payload = { name: params.name, slug };
+    const payload = { name: params.name, slug: params.slug };
     if (params.description)
         payload.description = params.description;
     if (params.public !== undefined)
@@ -59,18 +58,5 @@ export async function updateRepo(params) {
 export async function deleteRepo(params) {
     await del(`/repos/${params.id_or_namespace}`);
     return JSON.stringify({ deleted: true, id_or_namespace: params.id_or_namespace });
-}
-// ---------- 工具 ----------
-function generateSlug(name) {
-    // {拼音缩写}-{时间戳秒}
-    // 取前几个字符做缩写，时间戳秒避免冲突
-    const base = name
-        .toLowerCase()
-        .replace(/[^a-z0-9._-]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 12);
-    const ts = Math.floor(Date.now() / 1000);
-    return `${base}-${ts}`;
 }
 //# sourceMappingURL=repos.js.map
