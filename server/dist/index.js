@@ -7,7 +7,7 @@ import { loadDarkArts } from "./tools/dark-arts-loader.js";
 import { addRouteBook, addRouteBookSub, loadConfig, reloadConfig } from "./config.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
-import { listRepoGroups } from "./tools/repo-groups.js";
+import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
@@ -81,6 +81,56 @@ const tools = [
             type: "object",
             properties: {},
             required: [],
+        },
+    },
+    {
+        name: "yuque_create_book_stack",
+        description: "创建知识库分组。⚠️ 需要 Cookie 登录态",
+        inputSchema: {
+            type: "object",
+            properties: {
+                name: { type: "string", description: "分组名称" },
+                target_rank: { type: "number", description: "排序位置（默认 0，放最前）" },
+            },
+            required: ["name"],
+        },
+    },
+    {
+        name: "yuque_update_book_stack",
+        description: "更新知识库分组（改名）。⚠️ 需要 Cookie 登录态",
+        inputSchema: {
+            type: "object",
+            properties: {
+                stack_id: { type: "number", description: "分组 ID" },
+                name: { type: "string", description: "新名称" },
+            },
+            required: ["stack_id", "name"],
+        },
+    },
+    {
+        name: "yuque_sort_book_stacks",
+        description: "调整分组排序位置。⚠️ 需要 Cookie 登录态",
+        inputSchema: {
+            type: "object",
+            properties: {
+                stack_id: { type: "number", description: "分组 ID" },
+                target_rank: { type: "number", description: "目标排序位置（0 放最前）" },
+            },
+            required: ["stack_id"],
+        },
+    },
+    {
+        name: "yuque_move_books",
+        description: "移动知识库到指定分组。sourceStackId 为 0 表示从「未分组」区域移动。⚠️ 需要 Cookie 登录态",
+        inputSchema: {
+            type: "object",
+            properties: {
+                targetStackId: { type: "number", description: "目标分组 ID" },
+                sourceStackId: { type: "number", description: "源分组 ID（0 = 未分组）" },
+                sourceBookIds: { type: "array", items: { type: "number" }, description: "要移动的知识库 ID 列表" },
+                targetBookIds: { type: "array", items: { type: "number" }, description: "目标位置前的知识库 ID（可选，影响排序）" },
+            },
+            required: ["targetStackId", "sourceStackId", "sourceBookIds"],
         },
     },
     {
@@ -595,7 +645,11 @@ const handlers = {
     yuque_create_repo: (a) => createRepo(a),
     yuque_update_repo: (a) => updateRepo(a),
     yuque_delete_repo: (a) => deleteRepo(a),
-    yuque_list_repo_groups: () => listRepoGroups(),
+    yuque_list_repo_groups: () => listBookStacks(),
+    yuque_create_book_stack: (a) => createBookStack(a),
+    yuque_update_book_stack: (a) => updateBookStack(a),
+    yuque_sort_book_stacks: (a) => sortBookStacks(a),
+    yuque_move_books: (a) => moveBooks(a),
     yuque_list_toc: (a) => listToc(a),
     yuque_update_toc: (a) => updateToc(a),
     yuque_remove_toc_node: (a) => removeTocNode(a),
