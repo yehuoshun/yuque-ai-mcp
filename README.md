@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 44 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 48 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
@@ -36,9 +36,9 @@
 | 统计 | ❌ | `get_group_stats` 🆕 `get_member_stats` 🆕 `get_book_stats` 🆕 `get_doc_stats` 🆕 |
 | 上传 & 导入 | ❌ | `upload_attachment` 🆕 `import_doc` 🆕 |
 | 索引构建 | ❌ | `index_create` 🆕 |
-| **合计** | **16 个** | **44 个**（16 基础 + 28 独有） |
+| **合计** | **16 个** | **48 个**（16 基础 + 32 独有） |
 
-> 🦞 本项目覆盖官方全部 16 个工具，并多出 28 个独有工具：删除/恢复/版本历史/群组/统计/回收站/上传导入/索引构建/个人仪表盘/健康检查/配置管理。
+> 🦞 本项目覆盖官方全部 16 个工具，并多出 32 个独有工具：删除/恢复/版本历史/群组/统计/回收站/上传导入/索引构建/个人仪表盘/健康检查/配置管理/分组管理。
 
 ### Skills 矩阵
 
@@ -71,7 +71,7 @@
 ## 架构
 
 ```
-yuque-mcp (MCP Server)     ← 43 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载/配置管理）
+yuque-mcp (MCP Server)     ← 48 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载/配置管理/分组管理）
     ↓
 业务 Skills                ← 19 个 Skill Markdown（batch/write/map 三分类）
     ↓
@@ -80,7 +80,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 44 个 tools |
+| `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 48 个 tools |
 | `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，19 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
@@ -175,7 +175,17 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ---
 
-## MCP Tools 全览（44 个）
+## MCP Tools 全览（48 个）
+
+### 知识库分组操作 ⚠️ 需 Cookie 登录态
+
+| Tool | 说明 |
+|------|------|
+| `yuque_list_repo_groups` | 列出知识库分组（仪表盘分组视图） |
+| `yuque_create_book_stack` | 创建知识库分组 |
+| `yuque_update_book_stack` | 更新分组名称 |
+| `yuque_sort_book_stacks` | 调整分组排序 |
+| `yuque_move_books` | 移动知识库到指定分组 |
 
 ### 知识库
 
@@ -186,7 +196,6 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `yuque_create_repo` | 创建知识库（slug 必填，规则：{英文名}-{时间戳秒}） |
 | `yuque_update_repo` | 更新知识库（名称/描述/可见性） |
 | `yuque_delete_repo` | ⚠️ 硬删除知识库，不可恢复 |
-| `yuque_list_repo_groups` | 列出知识库分组（仪表盘分组视图，⚠️ 需 Cookie 登录态） |
 
 ### 文档
 
@@ -288,7 +297,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 业务 Skills
 
-基于 MCP 43 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
+基于 MCP 48 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
 
 ### 知识管理（manage/）
 
@@ -357,7 +366,7 @@ yuque-ai-mcp/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       ├── index.ts           # Server 入口（注册 44 个 tools）
+│       ├── index.ts           # Server 入口（注册 48 个 tools）
 │       ├── client.ts          # 语雀 HTTP 客户端（v2 API + web API）
 │       ├── config.ts          # 配置读取（支持环境变量 + 配置文件）
 │       ├── shared/types.ts    # 共享类型
