@@ -114,6 +114,24 @@ async function findRouteDocs(
     }));
   }));
 
+  if (seenDocs.size === 0) {
+    // 降级：搜索 API 无结果时（新文档索引延迟），直接 list_docs + 客户端标题匹配
+    await Promise.all(routeBooks.map(async (rb) => {
+      try {
+        const data = await get(`/repos/${rb.book_id}/docs?per_page=500`) as any;
+        const docs = (data.data || data) as any[];
+        if (Array.isArray(docs)) {
+          for (const doc of docs) {
+            const title = (doc.title || "").trim();
+            if (title && tokens.some(t => title.toLowerCase() === t.toLowerCase())) {
+              seenDocs.set(doc.id, title);
+            }
+          }
+        }
+      } catch { /* 降级失败也不报错 */ }
+    }));
+  }
+
   if (seenDocs.size === 0) return [];
 
   // 并发读总库文档 body → 解析 source_books
@@ -191,6 +209,25 @@ async function searchSubIndexForTokens(
       }
     }));
   }));
+
+  if (seenDocs.size === 0) {
+    // 降级：搜索 API 无结果时，直接 list_docs + 客户端标题匹配
+    await Promise.all(subBooks.map(async (sb) => {
+      try {
+        const data = await get(`/repos/${sb.book_id}/docs?per_page=500`) as any;
+        const docs = (data.data || data) as any[];
+        if (Array.isArray(docs)) {
+          for (const doc of docs) {
+            const title = (doc.title || "").trim();
+            if (title && tokens.some(t => title.toLowerCase() === t.toLowerCase())) {
+              const key = `${sb.namespace}/${doc.id}`;
+              seenDocs.set(key, { did: Number(doc.id), ns: sb.namespace });
+            }
+          }
+        }
+      } catch { /* 降级失败也不报错 */ }
+    }));
+  }
 
   return Array.from(seenDocs.values());
 }
