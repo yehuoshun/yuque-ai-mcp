@@ -248,7 +248,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_kb_search` | 知识库管道搜索（双层：总库关键词路由 → 子库关键词索引）：token 数组 → in:title 搜总库确认关键词已索引 → in:title 搜子库命中索引文档 → 展开 entries → Markdown 输出 |
-| `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。body 含关键词搜索面 + 摘要 + entry 指针（did/ns/t/s/url/w 全部必填，w 为 1-10 权重） |
+| `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 摘要 + entry 指针，did/ns/t/s/url/w 全部必填，w 为 1-10 权重） |
 
 ### 搜索 & 批量获取 & 元信息
 
