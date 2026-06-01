@@ -42,11 +42,11 @@ const tools = [
             type: "object",
             properties: {
                 name: { type: "string", description: "知识库名称" },
-                slug: { type: "string", description: "知识库 slug（可选，自动生成）" },
+                slug: { type: "string", description: "知识库 slug（必填，语雀不再自动生成）。生成规则：{英文名}-{时间戳秒}，如 python-course-1714473600" },
                 description: { type: "string", description: "简介（可选）" },
                 public: { type: "number", enum: [0, 1, 2], description: "0=私有 1=公开 2=团队内公开" },
             },
-            required: ["name"],
+            required: ["name", "slug"],
         },
     },
     {
