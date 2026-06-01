@@ -418,6 +418,8 @@ entries 字段：
 
 8. 子代理完成 → 主会话读子索引库文档列表 → 逐关键词写入总库路由：
    yuque_create_doc(总库, 标题=关键词) → body 写入 source_books 数组
+   source_books: [{"book_id": <id>, "namespace": "<ns>"}]
+   > ⚠️ source_books 不含 last_built。路由文档只管"搜这个关键词去哪个库找"。
    > ⚠️ 关键词级路由，标题=关键词。此阶段回主会话执行，不放子代理。
 ```
 
