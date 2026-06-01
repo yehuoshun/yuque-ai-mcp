@@ -183,7 +183,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 |------|------|
 | `yuque_list_repos` | 列出所有知识库 |
 | `yuque_get_repo` | 获取知识库详情 |
-| `yuque_create_repo` | 创建知识库 |
+| `yuque_create_repo` | 创建知识库（slug 必填，规则：{英文名}-{时间戳秒}） |
 | `yuque_update_repo` | 更新知识库（名称/描述/可见性） |
 | `yuque_delete_repo` | ⚠️ 硬删除知识库，不可恢复 |
 
