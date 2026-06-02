@@ -44,13 +44,15 @@
 
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
-| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **19 个** |
+| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **23 个** |
 | 知识库问答 | `smart-search` | `smart-search` | **两层索引 + 多路并发 + 降级** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
 | 碎片收集 | `daily-capture` | — | `inbox`（三种模式 + 可配置清理） |
-| 笔记打磨 | `note-refine` | — | `polish`（打磨 + 风格分析 + 迁移 + 模板） |
-| 风格分析 | `style-extract` | — | ↑ 合入 polish |
+| 笔记打磨 | `note-refine` | — | `refine`（三级打磨 + N次打磨 + 批量） |
+| 风格分析 | `style-extract` | — | `analyze`（10 维风格画像） |
+| 风格迁移 | — | — | `transfer`（风格画像→重写→对照） |
+| 模板写作 | — | — | `template`（6 种预设模板） |
 | 知识关联 | `knowledge-connect` | — | `knowledge`（图谱 + 交叉引用 + 聚类） |
 | 过时检测 | `stale-detector` | — | `audit`（版本审计 + 变更追踪 + 对比） |
 | 会议纪要 | — | `meeting-notes` | 🟰 无专用模板 |
@@ -329,7 +331,8 @@ cp config/yuque-config.example.json config/yuque-config.json
 | [dashboard](skills/insight/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
 | [digest](skills/insight/digest.md) | 阅读摘录（核心观点/金句/行动项/疑思五维 + 知识卡片） |
 | [knowledge](skills/insight/knowledge.md) | 文档关联图谱（单篇关联/全库图谱/自动补引用） |
-| [search](skills/insight/search.md) | 知识库管道搜索 & 索引构建（N 路并行 + 去重 + entries 解析） |
+| [search](skills/insight/search.md) | 知识库管道搜索（N 路并行 + 去重 + 降级） |
+| [index](skills/insight/index.md) | 索引构建（文档中心 v4 + 单文档粒度原子同步） |
 
 ### 碎片收集（collect/）
 
@@ -341,7 +344,10 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Skill | 说明 |
 |-------|------|
-| [polish](skills/write/polish.md) | AI 写作工作室（风格分析/笔记打磨/风格迁移/模板写作） |
+| [analyze](skills/write/analyze.md) | 写作风格分析（10 维画像 + 单篇/对比/知识库模式） |
+| [refine](skills/write/refine.md) | 笔记打磨（三级打磨 + N 次打磨 + 批量模式） |
+| [transfer](skills/write/transfer.md) | 风格迁移（提取风格画像 → 重写 → 对照） |
+| [template](skills/write/template.md) | 模板写作（6 种预设模板：技术方案/周报/复盘/纪要/API/PRD） |
 
 ---
 
@@ -356,12 +362,12 @@ yuque-ai-mcp/
 │   └── yuque-config.json     # 不入库
 ├── references/
 │   └── api_reference.md      # 语雀 OpenAPI 完整参考
-├── skills/                   # 业务 Skills（19 个）
+├── skills/                   # 业务 Skills（23 个）
 │   ├── manage/               # 知识管理（9 个）
 │   ├── transform/            # 内容加工（3 个）
-│   ├── insight/              # 洞察分析（5 个）
+│   ├── insight/              # 洞察分析（6 个）
 │   ├── collect/              # 碎片收集（1 个）
-│   └── write/                # 写作辅助（1 个）
+│   └── write/                # 写作辅助（5 个，含 polish 路由）
 ├── server/               # MCP Server (TypeScript)
 │   ├── package.json
 │   ├── tsconfig.json

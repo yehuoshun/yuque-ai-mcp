@@ -207,3 +207,7 @@ entries 字段：
 # 三、索引构建
 
 > 完整索引构建流程、Prompt 模板、增量更新、验证策略 → 见 [skills/insight/index.md](skills/insight/index.md)
+
+---
+
+> 工具列表：[server/README.md](server/README.md) | 配置参考：[config/yuque-config.example.json](config/yuque-config.example.json) | API 详情：[references/api_reference.md](references/api_reference.md)
