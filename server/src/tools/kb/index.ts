@@ -146,7 +146,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
       if (subNs) {
         await post(`/repos/${route_book_id}/docs`, {
           title: cleanKw,
-          body: JSON.stringify([{ did: docId, ns: `${subNs}/${created.slug}` }]),
+          body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
           format: "markdown",
         });
         routeSyncError = "已同步";

@@ -34,8 +34,8 @@ export interface ParsedIndexDoc {
     parse_error?: string;
 }
 export interface RouteEntry {
-    did: number;
-    ns: string;
+    doc_id: number;
+    book_namespace: string;
 }
 export interface CreateIndexDocParams {
     keyword: string;

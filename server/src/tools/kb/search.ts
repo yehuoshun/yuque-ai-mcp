@@ -179,13 +179,13 @@ async function findRouteDocs(
 
 // ─── 搜索子库索引文档 ──────────────────────────────────
 
-/** 用 tokens 搜索子库 → 返回匹配的索引文档 {did, ns} */
+/** 用 tokens 搜索子库 → 返回匹配的索引文档 RouteEntry[] */
 async function searchSubIndexForTokens(
   tokens: string[],
   subBooks: YuqueBook[],
   errors: { token: string; reason: string }[]
 ): Promise<RouteEntry[]> {
-  const seenDocs = new Map<string, { did: number; ns: string }>();
+  const seenDocs = new Map<string, { doc_id: number; book_namespace: string }>();
 
   await Promise.all(subBooks.map(async (sb) => {
     await Promise.all(tokens.map(async (token) => {
@@ -198,7 +198,7 @@ async function searchSubIndexForTokens(
           const key = `${sb.namespace}/${id}`;
           // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
           if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(key)) {
-            seenDocs.set(key, { did: Number(id), ns: sb.namespace });
+            seenDocs.set(key, { doc_id: Number(id), book_namespace: sb.namespace });
           }
         }
       } catch (err: any) {
@@ -216,7 +216,7 @@ async function searchSubIndexForTokens(
           const title = (doc.title || "").trim();
           if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
             const key = `${sb.namespace}/${doc.id}`;
-            seenDocs.set(key, { did: Number(doc.id), ns: sb.namespace });
+            seenDocs.set(key, { doc_id: Number(doc.id), book_namespace: sb.namespace });
           }
         }
       } catch { /* 降级失败也不报错 */ }
@@ -228,7 +228,7 @@ async function searchSubIndexForTokens(
 
 // ─── 读取子库索引文档 ──────────────────────────────────
 
-/** 直接按 did/ns 读取子库索引文档，展开源文档指针 */
+/** 按 doc_id/book_namespace 读取子库索引文档，展开源文档指针 */
 async function readIndexDocs(
   routeEntries: RouteEntry[]
 ): Promise<{ entries: SourceEntry[]; dirtyBlocks: number; errors: { token: string; reason: string }[] }> {
@@ -238,7 +238,7 @@ async function readIndexDocs(
 
   const config = loadConfig();
   const CONCURRENCY = config.search_concurrency || 5;
-  const deduped = dedupByDidNs(routeEntries);
+  const deduped = dedupByDocIdNs(routeEntries);
 
   // 分批并发读索引文档
   for (let i = 0; i < deduped.length; i += CONCURRENCY) {
@@ -246,16 +246,16 @@ async function readIndexDocs(
 
     const results = await Promise.all(chunk.map(async (re) => {
       try {
-        const data = await get(`/repos/${re.ns}/docs/${re.did}`) as any;
+        const data = await get(`/repos/${re.book_namespace}/docs/${re.doc_id}`) as any;
         return {
-          did: re.did,
-          ns: re.ns,
+          doc_id: re.doc_id,
+          book_namespace: re.book_namespace,
           title: (data.data || data).title || "",
           body: (data.data || data).body || "",
         };
       } catch (err: any) {
-        errors.push({ token: 'body_read', reason: `did=${re.did}, ns=${re.ns}: ${err.message || String(err)}` });
-        return { did: re.did, ns: re.ns, title: "", body: "" };
+        errors.push({ token: 'body_read', reason: `doc_id=${re.doc_id}, book_namespace=${re.book_namespace}: ${err.message || String(err)}` });
+        return { doc_id: re.doc_id, book_namespace: re.book_namespace, title: "", body: "" };
       }
     }));
 
@@ -280,7 +280,7 @@ async function readIndexDocs(
             keywords: entry.keywords,
             search_surface: entry.search_surface,
             summary: indexKeyword ? `[${indexKeyword}] ${entry.summary || entry.doc_title}` : (entry.summary || entry.doc_title),
-            sub_index_ns: doc.ns,
+            sub_index_ns: doc.book_namespace,
             weight: entry.weight,
           });
         }
@@ -291,11 +291,11 @@ async function readIndexDocs(
   return { entries: Array.from(allEntries.values()), dirtyBlocks, errors };
 }
 
-function dedupByDidNs(entries: RouteEntry[]): RouteEntry[] {
+function dedupByDocIdNs(entries: RouteEntry[]): RouteEntry[] {
   const seen = new Set<string>();
   const result: RouteEntry[] = [];
   for (const e of entries) {
-    const key = `${e.ns}/${e.did}`;
+    const key = `${e.book_namespace}/${e.doc_id}`;
     if (!seen.has(key)) {
       seen.add(key);
       result.push(e);
