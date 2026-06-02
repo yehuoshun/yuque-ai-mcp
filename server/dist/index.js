@@ -473,7 +473,7 @@ const tools = [
     },
     {
         name: "yuque_index_create",
-        description: "创建关键词索引文档（细粒度知识检索锚点，不是文件夹分类）。一个关键词 = 一篇索引文档，标题为精确知识点名称。⚠️ 强制规则：每个关键词只对应 1 篇源文档，一个 entry。body 含关键词 JSON 数组 + 搜索面 + 摘要 + entries 源文档指针。自动挂 TOC。",
+        description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题为关键词。⚠️ 强制规则：每个关键词只对应 1 篇源文档（1 entry）。body 格式：文档标题 + 关键词 JSON + 搜索面 + 摘要 + entry 单对象。自动挂 TOC。",
         inputSchema: {
             type: "object",
             properties: {

@@ -19,6 +19,7 @@ export interface DocEntry {
     w: number;
 }
 export interface ParsedIndexDoc {
+    doc_title?: string;
     keywords: string[];
     search_surface?: string;
     summary: string;
