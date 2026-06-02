@@ -17,6 +17,10 @@ export interface DocEntry {
     s: string;
     url: string;
     w: number;
+    ek?: string[];
+    es?: string;
+    esum?: string;
+    et?: string;
 }
 export interface ParsedIndexDoc {
     doc_title?: string;
@@ -38,4 +42,11 @@ export interface CreateIndexDocParams {
     entries: DocEntry[];
     index_book_id: number | string;
     route_book_id?: number | string;
+}
+export interface EntryGroup {
+    entry: DocEntry;
+    title: string;
+    keywords: string[];
+    searchSurface?: string;
+    summary: string;
 }

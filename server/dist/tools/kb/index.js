@@ -1,14 +1,12 @@
 import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
-import { cleanToken, cleanKeywordsArray, extractLine, extractSection, parseKeywords } from "./utils.js";
+import { cleanToken, extractLine, extractSection, parseKeywords } from "./utils.js";
 // 容量上限（语雀单库文档上限约 5000）
 const REPO_DOC_LIMIT = 5000;
 // 扩容阈值：到达此比例时提示需要新建子库
 const REPO_CAPACITY_WARN_PCT = 90;
 // 阻塞阈值：到达此比例时拒绝写入
 const REPO_CAPACITY_BLOCK_PCT = 97;
-// 语雀单篇文档 body 上限约 200KB，单 entry 不会超，保留常量供参考
-const YUQUE_BODY_MAX = 195 * 1024;
 /** 检查知识库容量，返回 { count, pct, level: ok|warn|block } */
 async function checkRepoCapacity(bookId) {
     try {
@@ -29,54 +27,36 @@ async function checkRepoCapacity(bookId) {
         return { count: 0, pct: 0, level: "ok", label: String(bookId) };
     }
 }
-/** 构建索引文档 body */
-function buildIndexBody(docTitle, keywords, searchSurface, summary, entries) {
-    const parts = [
-        `文档标题：${docTitle}`,
-        ``,
-        `关键词：${keywords}`,
-    ];
-    if (searchSurface) {
-        parts.push(``, `搜索面：${searchSurface}`);
+/** 构建索引文档 body — 一对多格式，每个 entry 自带元数据 */
+function buildIndexBody(docTitle, entryGroups) {
+    const parts = [`文档标题：${docTitle}`];
+    for (const g of entryGroups) {
+        parts.push("");
+        if (g.title)
+            parts.push(`文档标题：${g.title}`);
+        if (g.keywords.length > 0)
+            parts.push(`关键词：${JSON.stringify(g.keywords)}`);
+        if (g.searchSurface)
+            parts.push(`搜索面：${g.searchSurface}`);
+        if (g.summary)
+            parts.push(`摘要：${g.summary}`);
+        parts.push(`entry：`, JSON.stringify(g.entry));
     }
-    parts.push(``, `摘要：${summary}`);
-    for (const entry of entries) {
-        parts.push(``, `entry：`, JSON.stringify(entry));
-    }
-    return parts.join("\n");
-}
-/** body 模板开销（不含 entry JSON），用于估算单篇可容纳的 entry 数 */
-function buildBodyOverhead(docTitle, keywords, searchSurface, summary) {
-    const parts = [
-        `文档标题：${docTitle}`,
-        ``,
-        `关键词：${keywords}`,
-    ];
-    if (searchSurface) {
-        parts.push(``, `搜索面：${searchSurface}`);
-    }
-    parts.push(``, `摘要：${summary}`, ``, `entry：`, `\`\`\`json`, ``, `\`\`\``);
     return parts.join("\n");
 }
 /**
- * 创建关键词索引文档（v5 — 一对一精准锚点）
+ * 创建关键词索引文档（一对多）
  *
- * 一个关键词 = 一篇源文档 = 一篇索引文档。标题就是关键词本身，命中直接对得上。
- * entries 必须且只有 1 个。
- *
- *   关键词：["SpringBoot","SpringBoot启动","自动配置"]
- *   摘要：...
- *   entries：
- *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":9}]
+ * 一个关键词 = 一篇索引文档，标题即关键词。一对多：一个关键词可指向多篇源文档。
+ * 每个 entry 自带 文档标题/关键词/搜索面/摘要 元数据。
  */
 export async function createIndexDoc(params) {
-    const { keyword, keywords, search_surface, summary, entries, index_book_id, route_book_id } = params;
+    const { keyword, entries, index_book_id, route_book_id } = params;
     if (!keyword)
         throw new Error("keyword 不能为空");
     if (!entries || entries.length === 0)
         throw new Error("entries 不能为空");
     const cleanKw = cleanToken(keyword);
-    const cleanKeywords = cleanKeywordsArray(keywords);
     // 校验必填字段
     for (const e of entries) {
         if (!e.did)
@@ -94,9 +74,17 @@ export async function createIndexDoc(params) {
         ...e,
         url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`,
     }));
+    const entryGroups = enrichedEntries.map(e => ({
+        entry: e,
+        title: e.et || e.t || "",
+        keywords: e.ek || [],
+        searchSurface: e.es,
+        summary: e.esum || "",
+    }));
+    const docTitle = entryGroups[0]?.title || keyword;
+    const body = buildIndexBody(docTitle, entryGroups);
     const config = loadConfig();
     const { route_book, route_book_sub, default_book } = config;
-    // 校验：传入的 index_book_id 必须匹配配置中的 route_book_sub
     if (index_book_id) {
         const matched = route_book_sub.some(b => String(b.book_id) === String(index_book_id));
         if (!matched) {
@@ -109,7 +97,6 @@ export async function createIndexDoc(params) {
             });
         }
     }
-    // 校验：传入的 route_book_id 必须匹配配置中的 route_book
     if (route_book_id) {
         const matched = route_book.some(b => String(b.book_id) === String(route_book_id));
         if (!matched) {
@@ -127,24 +114,21 @@ export async function createIndexDoc(params) {
         return JSON.stringify({
             created: false,
             error: "route_book_sub 未配置",
-            hint: "子索引库未配置。请先创建子索引库并写入 config 的 route_book_sub：\n1. yuque_create_repo → 创建 index-{domain}\n2. yuque_config_update → 追加 route_book_sub\n或通知 Agent 代为执行这两步。",
+            hint: "子索引库未配置。请先创建子索引库并写入 config 的 route_book_sub。",
         });
     }
-    // 容量检查
     const capacity = await checkRepoCapacity(bookId);
     if (capacity.level === "block") {
         return JSON.stringify({
             created: false,
             error: "capacity_blocked",
             current_book: { book_id: bookId, count: capacity.count, pct: capacity.pct },
-            hint: `子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线。需要新建子索引库：\n1. yuque_create_repo → 创建 index-{domain}-2\n2. yuque_config_update → 追加 route_book_sub\n3. 重新调本工具，传新的 index_book_id。`,
+            hint: `子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线，需要新建子索引库。`,
         });
     }
     const capacityWarning = capacity.level === "warn"
-        ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线，建议提前准备新子库。`
+        ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线`
         : "";
-    const docTitle = enrichedEntries[0]?.t || keyword;
-    const body = buildIndexBody(docTitle, cleanKeywords, search_surface, summary, enrichedEntries);
     const data = await post(`/repos/${bookId}/docs`, {
         title: cleanKw,
         body,
@@ -159,29 +143,22 @@ export async function createIndexDoc(params) {
         type: "DOC",
         doc_ids: [docId],
     });
-    const createdDocs = [{ doc_id: docId, title: cleanKw, slug: created.slug, entries: entries.length }];
-    const routeBookId = route_book_id;
-    // 当传了 route_book_id 时，自动在总库创建路由文档（单文档粒度原子操作）
-    // 路由标题=关键词，body=[{"did": <索引文档did>, "ns": "<子库ns>/<slug>"}]
     let routeSyncError = "";
-    if (routeBookId && createdDocs.length > 0) {
+    if (route_book_id) {
         try {
             const subRepo = await get(`/repos/${bookId}`);
             const subNs = subRepo.data?.namespace || subRepo.namespace || "";
             if (subNs) {
-                for (const doc of createdDocs) {
-                    await post(`/repos/${route_book_id}/docs`, {
-                        title: doc.title,
-                        body: JSON.stringify([{ did: doc.doc_id, ns: `${subNs}/${doc.slug}` }]),
-                        format: "markdown",
-                    });
-                }
+                await post(`/repos/${route_book_id}/docs`, {
+                    title: cleanKw,
+                    body: JSON.stringify([{ did: docId, ns: `${subNs}/${created.slug}` }]),
+                    format: "markdown",
+                });
                 routeSyncError = "已同步";
             }
         }
         catch (e) {
-            const errMsg = e instanceof Error ? e.message : String(e);
-            routeSyncError = `路由同步失败: ${errMsg}`;
+            routeSyncError = `路由同步失败: ${e instanceof Error ? e.message : String(e)}`;
         }
     }
     return JSON.stringify({
@@ -191,79 +168,72 @@ export async function createIndexDoc(params) {
         doc_title: docTitle,
         total_entries: entries.length,
         book_id: bookId,
-        route_sync: routeBookId ? routeSyncError : "未启用",
+        route_sync: route_book_id ? routeSyncError : "未启用",
         ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
     }, null, 2);
 }
 /**
- * 解析索引文档 body → keywords / summary / entries
+ * 解析索引文档 body → entries。兼容新旧格式。
  */
 export function parseIndexDoc(body) {
     if (!body)
         return { keywords: [], summary: "", entries: [], parse_error: "空 body" };
     const docTitle = extractLine(body, "文档标题：") || undefined;
-    const keywordsRaw = extractLine(body, "关键词：");
-    const keywords = parseKeywords(keywordsRaw);
-    const searchSurface = extractSection(body, "搜索面：", "摘要：") || undefined;
-    const summary = extractSection(body, "摘要：", "entry：");
-    // 新版格式：多个 entry：{JSON 对象} 块
-    const entryBlockPattern = /entry[：:]\s*\n(\{[\s\S]*?\})\s*(?=\nentry[：:]|\n*$)/g;
-    // 兼容旧版：entries 在 ```json 代码块内
-    const codeBlockMatch = body.match(/entries?[：:]\s*\n```json\s*\n([\s\S]*?)\n```/);
-    // 兼容旧版：entries 裸 JSON 数组
-    const oldRawMatch = body.match(/entries[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+    // 新版：多个 entry：{JSON} 块（entry 在 JSON 之后，每块以 文档标题/关键词/搜索面/摘要 开头）
+    const entryBlockPattern = /entry[：:]\s*\n(?:\{[^}]*\})/g;
     let entryBlockRaw = [];
-    let match;
-    while ((match = entryBlockPattern.exec(body)) !== null) {
-        entryBlockRaw.push(match[1]);
+    let m;
+    while ((m = entryBlockPattern.exec(body)) !== null) {
+        entryBlockRaw.push(m[0].replace(/entry[：:]\s*\n/, "").trim());
     }
-    if (entryBlockRaw.length === 0 && codeBlockMatch) {
-        entryBlockRaw.push(codeBlockMatch[1]);
+    // 兼容旧版
+    if (entryBlockRaw.length === 0) {
+        const codeMatch = body.match(/entries?[：:]\s*\n```json\s*\n([\s\S]*?)\n```/);
+        if (codeMatch)
+            entryBlockRaw.push(codeMatch[1]);
     }
-    if (entryBlockRaw.length === 0 && oldRawMatch) {
-        entryBlockRaw.push(oldRawMatch[1]);
+    if (entryBlockRaw.length === 0) {
+        const oldMatch = body.match(/entries?[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
+        if (oldMatch)
+            entryBlockRaw.push(oldMatch[1]);
     }
-    const missing = [];
-    if (!keywords || keywords.length === 0)
-        missing.push("关键词");
-    if (entryBlockRaw.length === 0)
-        missing.push("entry");
-    if (missing.length > 0) {
-        return { doc_title: docTitle, keywords: keywords || [], summary: summary || "", entries: [], parse_error: `缺少字段: ${missing.join("/")}` };
+    // 从 body 提取每个 entry 块的元数据
+    // 块结构: 文档标题 / 关键词 / 搜索面 / 摘要 / entry：{...}
+    const entrySections = body.split(/\n(?=文档标题：)/);
+    const keywordGroups = [];
+    const summaryGroups = [];
+    const searchFaces = [];
+    for (const section of entrySections) {
+        const kwRaw = extractLine(section, "关键词：");
+        keywordGroups.push(kwRaw ? parseKeywords(kwRaw) : []);
+        const sf = extractLine(section, "搜索面：");
+        if (sf)
+            searchFaces.push(sf);
+        const sm = extractSection(section, "摘要：", "entry：");
+        if (sm)
+            summaryGroups.push(sm);
+    }
+    const allKeywords = keywordGroups.flat().filter((v, i, a) => a.indexOf(v) === i);
+    if (entryBlockRaw.length === 0) {
+        return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries: [], parse_error: "缺少 entry" };
     }
     let entries = [];
     try {
-        // 新版：逐块解析 entry JSON 对象
         for (const raw of entryBlockRaw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-                // 兼容旧版 entries 数组
                 for (const e of parsed) {
-                    entries.push({
-                        did: e.did,
-                        ns: e.ns,
-                        t: e.t || "",
-                        s: e.s || "",
-                        url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`,
-                        w: e.w ?? 5,
-                    });
+                    entries.push({ did: e.did, ns: e.ns, t: e.t || "", s: e.s || "", url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`, w: e.w ?? 5 });
                 }
             }
             else {
-                entries.push({
-                    did: parsed.did,
-                    ns: parsed.ns,
-                    t: parsed.t || "",
-                    s: parsed.s || "",
-                    url: parsed.url || `https://www.yuque.com/${parsed.ns}/${parsed.s}`,
-                    w: parsed.w ?? 5,
-                });
+                entries.push({ did: parsed.did, ns: parsed.ns, t: parsed.t || "", s: parsed.s || "", url: parsed.url || `https://www.yuque.com/${parsed.ns}/${parsed.s}`, w: parsed.w ?? 5 });
             }
         }
     }
     catch {
-        return { doc_title: docTitle, keywords, search_surface: searchSurface, summary, entries: [], parse_error: "entry JSON 解析失败" };
+        return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries: [], parse_error: "entry JSON 解析失败" };
     }
-    return { doc_title: docTitle, keywords, search_surface: searchSurface, summary, entries };
+    return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries };
 }
 //# sourceMappingURL=index.js.map

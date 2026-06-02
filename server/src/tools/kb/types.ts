@@ -19,7 +19,12 @@ export interface DocEntry {
   t: string;
   s: string;
   url: string;
-  w: number;  // 权重 1-10，LLM 判断该文档与关键词的拟合度（必填）
+  w: number;  // 权重 1-10
+  // 每个 entry 的自有元数据（一对多场景）
+  ek?: string[];      // entry 关键词
+  es?: string;        // entry 搜索面
+  esum?: string;      // entry 摘要
+  et?: string;        // entry 文档标题
 }
 
 // 解析后的单篇索引文档
@@ -46,4 +51,13 @@ export interface CreateIndexDocParams {
   entries: DocEntry[];
   index_book_id: number | string;
   route_book_id?: number | string;
+}
+
+// 每个 entry 的自有元数据（一对多时每个 entry 独立）
+export interface EntryGroup {
+  entry: DocEntry;
+  title: string;
+  keywords: string[];
+  searchSurface?: string;
+  summary: string;
 }
