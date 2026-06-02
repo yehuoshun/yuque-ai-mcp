@@ -30,34 +30,30 @@ async function checkRepoCapacity(bookId) {
     }
 }
 /** 构建索引文档 body */
-function buildIndexBody(keywords, summary, entries) {
-    return [
+function buildIndexBody(keywords, searchSurface, summary, entries) {
+    const parts = [
         `关键词：${keywords}`,
-        ``,
-        `摘要：${summary}`,
-        ``,
-        `entries：`,
-        `\`\`\`json`,
-        JSON.stringify(entries, null, 2),
-        `\`\`\``,
-    ].join("\n");
+    ];
+    if (searchSurface) {
+        parts.push(``, `搜索面：${searchSurface}`);
+    }
+    parts.push(``, `摘要：${summary}`, ``, `entries：`, `\`\`\`json`, JSON.stringify(entries, null, 2), `\`\`\``);
+    return parts.join("\n");
 }
 /** body 模板开销（不含 entries JSON），用于估算单篇可容纳的 entry 数 */
-function buildBodyOverhead(keywords, summary) {
-    return [
+function buildBodyOverhead(keywords, searchSurface, summary) {
+    const parts = [
         `关键词：${keywords}`,
-        ``,
-        `摘要：${summary}`,
-        ``,
-        `entries：`,
-        `\`\`\`json`,
-        ``,
-        `\`\`\``,
-    ].join("\n");
+    ];
+    if (searchSurface) {
+        parts.push(``, `搜索面：${searchSurface}`);
+    }
+    parts.push(``, `摘要：${summary}`, ``, `entries：`, `\`\`\`json`, ``, `\`\`\``);
+    return parts.join("\n");
 }
 /** 将 entries 按 body 上限拆分为多批 */
-function splitEntries(entries, keywords, summary) {
-    const overhead = Buffer.byteLength(buildBodyOverhead(keywords, summary), "utf-8");
+function splitEntries(entries, keywords, searchSurface, summary) {
+    const overhead = Buffer.byteLength(buildBodyOverhead(keywords, searchSurface, summary), "utf-8");
     const batches = [];
     let current = [];
     let currentSize = overhead;
@@ -91,7 +87,7 @@ function splitEntries(entries, keywords, summary) {
  *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":9}]
  */
 export async function createIndexDoc(params) {
-    const { keyword, keywords, summary, entries, index_book_id, route_book_id } = params;
+    const { keyword, keywords, search_surface, summary, entries, index_book_id, route_book_id } = params;
     if (!keyword)
         throw new Error("keyword 不能为空");
     if (!entries || entries.length === 0)
@@ -166,7 +162,7 @@ export async function createIndexDoc(params) {
         ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线，建议提前准备新子库。`
         : "";
     // 按 body 上限分片
-    const batches = splitEntries(enrichedEntries, cleanKeywords, summary);
+    const batches = splitEntries(enrichedEntries, cleanKeywords, search_surface, summary);
     const createdDocs = [];
     // 索引构建并发（默认 1，语雀 API 限流严格建议保守）
     const CONCURRENCY = config.index_concurrency || 1;
@@ -175,7 +171,7 @@ export async function createIndexDoc(params) {
         const results = await Promise.all(chunk.map(async (batch, chunkIdx) => {
             const globalIdx = i + chunkIdx;
             const title = batches.length > 1 ? `${cleanKw}(${globalIdx + 1})` : cleanKw;
-            const body = buildIndexBody(cleanKeywords, summary, batch);
+            const body = buildIndexBody(cleanKeywords, search_surface, summary, batch);
             const data = await post(`/repos/${bookId}/docs`, {
                 title,
                 body,
@@ -237,6 +233,7 @@ export function parseIndexDoc(body) {
         return { keywords: [], summary: "", entries: [], parse_error: "空 body" };
     const keywordsRaw = extractLine(body, "关键词：");
     const keywords = parseKeywords(keywordsRaw);
+    const searchSurface = extractSection(body, "搜索面：", "摘要：") || undefined;
     const summary = extractSection(body, "摘要：", "entries：");
     // 新版格式：entries 在 ```json 代码块内
     const codeBlockMatch = body.match(/entries[：:]\s*\n```json\s*\n([\s\S]*?)\n```/);
@@ -266,8 +263,8 @@ export function parseIndexDoc(body) {
         }
     }
     catch {
-        return { keywords, summary, entries: [], parse_error: "entries JSON 解析失败" };
+        return { keywords, search_surface: searchSurface, summary, entries: [], parse_error: "entries JSON 解析失败" };
     }
-    return { keywords, summary, entries };
+    return { keywords, search_surface: searchSurface, summary, entries };
 }
 //# sourceMappingURL=index.js.map

@@ -284,6 +284,7 @@ async function readIndexDocs(
             title: de.t,
             url: de.url || `https://www.yuque.com/${de.ns}/${de.s}`,
             keywords: parsed.keywords,
+            search_surface: parsed.search_surface,
             summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
             sub_index_ns: doc.ns,
             weight: de.w,

@@ -4,6 +4,7 @@ export interface SourceEntry {
     title?: string;
     url?: string;
     keywords?: string[];
+    search_surface?: string;
     summary?: string;
     sub_index_ns?: string;
     parse_error?: string;
@@ -19,6 +20,7 @@ export interface DocEntry {
 }
 export interface ParsedIndexDoc {
     keywords: string[];
+    search_surface?: string;
     summary: string;
     entries: DocEntry[];
     parse_error?: string;
@@ -30,6 +32,7 @@ export interface RouteEntry {
 export interface CreateIndexDocParams {
     keyword: string;
     keywords: string[];
+    search_surface?: string;
     summary: string;
     entries: DocEntry[];
     index_book_id: number | string;

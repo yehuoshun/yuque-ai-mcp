@@ -34,9 +34,14 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
 }
 
 /** 构建索引文档 body */
-function buildIndexBody(keywords: string, summary: string, entries: DocEntry[]): string {
-  return [
+function buildIndexBody(keywords: string, searchSurface: string | undefined, summary: string, entries: DocEntry[]): string {
+  const parts: string[] = [
     `关键词：${keywords}`,
+  ];
+  if (searchSurface) {
+    parts.push(``, `搜索面：${searchSurface}`);
+  }
+  parts.push(
     ``,
     `摘要：${summary}`,
     ``,
@@ -44,13 +49,19 @@ function buildIndexBody(keywords: string, summary: string, entries: DocEntry[]):
     `\`\`\`json`,
     JSON.stringify(entries, null, 2),
     `\`\`\``,
-  ].join("\n");
+  );
+  return parts.join("\n");
 }
 
 /** body 模板开销（不含 entries JSON），用于估算单篇可容纳的 entry 数 */
-function buildBodyOverhead(keywords: string, summary: string): string {
-  return [
+function buildBodyOverhead(keywords: string, searchSurface: string | undefined, summary: string): string {
+  const parts: string[] = [
     `关键词：${keywords}`,
+  ];
+  if (searchSurface) {
+    parts.push(``, `搜索面：${searchSurface}`);
+  }
+  parts.push(
     ``,
     `摘要：${summary}`,
     ``,
@@ -58,12 +69,13 @@ function buildBodyOverhead(keywords: string, summary: string): string {
     `\`\`\`json`,
     ``,
     `\`\`\``,
-  ].join("\n");
+  );
+  return parts.join("\n");
 }
 
 /** 将 entries 按 body 上限拆分为多批 */
-function splitEntries(entries: DocEntry[], keywords: string, summary: string): DocEntry[][] {
-  const overhead = Buffer.byteLength(buildBodyOverhead(keywords, summary), "utf-8");
+function splitEntries(entries: DocEntry[], keywords: string, searchSurface: string | undefined, summary: string): DocEntry[][] {
+  const overhead = Buffer.byteLength(buildBodyOverhead(keywords, searchSurface, summary), "utf-8");
   const batches: DocEntry[][] = [];
   let current: DocEntry[] = [];
   let currentSize = overhead;
@@ -100,7 +112,7 @@ function splitEntries(entries: DocEntry[], keywords: string, summary: string): D
  *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":9}]
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
-  const { keyword, keywords, summary, entries, index_book_id, route_book_id } = params;
+  const { keyword, keywords, search_surface, summary, entries, index_book_id, route_book_id } = params;
 
   if (!keyword) throw new Error("keyword 不能为空");
   if (!entries || entries.length === 0) throw new Error("entries 不能为空");
@@ -178,7 +190,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     : "";
 
   // 按 body 上限分片
-  const batches = splitEntries(enrichedEntries, cleanKeywords, summary);
+  const batches = splitEntries(enrichedEntries, cleanKeywords, search_surface, summary);
 
   const createdDocs: { doc_id: number; title: string; slug: string; entries: number }[] = [];
 
@@ -189,7 +201,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     const results = await Promise.all(chunk.map(async (batch, chunkIdx) => {
       const globalIdx = i + chunkIdx;
       const title = batches.length > 1 ? `${cleanKw}(${globalIdx + 1})` : cleanKw;
-      const body = buildIndexBody(cleanKeywords, summary, batch);
+      const body = buildIndexBody(cleanKeywords, search_surface, summary, batch);
 
       const data = await post(`/repos/${bookId}/docs`, {
         title,
@@ -257,6 +269,7 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
 
   const keywordsRaw = extractLine(body, "关键词：");
   const keywords = parseKeywords(keywordsRaw);
+  const searchSurface = extractSection(body, "搜索面：", "摘要：") || undefined;
   const summary = extractSection(body, "摘要：", "entries：");
 
   // 新版格式：entries 在 ```json 代码块内
@@ -287,8 +300,8 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
       }));
     }
   } catch {
-    return { keywords, summary, entries: [], parse_error: "entries JSON 解析失败" };
+    return { keywords, search_surface: searchSurface, summary, entries: [], parse_error: "entries JSON 解析失败" };
   }
 
-  return { keywords, summary, entries };
+  return { keywords, search_surface: searchSurface, summary, entries };
 }
