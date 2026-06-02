@@ -473,7 +473,7 @@ const tools = [
     },
     {
         name: "yuque_index_create",
-        description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题为关键词。⚠️ 强制规则：每个关键词只对应 1 篇源文档（1 entry）。body 格式：文档标题 + 关键词 JSON + 搜索面 + 摘要 + entry 单对象。自动挂 TOC。",
+        description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题为关键词。一对多：一个关键词可指向多篇源文档。body 格式：文档标题 + 关键词 JSON + 搜索面 + 摘要 + 多个 entry 块（每块一个 JSON 对象）。自动挂 TOC。",
         inputSchema: {
             type: "object",
             properties: {
@@ -499,7 +499,7 @@ const tools = [
                         },
                         required: ["did", "ns", "t", "s", "url", "w"],
                     },
-                    description: "源文档指针列表，⚠️ 必须且只有 1 篇（did/ns/t/s/url/w 全部必填）。一个关键词 = 一篇源文档，一对一精准锚点。权重 w 必须基于标题与关键词的语义拟合度评估（1-10），严禁一刀切填 5",
+                    description: "源文档指针列表，一个关键词可对应多篇源文档。每项含 did/ns/t/s/url/w 全部必填。权重 w 基于标题与关键词的语义拟合度（1-10）",
                 },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
                 route_book_id: { type: ["number", "string"], description: "总库 book_id（可选，传此参数则创建索引文档后立即自动创建总库路由文档，单文档粒度原子操作）" },
