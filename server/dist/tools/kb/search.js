@@ -85,8 +85,8 @@ async function findRouteDocs(tokens, routeBooks, errors) {
                     const info = r.target || r;
                     const id = info.id || r.id;
                     const title = (info.title || r.title || "").trim();
-                    // 客户端过滤：标题精确匹配 token（忽略大小写）
-                    if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(id)) {
+                    // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
+                    if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(id)) {
                         seenDocs.set(id, title);
                     }
                 }
@@ -97,17 +97,14 @@ async function findRouteDocs(tokens, routeBooks, errors) {
         }));
     }));
     if (seenDocs.size === 0) {
-        // 降级：搜索 API 无结果时（新文档索引延迟），直接 list_docs + 客户端标题匹配
+        // 降级：搜索 API 无结果时（新文档索引延迟），逐页拉取全部文档 + 客户端标题匹配
         await Promise.all(routeBooks.map(async (rb) => {
             try {
-                const data = await get(`/repos/${rb.book_id}/docs?per_page=500`);
-                const docs = (data.data || data);
-                if (Array.isArray(docs)) {
-                    for (const doc of docs) {
-                        const title = (doc.title || "").trim();
-                        if (title && tokens.some(t => title.toLowerCase() === t.toLowerCase())) {
-                            seenDocs.set(doc.id, title);
-                        }
+                const allDocs = await listAllDocs(rb.book_id);
+                for (const doc of allDocs) {
+                    const title = (doc.title || "").trim();
+                    if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
+                        seenDocs.set(doc.id, title);
                     }
                 }
             }
@@ -169,8 +166,8 @@ async function searchSubIndexForTokens(tokens, subBooks, errors) {
                     const id = info.id || r.id;
                     const title = (info.title || r.title || "").trim();
                     const key = `${sb.namespace}/${id}`;
-                    // 客户端过滤：标题精确匹配 token（忽略大小写）
-                    if (id && title.toLowerCase() === token.toLowerCase() && !seenDocs.has(key)) {
+                    // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
+                    if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(key)) {
                         seenDocs.set(key, { did: Number(id), ns: sb.namespace });
                     }
                 }
@@ -181,18 +178,15 @@ async function searchSubIndexForTokens(tokens, subBooks, errors) {
         }));
     }));
     if (seenDocs.size === 0) {
-        // 降级：搜索 API 无结果时，直接 list_docs + 客户端标题匹配
+        // 降级：搜索 API 无结果时，逐页拉取全部文档 + 客户端标题匹配
         await Promise.all(subBooks.map(async (sb) => {
             try {
-                const data = await get(`/repos/${sb.book_id}/docs?per_page=500`);
-                const docs = (data.data || data);
-                if (Array.isArray(docs)) {
-                    for (const doc of docs) {
-                        const title = (doc.title || "").trim();
-                        if (title && tokens.some(t => title.toLowerCase() === t.toLowerCase())) {
-                            const key = `${sb.namespace}/${doc.id}`;
-                            seenDocs.set(key, { did: Number(doc.id), ns: sb.namespace });
-                        }
+                const allDocs = await listAllDocs(sb.book_id);
+                for (const doc of allDocs) {
+                    const title = (doc.title || "").trim();
+                    if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
+                        const key = `${sb.namespace}/${doc.id}`;
+                        seenDocs.set(key, { did: Number(doc.id), ns: sb.namespace });
                     }
                 }
             }
@@ -287,5 +281,23 @@ function formatSearchResults(tokens, routeEntries, entries, dirtyBlocks, routeEr
         lines.push(`---`, `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""), ...(e.url ? [e.url] : []), ...(e.summary ? [`摘要：${e.summary}`] : []), ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []), '');
     }
     return lines.join("\n");
+}
+// ─── 分页拉取全部文档 ──────────────────────────────────
+/** 逐页拉取知识库全部文档（语雀 API limit ≤ 100） */
+async function listAllDocs(bookId) {
+    const all = [];
+    let offset = 0;
+    const limit = 100;
+    while (true) {
+        const data = await get(`/repos/${bookId}/docs?offset=${offset}&limit=${limit}`);
+        const docs = (data.data || data);
+        if (!Array.isArray(docs) || docs.length === 0)
+            break;
+        all.push(...docs);
+        if (docs.length < limit)
+            break;
+        offset += limit;
+    }
+    return all;
 }
 //# sourceMappingURL=search.js.map

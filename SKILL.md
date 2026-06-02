@@ -408,6 +408,10 @@ entries 字段：
 
 [子代理 — 全程构建]
 
+⚠️ **子代理任务必须携带 §2 的 Prompt 模板原文**。
+spawn 时 task 描述中必须内嵌「逐文档评分 Prompt」和「单关键词写入 Prompt」完整内容，
+否则子代理会用默认行为合并语义不同的概念（如 Vue2+Vue3→Vue），导致细粒度失效。
+
 4. 逐文档评分（核心步骤，每文档只读一次 body）：
    a. yuque_get_doc 读文档 body
       ├─ body 可读（Markdown/代码）→ LLM 从正文提取关键词 + 权重
