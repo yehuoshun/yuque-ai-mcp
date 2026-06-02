@@ -1,7 +1,7 @@
 import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { CreateIndexDocParams, DocEntry, ParsedIndexDoc } from "./types.js";
-import { cleanToken, extractLine, extractSection, parseKeywords } from "./utils.js";
+import { cleanToken } from "./utils.js";
 
 // 容量上限（语雀单库文档上限约 5000）
 const REPO_DOC_LIMIT = 5000;
@@ -30,25 +30,11 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
   }
 }
 
-/** 构建索引文档 body — 一对多格式，每个 entry 自带元数据 */
-function buildIndexBody(docTitle: string, entryGroups: Array<{ entry: DocEntry; title: string; keywords: string[]; searchSurface?: string; summary: string }>): string {
-  const parts: string[] = [`文档标题：${docTitle}`];
-  for (const g of entryGroups) {
-    parts.push("");
-    if (g.title) parts.push(`文档标题：${g.title}`);
-    if (g.keywords.length > 0) parts.push(`关键词：${JSON.stringify(g.keywords)}`);
-    if (g.searchSurface) parts.push(`搜索面：${g.searchSurface}`);
-    if (g.summary) parts.push(`摘要：${g.summary}`);
-    parts.push(`entry：`, JSON.stringify(g.entry));
-  }
-  return parts.join("\n");
-}
-
 /**
- * 创建关键词索引文档（一对多）
+ * 创建关键词索引文档
  *
- * 一个关键词 = 一篇索引文档，标题即关键词。一对多：一个关键词可指向多篇源文档。
- * 每个 entry 自带 文档标题/关键词/搜索面/摘要 元数据。
+ * 一个关键词 = 一篇索引文档，标题即关键词。
+ * body 为 JSON 数组，每项为一个 DocEntry。
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
   const { keyword, entries, index_book_id, route_book_id } = params;
@@ -60,28 +46,30 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 
   // 校验必填字段
   for (const e of entries) {
-    if (!e.did) throw new Error("每个 entry 必须有 did");
-    if (!e.ns) throw new Error("每个 entry 必须有 ns");
-    if (!e.t) throw new Error("每个 entry 必须有 t（标题）");
-    if (!e.s) throw new Error("每个 entry 必须有 s（slug）");
-    if (e.w == null || e.w < 1 || e.w > 10) throw new Error("每个 entry 必须有 w（权重 1-10）");
+    if (!e.doc_id) throw new Error("每个 entry 必须有 doc_id");
+    if (!e.namespace) throw new Error("每个 entry 必须有 namespace");
+    if (!e.doc_title) throw new Error("每个 entry 必须有 doc_title（源文档标题）");
+    if (!e.slug) throw new Error("每个 entry 必须有 slug");
+    if (e.weight == null || e.weight < 1 || e.weight > 10) throw new Error("每个 entry 必须有 weight（权重 1-10）");
   }
 
-  const enrichedEntries = entries.map(e => ({
-    ...e,
-    url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`,
+  // 补全 url（写入时自动从 namespace + slug 拼接兜底）
+  const enrichedEntries: DocEntry[] = entries.map(e => ({
+    doc_id: e.doc_id,
+    namespace: e.namespace,
+    doc_title: e.doc_title,
+    slug: e.slug,
+    url: e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`,
+    weight: e.weight,
+    title: e.title,
+    keywords: e.keywords,
+    search_surface: e.search_surface,
+    summary: e.summary,
+    tree: e.tree,
   }));
 
-  const entryGroups = enrichedEntries.map(e => ({
-    entry: e,
-    title: e.et || e.t || "",
-    keywords: e.ek || [],
-    searchSurface: e.es,
-    summary: e.esum || "",
-  }));
-
-  const docTitle = entryGroups[0]?.title || keyword;
-  const body = buildIndexBody(docTitle, entryGroups);
+  // body = JSON 数组，agent 直接 JSON.parse
+  const body = JSON.stringify(enrichedEntries, null, 2);
 
   const config = loadConfig();
   const { route_book, route_book_sub, default_book } = config;
@@ -172,7 +160,6 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     created: true,
     doc_id: docId,
     keyword: cleanKw,
-    doc_title: docTitle,
     total_entries: entries.length,
     book_id: bookId,
     route_sync: route_book_id ? routeSyncError : "未启用",
@@ -181,68 +168,35 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 }
 
 /**
- * 解析索引文档 body → entries。兼容新旧格式。
+ * 解析索引文档 body → entries
+ *
+ * body 格式：JSON 数组 [{doc_id, namespace, doc_title, slug, url, weight, ...}]
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
-  if (!body) return { keywords: [], summary: "", entries: [], parse_error: "空 body" };
+  if (!body) return { entries: [], parse_error: "空 body" };
 
-  const docTitle = extractLine(body, "文档标题：") || undefined;
-
-  // 新版：多个 entry：{JSON} 块（entry 在 JSON 之后，每块以 文档标题/关键词/搜索面/摘要 开头）
-  const entryBlockPattern = /entry[：:]\s*\n(?:\{[^}]*\})/g;
-  let entryBlockRaw: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = entryBlockPattern.exec(body)) !== null) {
-    entryBlockRaw.push(m[0].replace(/entry[：:]\s*\n/, "").trim());
-  }
-
-  // 兼容旧版
-  if (entryBlockRaw.length === 0) {
-    const codeMatch = body.match(/entries?[：:]\s*\n```json\s*\n([\s\S]*?)\n```/);
-    if (codeMatch) entryBlockRaw.push(codeMatch[1]);
-  }
-  if (entryBlockRaw.length === 0) {
-    const oldMatch = body.match(/entries?[：:]\s*\n?(\[[\s\S]*?\])\s*$/m);
-    if (oldMatch) entryBlockRaw.push(oldMatch[1]);
-  }
-
-  // 从 body 提取每个 entry 块的元数据
-  // 块结构: 文档标题 / 关键词 / 搜索面 / 摘要 / entry：{...}
-  const entrySections = body.split(/\n(?=文档标题：)/);
-  const keywordGroups: string[][] = [];
-  const summaryGroups: string[] = [];
-  const searchFaces: string[] = [];
-
-  for (const section of entrySections) {
-    const kwRaw = extractLine(section, "关键词：");
-    keywordGroups.push(kwRaw ? parseKeywords(kwRaw) : []);
-    const sf = extractLine(section, "搜索面：");
-    if (sf) searchFaces.push(sf);
-    const sm = extractSection(section, "摘要：", "entry：");
-    if (sm) summaryGroups.push(sm);
-  }
-
-  const allKeywords = keywordGroups.flat().filter((v, i, a) => a.indexOf(v) === i);
-
-  if (entryBlockRaw.length === 0) {
-    return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries: [], parse_error: "缺少 entry" };
-  }
-
-  let entries: DocEntry[] = [];
   try {
-    for (const raw of entryBlockRaw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        for (const e of parsed) {
-          entries.push({ did: e.did, ns: e.ns, t: e.t || "", s: e.s || "", url: e.url || `https://www.yuque.com/${e.ns}/${e.s}`, w: e.w ?? 5 });
-        }
-      } else {
-        entries.push({ did: parsed.did, ns: parsed.ns, t: parsed.t || "", s: parsed.s || "", url: parsed.url || `https://www.yuque.com/${parsed.ns}/${parsed.s}`, w: parsed.w ?? 5 });
-      }
+    const parsed = JSON.parse(body);
+    if (!Array.isArray(parsed)) {
+      return { entries: [], parse_error: "body 不是 JSON 数组" };
     }
-  } catch {
-    return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries: [], parse_error: "entry JSON 解析失败" };
-  }
 
-  return { doc_title: docTitle, keywords: allKeywords, summary: summaryGroups[0] || "", entries };
+    const entries: DocEntry[] = parsed.map((e: any) => ({
+      doc_id: e.doc_id || 0,
+      namespace: e.namespace || "",
+      doc_title: e.doc_title || "",
+      slug: e.slug || "",
+      url: e.url || (e.namespace && e.slug ? `https://www.yuque.com/${e.namespace}/${e.slug}` : ""),
+      weight: e.weight ?? 5,
+      title: e.title,
+      keywords: e.keywords,
+      search_surface: e.search_surface,
+      summary: e.summary,
+      tree: e.tree,
+    }));
+
+    return { entries };
+  } catch (e) {
+    return { entries: [], parse_error: `JSON 解析失败: ${e instanceof Error ? e.message : String(e)}` };
+  }
 }

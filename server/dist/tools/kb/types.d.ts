@@ -1,6 +1,6 @@
 export interface SourceEntry {
-    did: number;
-    ns: string;
+    doc_id: number;
+    namespace: string;
     title?: string;
     url?: string;
     keywords?: string[];
@@ -11,22 +11,25 @@ export interface SourceEntry {
     weight?: number;
 }
 export interface DocEntry {
-    did: number;
-    ns: string;
-    t: string;
-    s: string;
+    doc_id: number;
+    namespace: string;
+    doc_title: string;
+    slug: string;
     url: string;
-    w: number;
-    ek?: string[];
-    es?: string;
-    esum?: string;
-    et?: string;
+    weight: number;
+    title?: string;
+    keywords?: string[];
+    search_surface?: string;
+    summary?: string;
+    tree?: {
+        sections: Array<{
+            id: string;
+            title: string;
+            summary: string;
+        }>;
+    };
 }
 export interface ParsedIndexDoc {
-    doc_title?: string;
-    keywords: string[];
-    search_surface?: string;
-    summary: string;
     entries: DocEntry[];
     parse_error?: string;
 }
@@ -36,17 +39,7 @@ export interface RouteEntry {
 }
 export interface CreateIndexDocParams {
     keyword: string;
-    keywords: string[];
-    search_surface?: string;
-    summary: string;
     entries: DocEntry[];
     index_book_id: number | string;
     route_book_id?: number | string;
-}
-export interface EntryGroup {
-    entry: DocEntry;
-    title: string;
-    keywords: string[];
-    searchSurface?: string;
-    summary: string;
 }

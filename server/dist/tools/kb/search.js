@@ -231,19 +231,19 @@ async function readIndexDocs(routeEntries) {
                 continue;
             }
             const indexKeyword = doc.title?.trim();
-            for (const de of parsed.entries) {
-                const existing = allEntries.get(de.did);
-                if (!existing || (de.w ?? 0) > (existing.weight ?? 0)) {
-                    allEntries.set(de.did, {
-                        did: de.did,
-                        ns: de.ns,
-                        title: de.t,
-                        url: de.url || `https://www.yuque.com/${de.ns}/${de.s}`,
-                        keywords: parsed.keywords,
-                        search_surface: parsed.search_surface,
-                        summary: indexKeyword ? `[${indexKeyword}] ${parsed.summary}` : parsed.summary,
+            for (const entry of parsed.entries) {
+                const existing = allEntries.get(entry.doc_id);
+                if (!existing || (entry.weight ?? 0) > (existing.weight ?? 0)) {
+                    allEntries.set(entry.doc_id, {
+                        doc_id: entry.doc_id,
+                        namespace: entry.namespace,
+                        title: entry.title || entry.doc_title,
+                        url: entry.url || `https://www.yuque.com/${entry.namespace}/${entry.slug}`,
+                        keywords: entry.keywords,
+                        search_surface: entry.search_surface,
+                        summary: indexKeyword ? `[${indexKeyword}] ${entry.summary || entry.doc_title}` : (entry.summary || entry.doc_title),
                         sub_index_ns: doc.ns,
-                        weight: de.w,
+                        weight: entry.weight,
                     });
                 }
             }
@@ -278,7 +278,7 @@ function formatSearchResults(tokens, routeEntries, entries, dirtyBlocks, routeEr
     // 按权重降序
     const sorted = [...entries].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
     for (const e of sorted) {
-        lines.push(`---`, `**${e.title || "(无标题)"}** (did=${e.did}, ns=${e.ns})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""), ...(e.url ? [e.url] : []), ...(e.summary ? [`摘要：${e.summary}`] : []), ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []), '');
+        lines.push(`---`, `**${e.title || "(无标题)"}** (doc_id=${e.doc_id}, namespace=${e.namespace})` + (e.sub_index_ns ? ` [${e.sub_index_ns}]` : "") + (e.weight ? ` ⭐${e.weight}` : ""), ...(e.url ? [e.url] : []), ...(e.summary ? [`摘要：${e.summary}`] : []), ...(e.keywords?.length ? [`关键词：${e.keywords.join(", ")}`] : []), '');
     }
     return lines.join("\n");
 }
