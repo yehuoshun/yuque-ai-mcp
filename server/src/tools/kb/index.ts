@@ -100,7 +100,7 @@ function splitEntries(entries: DocEntry[], keywords: string, summary: string): D
  *   [{"did":584,"ns":"yehuoshun/dil9w3","t":"Spring Boot 自动配置原理","s":"abc","url":"https://www.yuque.com/yehuoshun/dil9w3/abc","w":9}]
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
-  const { keyword, keywords, summary, entries, index_book_id } = params;
+  const { keyword, keywords, summary, entries, index_book_id, route_book_id } = params;
 
   if (!keyword) throw new Error("keyword 不能为空");
   if (!entries || entries.length === 0) throw new Error("entries 不能为空");
@@ -124,7 +124,36 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }));
 
   const config = loadConfig();
-  const { route_book_sub, default_book } = config;
+  const { route_book, route_book_sub, default_book } = config;
+
+  // 校验：传入的 index_book_id 必须匹配配置中的 route_book_sub
+  if (index_book_id) {
+    const matched = route_book_sub.some(b => String(b.book_id) === String(index_book_id));
+    if (!matched) {
+      const validIds = route_book_sub.map(b => `${b.book_id}（${b.namespace}）`).join(", ");
+      return JSON.stringify({
+        created: false,
+        error: `index_book_id=${index_book_id} 不在配置的 route_book_sub 中`,
+        valid_book_ids: route_book_sub.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
+        hint: `请使用配置中已有的子索引库：${validIds || "（无）"}。如需新建子索引库，先用 yuque_create_repo + yuque_config_update。`,
+      });
+    }
+  }
+
+  // 校验：传入的 route_book_id 必须匹配配置中的 route_book
+  if (route_book_id) {
+    const matched = route_book.some(b => String(b.book_id) === String(route_book_id));
+    if (!matched) {
+      const validIds = route_book.map(b => `${b.book_id}（${b.namespace}）`).join(", ");
+      return JSON.stringify({
+        created: false,
+        error: `route_book_id=${route_book_id} 不在配置的 route_book 中`,
+        valid_book_ids: route_book.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
+        hint: `请使用配置中已有的总库：${validIds || "（无）"}。如需新建总库，先用 yuque_create_repo + yuque_config_update。`,
+      });
+    }
+  }
+
   const bookId = index_book_id || route_book_sub[0]?.book_id || default_book.book_id;
   if (!bookId) {
     return JSON.stringify({
@@ -151,7 +180,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   // 按 body 上限分片
   const batches = splitEntries(enrichedEntries, cleanKeywords, summary);
 
-  const createdDocs: { doc_id: number; title: string; entries: number }[] = [];
+  const createdDocs: { doc_id: number; title: string; slug: string; entries: number }[] = [];
 
   // 索引构建并发（默认 1，语雀 API 限流严格建议保守）
   const CONCURRENCY = config.index_concurrency || 1;
@@ -178,15 +207,35 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
         doc_ids: [docId],
       });
 
-      return { doc_id: docId, title, entries: batch.length };
+      return { doc_id: docId, title, slug: created.slug, entries: batch.length };
     }));
     createdDocs.push(...results);
   }
 
-  // 总库路由文档由 Agent 按关键词级手动管理（新建域步骤 6 / 复用子库步骤 6）
-  // 路由文档格式：[{book_id, namespace, last_built?}]（source_books 数组）
-  // 路由文档标题 = 关键词，body = 源库元数据
-  // createIndexDoc 只负责子索引库写入，不自动同步总库
+  const routeBookId = route_book_id;
+
+  // 当传了 route_book_id 时，自动在总库创建路由文档（单文档粒度原子操作）
+  // 路由标题=关键词，body=[{"did": <索引文档did>, "ns": "<子库ns>/<slug>"}]
+  let routeSyncError = "";
+  if (routeBookId && createdDocs.length > 0) {
+    try {
+      const subRepo = await get(`/repos/${bookId}`) as any;
+      const subNs = subRepo.data?.namespace || subRepo.namespace || "";
+      if (subNs) {
+        for (const doc of createdDocs) {
+          await post(`/repos/${route_book_id}/docs`, {
+            title: doc.title,
+            body: JSON.stringify([{ did: doc.doc_id, ns: `${subNs}/${doc.slug}` }]),
+            format: "markdown",
+          });
+        }
+        routeSyncError = "已同步";
+      }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      routeSyncError = `路由同步失败: ${errMsg}`;
+    }
+  }
 
   return JSON.stringify({
     created: true,
@@ -195,6 +244,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     keyword: cleanKw,
     total_entries: entries.length,
     book_id: bookId,
+    route_sync: routeBookId ? routeSyncError : "未启用",
     ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
   }, null, 2);
 }

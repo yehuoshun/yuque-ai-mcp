@@ -33,4 +33,5 @@ export interface CreateIndexDocParams {
     summary: string;
     entries: DocEntry[];
     index_book_id: number | string;
+    route_book_id?: number | string;
 }

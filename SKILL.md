@@ -216,11 +216,12 @@ entries 字段：
 
 6. 逐关键词写入：
    a. LLM 汇总该关键词下所有 {did, w} → 生成搜索面（keywords[]）+ 摘要
-   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
+   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id, route_book_id)
+      > 传 route_book_id 后自动在总库创建路由文档，无需手动步骤 8
    c. 构建后验证：搜 2-3 个预期 query → 0 命中修复
 
 7. 更新子索引库 description 的 last_built
-8. yuque_create_doc → 总库创建/更新路由文档
+8. （可选）未传 route_book_id 时：手动 yuque_create_doc → 总库创建/更新路由文档
 ```
 
 > 一篇源文档可被多个关键词索引覆盖（如 doc 584 同时被 `SpringBoot` 和 `ConditionalOnClass` 两个关键词索引引用）。
@@ -417,16 +418,12 @@ entries 字段：
 6. 逐关键词写入子索引库（子代理串行写入，并发=1）：
    a. LLM 汇总该关键词下所有 entries → 生成搜索面 + 摘要
       → 见 §2 的「单关键词写入 Prompt」
-   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id)
+   b. yuque_index_create(keyword, keywords[], summary, entries, index_book_id, route_book_id)
+      > 传 route_book_id 后自动在总库创建路由文档，单文档粒度原子操作
 
 7. 更新子索引库 description 的 last_built
 
-[主会话 — 阶段 2：总库路由同步]
-
-8. 子代理完成 → 主会话读子索引库文档列表 → 逐关键词写入总库路由：
-   yuque_create_doc(总库, 标题=关键词) → body 写入 source_books 数组
-   source_books: [{"book_id": <id>, "namespace": "<ns>"}]
-   > ⚠️ source_books 不含 last_built。路由文档只管"搜这个关键词去哪个库找"。
+> 💡 路由同步：传 `route_book_id` 参数后自动完成，不再需要手动阶段 2。
    > ⚠️ 关键词级路由，标题=关键词。此阶段回主会话执行，不放子代理。
 ```
 
