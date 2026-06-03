@@ -7,10 +7,10 @@ import { parseIndexDoc } from "./index.js";
 /**
  * 知识库搜索 — 双层路由：总库关键词路由 → 子库关键词索引
  *
- * 1. tokens in:title 搜总库 → 找到关键词路由文档
- * 2. 路由文档 body 为 source_books 数组 [{book_id, namespace, last_built?}]
- * 3. tokens in:title 搜子库 → 找到关键词索引文档
- * 4. 读取索引文档 → parseIndexDoc 展开 → 返回源文档指针
+ * 1. 全文搜索总库 + 客户端标题过滤 → 找到关键词路由文档
+ * 2. 路由文档 body 为 JSON 数组 [{book_id, namespace}]，namespace 是文档级路径
+ * 3. 按文档级 namespace 直接读索引文档（不再搜子库）
+ * 4. parseIndexDoc 展开 → 返回源文档指针
  */
 export async function kbSearch(params: {
   tokens: string[];
@@ -130,15 +130,26 @@ async function findRouteDocs(
 
         // 路由文档 body — 格式：[{book_id, namespace}]，namespace 是文档级路径
         let list: any[] = [];
+        let parseError: string | null = null;
+
         try {
           const parsed = JSON.parse(body);
-          list = Array.isArray(parsed) ? parsed : [];
-        } catch {
-          // body 不是合法 JSON
+          if (!Array.isArray(parsed)) {
+            parseError = `body 不是 JSON 数组（实际类型: ${typeof parsed}）`;
+          } else {
+            list = parsed;
+          }
+        } catch (e) {
+          parseError = `body JSON 解析失败: ${e instanceof Error ? e.message : String(e)}`;
+        }
+
+        if (parseError) {
+          errors.push({ token: `路由 doc_${docId}`, reason: parseError });
+          return;
         }
 
         if (list.length === 0) {
-          errors.push({ token: `路由 doc_${docId}`, reason: `无法解析路由条目` });
+          errors.push({ token: `路由 doc_${docId}`, reason: `路由条目为空数组（无子索引库指针）` });
           return;
         }
 

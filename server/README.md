@@ -73,7 +73,7 @@ npx yuque-mcp
 - `yuque_search` · `yuque_batch_get_docs_body`
 
 ### 知识库搜索 & 索引构建
-- `yuque_kb_search` · `yuque_index_create`
+- `yuque_kb_search` · `yuque_index_create` · `yuque_index_update_entries`
 
 ### 导入 & 上传
 - `yuque_import_doc` · `yuque_upload_attachment`

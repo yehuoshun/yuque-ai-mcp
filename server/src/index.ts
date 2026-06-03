@@ -23,7 +23,7 @@ import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
-import { kbSearch, createIndexDoc } from "./tools/kb.js";
+import { kbSearch, createIndexDoc, updateIndexEntries } from "./tools/kb.js";
 import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
 
 // ---- tool definitions ----
@@ -521,6 +521,58 @@ const tools: Tool[] = [
       required: ["keyword", "entries", "index_book_id"],
     },
   },
+  {
+    name: "yuque_index_update_entries",
+    description: "增量更新关键词索引文档的 entries。支持 add（追加）、remove（移除）、update（按 doc_id 合并字段）。自动完成读-改-写-路由同步的原子操作。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        keyword: { type: "string", description: "关键词（索引文档标题）" },
+        index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+        route_book_id: { type: ["number", "string"], description: "总库 book_id（可选，传了则自动同步路由）" },
+        add: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              doc_id: { type: "number" },
+              namespace: { type: "string" },
+              doc_title: { type: "string" },
+              slug: { type: "string" },
+              url: { type: "string" },
+              weight: { type: "number" },
+              title: { type: "string" },
+              keywords: { type: "array", items: { type: "string" } },
+              search_surface: { type: "string" },
+              summary: { type: "string" },
+              tree: { type: "object" },
+            },
+            required: ["doc_id", "namespace", "doc_title", "slug", "weight"],
+          },
+          description: "要新增的 entries（按 doc_id 去重，已存在则跳过）",
+        },
+        remove: { type: "array", items: { type: "number" }, description: "要移除的源文档 doc_id 列表" },
+        update: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              doc_id: { type: "number" },
+              weight: { type: "number" },
+              title: { type: "string" },
+              keywords: { type: "array", items: { type: "string" } },
+              search_surface: { type: "string" },
+              summary: { type: "string" },
+              tree: { type: "object" },
+            },
+            required: ["doc_id"],
+          },
+          description: "要更新的 entries（按 doc_id 匹配，只更新提供的字段，其他字段保留原值）",
+        },
+      },
+      required: ["keyword", "index_book_id"],
+    },
+  },
 
   // --- 统计（需 statistic:read 权限）---
   {
@@ -703,6 +755,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   // 知识库搜索 & 索引构建
   yuque_kb_search: (a) => kbSearch(a),
   yuque_index_create: (a) => createIndexDoc(a),
+  yuque_index_update_entries: (a) => updateIndexEntries(a),
 
   yuque_get_group_stats: (a) => getGroupStats(a),
   yuque_get_member_stats: (a) => getMemberStats(a),

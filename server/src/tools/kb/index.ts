@@ -72,6 +72,20 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   // body = JSON 数组，agent 直接 JSON.parse
   const body = JSON.stringify(enrichedEntries, null, 2);
 
+  // 200KB 上限检查（语雀上限 500KB，留余量防读取超时）
+  const MAX_BODY_BYTES = 200 * 1024;
+  const bodyBytes = Buffer.byteLength(body, "utf-8");
+  if (bodyBytes > MAX_BODY_BYTES) {
+    return JSON.stringify({
+      created: false,
+      error: "body_too_large",
+      body_bytes: bodyBytes,
+      limit_bytes: MAX_BODY_BYTES,
+      entry_count: enrichedEntries.length,
+      hint: `索引文档 body ${(bodyBytes / 1024).toFixed(1)}KB 超过 ${MAX_BODY_BYTES / 1024}KB 上限。建议：1) 拆分关键词（如 SpringBoot-1, SpringBoot-2）2) 减少低权重 entry（weight < 5 的可考虑不收录）`,
+    }, null, 2);
+  }
+
   const config = loadConfig();
   const { route_book, route_book_sub, default_book } = config;
 
@@ -189,7 +203,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 }
 
 /** 按标题查找总库/子库中已存在的文档（用于幂等） */
-async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number } | null> {
+export async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number } | null> {
   const allDocs = await listAllDocs(bookId);
   const found = allDocs.find((d: any) => (d.title || "").trim() === title);
   return found ? { id: found.id } : null;
@@ -200,7 +214,7 @@ async function findDocByTitle(bookId: number | string, title: string): Promise<{
  * namespace 是文档级路径（group/slug/slug），指向子库中的具体索引文档。
  * 按 book_id 去重合并，不覆盖已有其他子库的指针。
  */
-async function upsertRouteDoc(
+export async function upsertRouteDoc(
   routeBookId: number | string,
   keyword: string,
   subBookId: number,
