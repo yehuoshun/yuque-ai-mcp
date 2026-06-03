@@ -134,21 +134,6 @@ async function findRouteDocs(tokens, routeBooks, errors) {
             }
         }));
     }));
-    // 降级：搜索 API 无结果 → 逐页拉取全量 + 客户端标题匹配
-    if (seenDocs.size === 0) {
-        await Promise.all(routeBooks.map(async (rb) => {
-            try {
-                const allDocs = await listAllDocs(rb.book_id);
-                for (const doc of allDocs) {
-                    const title = (doc.title || "").trim();
-                    if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
-                        seenDocs.set(doc.id, { title, book_id: rb.book_id });
-                    }
-                }
-            }
-            catch { /* 降级失败也不报错 */ }
-        }));
-    }
     if (seenDocs.size === 0)
         return [];
     // 并发读路由文档 body → 解析路由指针
@@ -188,7 +173,6 @@ async function findRouteDocs(tokens, routeBooks, errors) {
                 if (!seenKeys.has(key)) {
                     seenKeys.add(key);
                     allRoutes.push({
-                        doc_id: 0,
                         book_namespace: item.namespace,
                     });
                 }
@@ -211,7 +195,7 @@ async function readIndexDocsFromRoutes(routeEntries) {
     let dirtyBlocks = 0;
     const config = loadConfig();
     const CONCURRENCY = config.search_concurrency || 5;
-    const deduped = dedupByDocIdNs(routeEntries);
+    const deduped = dedupByNs(routeEntries);
     for (let i = 0; i < deduped.length; i += CONCURRENCY) {
         const chunk = deduped.slice(i, i + CONCURRENCY);
         const results = await Promise.all(chunk.map(async (re) => {
@@ -264,13 +248,12 @@ async function readIndexDocsFromRoutes(routeEntries) {
     }
     return { entries: allEntries, hitKeywords, dirtyBlocks, errors };
 }
-function dedupByDocIdNs(entries) {
+function dedupByNs(entries) {
     const seen = new Set();
     const result = [];
     for (const e of entries) {
-        const key = `${e.book_namespace}/${e.doc_id}`;
-        if (!seen.has(key)) {
-            seen.add(key);
+        if (!seen.has(e.book_namespace)) {
+            seen.add(e.book_namespace);
             result.push(e);
         }
     }

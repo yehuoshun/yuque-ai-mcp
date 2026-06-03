@@ -76,7 +76,6 @@ export interface ParsedIndexDoc {
 
 // 总库路由指向的索引文档
 export interface RouteEntry {
-  doc_id: number;
   book_namespace: string;
 }
 

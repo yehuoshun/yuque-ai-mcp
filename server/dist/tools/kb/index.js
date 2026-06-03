@@ -154,7 +154,7 @@ export async function createIndexDoc(params) {
         isNew = true;
         // 新建后更新缓存，避免同批次后续查重返回过期 null
         if (docSlug)
-            titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug });
+            titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug, ts: Date.now() });
     }
     if (!docSlug) {
         throw new Error(`无法获取索引文档 slug（doc_id=${docId}），路由同步中断`);
@@ -191,22 +191,35 @@ export async function createIndexDoc(params) {
         ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
     }, null, 2);
 }
-// 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs）
+// 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs，5 分钟过期）
+const CACHE_TTL_MS = 5 * 60 * 1000;
 export const titleCache = new Map();
-/** 按标题查找总库/子库中已存在的文档（用于幂等），带缓存 */
+/** 清理过期缓存（每次查缓存前调用） */
+function pruneCache() {
+    const now = Date.now();
+    for (const [key, entry] of titleCache) {
+        if (now - entry.ts > CACHE_TTL_MS) {
+            titleCache.delete(key);
+        }
+    }
+}
+/** 按标题查找总库/子库中已存在的文档（用于幂等），带 TTL 缓存 */
 export async function findDocByTitle(bookId, title) {
+    pruneCache();
     const cacheKey = `${bookId}:${title}`;
     const cached = titleCache.get(cacheKey);
     if (cached)
-        return cached;
+        return { id: cached.id, slug: cached.slug };
     const allDocs = await listAllDocs(bookId);
+    const now = Date.now();
     // 批量写入缓存
     for (const d of allDocs) {
         const t = (d.title || "").trim();
         if (t)
-            titleCache.set(`${bookId}:${t}`, { id: d.id, slug: d.slug || "" });
+            titleCache.set(`${bookId}:${t}`, { id: d.id, slug: d.slug || "", ts: now });
     }
-    return titleCache.get(cacheKey) || null;
+    const fresh = titleCache.get(cacheKey);
+    return fresh ? { id: fresh.id, slug: fresh.slug } : null;
 }
 /**
  * 总库路由文档 upsert：body 为 JSON 数组 [{book_id, namespace}]，
@@ -248,7 +261,7 @@ export async function upsertRouteDoc(routeBookId, keyword, subBookId, docNs) {
         });
         const created = data.data || data;
         if (created.slug)
-            titleCache.set(`${routeBookId}:${keyword}`, { id: created.id, slug: created.slug });
+            titleCache.set(`${routeBookId}:${keyword}`, { id: created.id, slug: created.slug, ts: Date.now() });
     }
 }
 /**

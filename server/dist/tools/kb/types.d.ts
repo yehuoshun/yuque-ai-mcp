@@ -66,7 +66,6 @@ export interface ParsedIndexDoc {
     parse_error?: string;
 }
 export interface RouteEntry {
-    doc_id: number;
     book_namespace: string;
 }
 export interface CreateIndexDocParams {
