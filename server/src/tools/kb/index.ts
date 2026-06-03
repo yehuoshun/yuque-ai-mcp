@@ -154,8 +154,8 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     });
   }
 
-  // 路由同步：子库写入成功后再写总库，失败则整体抛错让调用方重试
-  // 总库路由文档是 JSON 数组，一对多——一个关键词可路由到多个子索引库
+  // 路由同步：子库索引文档写入成功后在总库创建路由指针
+  // 总库路由文档 body 是 JSON 数组 [{book_id, namespace}]，指向各子库中的索引文档
   if (route_book_id) {
     const subRepo = await get(`/repos/${bookId}`) as any;
     const subNs = subRepo.data?.namespace || subRepo.namespace || "";
@@ -185,8 +185,8 @@ async function findDocByTitle(bookId: number | string, title: string): Promise<{
 }
 
 /**
- * 总库路由文档 upsert：JSON 数组一对多，不覆盖已有其他子库条目
- * body 格式：[{book_id, namespace}, ...]
+ * 总库路由文档 upsert：body 为 JSON 数组 [{book_id, namespace}]，
+ * 每项指向一个子库中的索引文档。按 book_id 去重合并，不覆盖已有其他子库的指针。
  */
 async function upsertRouteDoc(
   routeBookId: number | string,
