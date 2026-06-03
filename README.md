@@ -260,7 +260,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_kb_search` | 知识库管道搜索（双层：总库关键词路由 → 子库关键词索引）：token 数组 → in:title 搜总库确认关键词已索引 → in:title 搜子库命中索引文档 → 展开 entries → Markdown 输出 |
-| `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 搜索面自然语言 + 摘要 + entry 指针，did/ns/t/s/url/w 全部必填，w 为 1-10 权重）。传 route_book_id 后自动同步总库路由 |
+| `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 搜索面自然语言 + 摘要 + entry 指针，doc_id/namespace/doc_title/slug/url/weight 全部必填，weight 为 1-10 权重）。传 route_book_id 后自动同步总库路由 |
 
 ### 搜索 & 批量获取 & 元信息
 
@@ -330,7 +330,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | [audit](skills/insight/audit.md) | 文档版本审计 & 变更追踪（变更日报/单篇历史/版本对比/协作追踪） |
 | [dashboard](skills/insight/dashboard.md) | 知识库运营仪表盘（周报/概览/成员详情，纯只读） |
 | [digest](skills/insight/digest.md) | 阅读摘录（核心观点/金句/行动项/疑思五维 + 知识卡片） |
-| [knowledge](skills/insight/knowledge.md) | 文档关联图谱（单篇关联/全库图谱/自动补引用） |
+| [knowledge](skills/insight/knowledge.md) | 知识图谱 & 树搜索（共现图/Louvain社区检测/索引质量检查/章节树） |
 | [search](skills/insight/search.md) | 知识库管道搜索（N 路并行 + 去重 + 降级） |
 | [index](skills/insight/index.md) | 索引构建（文档中心 v4 + 单文档粒度原子同步） |
 
@@ -344,6 +344,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Skill | 说明 |
 |-------|------|
+| [polish](skills/write/polish.md) | AI 写作工作室（触发词路由 → 风格分析/打磨/迁移/模板） |
 | [analyze](skills/write/analyze.md) | 写作风格分析（10 维画像 + 单篇/对比/知识库模式） |
 | [refine](skills/write/refine.md) | 笔记打磨（三级打磨 + N 次打磨 + 批量模式） |
 | [transfer](skills/write/transfer.md) | 风格迁移（提取风格画像 → 重写 → 对照） |
@@ -378,7 +379,7 @@ yuque-ai-mcp/
 │       ├── shared/types.ts    # 共享类型
 │       └── tools/
 │           ├── repos.ts       # 知识库 CRUD
-│           ├── repo-groups.ts # 知识库分组（Cookie 态）
+│           ├── book-stacks/   # 知识库分组（Cookie 态）
 │           ├── docs.ts        # 文档 CRUD + 版本 + 目录
 │           ├── notes.ts       # 小记 CRUD + 软删除/恢复
 │           ├── recycles.ts    # 回收站 list/restore/destroy
