@@ -1,6 +1,7 @@
 import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { cleanToken } from "./utils.js";
+import { listAllDocs } from "./search.js";
 // 容量上限（语雀单库文档上限约 5000）
 const REPO_DOC_LIMIT = 5000;
 // 扩容阈值：到达此比例时提示需要新建子库
@@ -129,22 +130,27 @@ export async function createIndexDoc(params) {
         type: "DOC",
         doc_ids: [docId],
     });
-    let routeSyncError = "";
+    // 路由同步：子库写入成功后再写总库，失败则整体抛错让调用方重试
     if (route_book_id) {
-        try {
-            const subRepo = await get(`/repos/${bookId}`);
-            const subNs = subRepo.data?.namespace || subRepo.namespace || "";
-            if (subNs) {
-                await post(`/repos/${route_book_id}/docs`, {
-                    title: cleanKw,
-                    body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
-                    format: "markdown",
-                });
-                routeSyncError = "已同步";
-            }
+        const subRepo = await get(`/repos/${bookId}`);
+        const subNs = subRepo.data?.namespace || subRepo.namespace || "";
+        if (!subNs) {
+            throw new Error(`无法获取子索引库 namespace（book_id=${bookId}），路由同步中断`);
         }
-        catch (e) {
-            routeSyncError = `路由同步失败: ${e instanceof Error ? e.message : String(e)}`;
+        // 总库可能已有同名路由文档（上次重试残留），先查后覆盖
+        const existingRouteDoc = await findDocByTitle(route_book_id, cleanKw);
+        if (existingRouteDoc) {
+            await put(`/repos/${route_book_id}/docs/${existingRouteDoc.id}`, {
+                title: cleanKw,
+                body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
+            });
+        }
+        else {
+            await post(`/repos/${route_book_id}/docs`, {
+                title: cleanKw,
+                body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
+                format: "markdown",
+            });
         }
     }
     return JSON.stringify({
@@ -153,9 +159,15 @@ export async function createIndexDoc(params) {
         keyword: cleanKw,
         total_entries: entries.length,
         book_id: bookId,
-        route_sync: route_book_id ? routeSyncError : "未启用",
+        route_sync: route_book_id ? "已同步" : "未启用",
         ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
     }, null, 2);
+}
+/** 按标题查找总库/子库中已存在的文档（用于路由同步幂等） */
+async function findDocByTitle(bookId, title) {
+    const allDocs = await listAllDocs(bookId);
+    const found = allDocs.find((d) => (d.title || "").trim() === title);
+    return found ? { id: found.id } : null;
 }
 /**
  * 解析索引文档 body → entries

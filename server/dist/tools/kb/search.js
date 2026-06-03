@@ -282,7 +282,7 @@ function formatSearchResults(tokens, routeEntries, entries, dirtyBlocks, routeEr
 }
 // ─── 分页拉取全部文档 ──────────────────────────────────
 /** 逐页拉取知识库全部文档（语雀 API limit ≤ 100） */
-async function listAllDocs(bookId) {
+export async function listAllDocs(bookId) {
     const all = [];
     let offset = 0;
     const limit = 100;

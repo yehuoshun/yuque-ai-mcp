@@ -346,7 +346,7 @@ function formatSearchResults(
 // ─── 分页拉取全部文档 ──────────────────────────────────
 
 /** 逐页拉取知识库全部文档（语雀 API limit ≤ 100） */
-async function listAllDocs(bookId: number | string): Promise<any[]> {
+export async function listAllDocs(bookId: number | string): Promise<any[]> {
   const all: any[] = [];
   let offset = 0;
   const limit = 100;
