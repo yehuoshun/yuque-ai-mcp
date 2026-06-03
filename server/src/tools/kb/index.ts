@@ -155,26 +155,14 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }
 
   // 路由同步：子库写入成功后再写总库，失败则整体抛错让调用方重试
+  // 总库路由文档是 JSON 数组，一对多——一个关键词可路由到多个子索引库
   if (route_book_id) {
     const subRepo = await get(`/repos/${bookId}`) as any;
     const subNs = subRepo.data?.namespace || subRepo.namespace || "";
     if (!subNs) {
       throw new Error(`无法获取子索引库 namespace（book_id=${bookId}），路由同步中断`);
     }
-    // 总库路由文档幂等：先查后覆盖
-    const existingRouteDoc = await findDocByTitle(route_book_id, cleanKw);
-    if (existingRouteDoc) {
-      await put(`/repos/${route_book_id}/docs/${existingRouteDoc.id}`, {
-        title: cleanKw,
-        body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
-      });
-    } else {
-      await post(`/repos/${route_book_id}/docs`, {
-        title: cleanKw,
-        body: JSON.stringify([{ book_id: Number(bookId), namespace: subNs }]),
-        format: "markdown",
-      });
-    }
+    await upsertRouteDoc(route_book_id, cleanKw, Number(bookId), subNs);
   }
 
   return JSON.stringify({
@@ -189,11 +177,56 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }, null, 2);
 }
 
-/** 按标题查找总库/子库中已存在的文档（用于路由同步幂等） */
+/** 按标题查找总库/子库中已存在的文档（用于幂等） */
 async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number } | null> {
   const allDocs = await listAllDocs(bookId);
   const found = allDocs.find((d: any) => (d.title || "").trim() === title);
   return found ? { id: found.id } : null;
+}
+
+/**
+ * 总库路由文档 upsert：JSON 数组一对多，不覆盖已有其他子库条目
+ * body 格式：[{book_id, namespace}, ...]
+ */
+async function upsertRouteDoc(
+  routeBookId: number | string,
+  keyword: string,
+  subBookId: number,
+  subNs: string
+): Promise<void> {
+  const existing = await findDocByTitle(routeBookId, keyword);
+  const newEntry = { book_id: subBookId, namespace: subNs };
+
+  if (existing) {
+    // 已有路由文档：读 body → 合并数组 → 写回
+    const docData = await get(`/repos/${routeBookId}/docs/${existing.id}`) as any;
+    const rawBody: string = (docData.data || docData).body || "";
+    let list: any[] = [];
+    try {
+      const parsed = JSON.parse(rawBody);
+      list = Array.isArray(parsed) ? parsed : [];
+    } catch { /* body 损坏则重建 */ }
+
+    // 按 book_id 去重 upsert
+    const idx = list.findIndex((e: any) => String(e.book_id) === String(subBookId));
+    if (idx >= 0) {
+      list[idx] = newEntry;
+    } else {
+      list.push(newEntry);
+    }
+
+    await put(`/repos/${routeBookId}/docs/${existing.id}`, {
+      title: keyword,
+      body: JSON.stringify(list),
+    });
+  } else {
+    // 新建路由文档
+    await post(`/repos/${routeBookId}/docs`, {
+      title: keyword,
+      body: JSON.stringify([newEntry]),
+      format: "markdown",
+    });
+  }
 }
 
 /**
