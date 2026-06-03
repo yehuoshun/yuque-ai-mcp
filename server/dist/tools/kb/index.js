@@ -116,20 +116,36 @@ export async function createIndexDoc(params) {
     const capacityWarning = capacity.level === "warn"
         ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线`
         : "";
-    const data = await post(`/repos/${bookId}/docs`, {
-        title: cleanKw,
-        body,
-        format: "markdown",
-    });
-    const created = data.data || data;
-    const docId = created.id;
-    await put(`/repos/${bookId}/toc`, {
-        action: "appendNode",
-        action_mode: "child",
-        target_uuid: "",
-        type: "DOC",
-        doc_ids: [docId],
-    });
+    // 子库写入幂等：重试时已有同名文档则覆盖，不重复创建
+    let docId;
+    let isNew = false;
+    const existingSubDoc = await findDocByTitle(bookId, cleanKw);
+    if (existingSubDoc) {
+        await put(`/repos/${bookId}/docs/${existingSubDoc.id}`, {
+            title: cleanKw,
+            body,
+        });
+        docId = existingSubDoc.id;
+    }
+    else {
+        const data = await post(`/repos/${bookId}/docs`, {
+            title: cleanKw,
+            body,
+            format: "markdown",
+        });
+        const created = data.data || data;
+        docId = created.id;
+        isNew = true;
+    }
+    if (isNew) {
+        await put(`/repos/${bookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            target_uuid: "",
+            type: "DOC",
+            doc_ids: [docId],
+        });
+    }
     // 路由同步：子库写入成功后再写总库，失败则整体抛错让调用方重试
     if (route_book_id) {
         const subRepo = await get(`/repos/${bookId}`);
@@ -137,7 +153,7 @@ export async function createIndexDoc(params) {
         if (!subNs) {
             throw new Error(`无法获取子索引库 namespace（book_id=${bookId}），路由同步中断`);
         }
-        // 总库可能已有同名路由文档（上次重试残留），先查后覆盖
+        // 总库路由文档幂等：先查后覆盖
         const existingRouteDoc = await findDocByTitle(route_book_id, cleanKw);
         if (existingRouteDoc) {
             await put(`/repos/${route_book_id}/docs/${existingRouteDoc.id}`, {
@@ -154,7 +170,8 @@ export async function createIndexDoc(params) {
         }
     }
     return JSON.stringify({
-        created: true,
+        created: isNew,
+        updated: !isNew,
         doc_id: docId,
         keyword: cleanKw,
         total_entries: entries.length,
