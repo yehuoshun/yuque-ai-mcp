@@ -52,10 +52,10 @@ export async function kbSearch(params: {
     ].join("\n");
   }
 
-  // Step 1: 搜索总库 → 找关键词路由文档，确认 keyword 已索引
-  const sourceBooks = await findRouteDocs(tokens, routeBooks, routeErrors);
+  // Step 1: 搜索总库 → 找关键词路由文档 → 解析出文档级 namespace
+  const routeEntries = await findRouteDocs(tokens, routeBooks, routeErrors);
 
-  if (sourceBooks.length === 0) {
+  if (routeEntries.length === 0) {
     const lines = [
       `🔍 搜索 token：${tokens.join(", ")}`,
       ...routeErrors.map(e => `- ${e.token}: ${e.reason}`),
@@ -66,32 +66,20 @@ export async function kbSearch(params: {
     return lines.join("\n");
   }
 
-  // Step 2: 搜索子库 → 找关键词索引文档
-  const subIndexDocs = await searchSubIndexForTokens(tokens, route_book_sub, routeErrors);
+  // Step 2: 路由文档的 namespace 是文档级路径（group/slug/slug），直接读索引文档
+  const { entries, dirtyBlocks, errors } = await readIndexDocsFromRoutes(routeEntries);
 
-  if (subIndexDocs.length === 0) {
-    return [
-      `🔍 搜索 token：${tokens.join(", ")}`,
-      ...routeErrors.map(e => `- ${e.token}: ${e.reason}`),
-      '',
-      `总库路由命中但子库未找到索引文档。请确认子库已构建关键词索引。`,
-    ].join("\n");
-  }
-
-  // Step 3: 读取子库索引文档 → 展开源文档 entries
-  const { entries, dirtyBlocks, errors } = await readIndexDocs(subIndexDocs);
-
-  return formatSearchResults(tokens, subIndexDocs, entries, dirtyBlocks, routeErrors, errors, sourceBooks);
+  return formatSearchResults(tokens, routeEntries, entries, dirtyBlocks, routeErrors, errors);
 }
 
 // ─── 路由定位 ──────────────────────────────────────────
 
-/** 搜索总库 → 解析路由文档 body → 返回 source_books */
+/** 搜索总库 → 解析路由文档 body → 返回索引文档指针（文档级 namespace） */
 async function findRouteDocs(
   tokens: string[],
   routeBooks: YuqueBook[],
   errors: { token: string; reason: string }[]
-): Promise<{ book_id: number | string; namespace: string; last_built?: string }[]> {
+): Promise<RouteEntry[]> {
   const seenDocs = new Map<number, { title: string; book_id: number | string }>();
 
   // N 路并行搜总库 — 语雀 v2 API 不支持 in:title，客户端过滤
@@ -103,7 +91,6 @@ async function findRouteDocs(
           const info = r.target || r;
           const id = info.id || r.id;
           const title = (info.title || r.title || "").trim();
-          // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
           if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(id)) {
             seenDocs.set(id, { title, book_id: rb.book_id });
           }
@@ -115,7 +102,7 @@ async function findRouteDocs(
   }));
 
   if (seenDocs.size === 0) {
-    // 降级：搜索 API 无结果时（新文档索引延迟），逐页拉取全部文档 + 客户端标题匹配
+    // 降级：搜索 API 无结果时，逐页拉取全部文档 + 客户端标题匹配
     await Promise.all(routeBooks.map(async (rb) => {
       try {
         const allDocs = await listAllDocs(rb.book_id);
@@ -131,9 +118,9 @@ async function findRouteDocs(
 
   if (seenDocs.size === 0) return [];
 
-  // 并发读总库文档 body → 解析 source_books
-  const allSourceBooks: { book_id: number | string; namespace: string; last_built?: string }[] = [];
-  const seenSourceBooks = new Set<string>();
+  // 并发读总库文档 body → 解析路由指针
+  const allRoutes: RouteEntry[] = [];
+  const seenKeys = new Set<string>();
 
   await Promise.all(
     Array.from(seenDocs.entries()).map(async ([docId, doc]) => {
@@ -141,7 +128,7 @@ async function findRouteDocs(
         const data = await get(`/repos/${doc.book_id}/docs/${docId}`) as any;
         const body: string = (data.data || data).body || "";
 
-        // 路由文档 body — 格式：[{book_id, namespace, last_built?}]
+        // 路由文档 body — 格式：[{book_id, namespace}]，namespace 是文档级路径
         let list: any[] = [];
         try {
           const parsed = JSON.parse(body);
@@ -151,18 +138,22 @@ async function findRouteDocs(
         }
 
         if (list.length === 0) {
-          errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 source_books` });
+          errors.push({ token: `路由 doc_${docId}`, reason: `无法解析路由条目` });
           return;
         }
 
         for (const item of list) {
-          const key = `${item.book_id}/${item.namespace}`;
-          if (item.book_id && item.namespace && !seenSourceBooks.has(key)) {
-            seenSourceBooks.add(key);
-            allSourceBooks.push({
-              book_id: item.book_id,
-              namespace: item.namespace,
-              last_built: item.last_built,
+          if (!item.namespace) continue;
+          // namespace 是文档级路径（group/slug/slug），直接用作 book_namespace
+          // 从 namespace 提取 book_id（取前两段 group/slug）
+          const parts = item.namespace.split("/");
+          const bookNs = parts.length >= 2 ? parts.slice(0, 2).join("/") : item.namespace;
+          const key = `${bookNs}/${item.namespace}`;
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            allRoutes.push({
+              doc_id: 0, // 不用 doc_id，直接用 namespace 读
+              book_namespace: item.namespace, // 文档级 namespace
             });
           }
         }
@@ -172,62 +163,13 @@ async function findRouteDocs(
     })
   );
 
-  return allSourceBooks;
+  return allRoutes;
 }
 
-// ─── 搜索子库索引文档 ──────────────────────────────────
+// ─── 直接读索引文档（文档级 namespace） ────────────────
 
-/** 用 tokens 搜索子库 → 返回匹配的索引文档 RouteEntry[] */
-async function searchSubIndexForTokens(
-  tokens: string[],
-  subBooks: YuqueBook[],
-  errors: { token: string; reason: string }[]
-): Promise<RouteEntry[]> {
-  const seenDocs = new Map<string, { doc_id: number; book_namespace: string }>();
-
-  await Promise.all(subBooks.map(async (sb) => {
-    await Promise.all(tokens.map(async (token) => {
-      try {
-        const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${sb.namespace}`) as any;
-        for (const r of (data.data || [])) {
-          const info = r.target || r;
-          const id = info.id || r.id;
-          const title = (info.title || r.title || "").trim();
-          const key = `${sb.namespace}/${id}`;
-          // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
-          if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(key)) {
-            seenDocs.set(key, { doc_id: Number(id), book_namespace: sb.namespace });
-          }
-        }
-      } catch (err: any) {
-        errors.push({ token, reason: `子库搜索失败: ${err.message || err}` });
-      }
-    }));
-  }));
-
-  if (seenDocs.size === 0) {
-    // 降级：搜索 API 无结果时，逐页拉取全部文档 + 客户端标题匹配
-    await Promise.all(subBooks.map(async (sb) => {
-      try {
-        const allDocs = await listAllDocs(sb.book_id);
-        for (const doc of allDocs) {
-          const title = (doc.title || "").trim();
-          if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
-            const key = `${sb.namespace}/${doc.id}`;
-            seenDocs.set(key, { doc_id: Number(doc.id), book_namespace: sb.namespace });
-          }
-        }
-      } catch { /* 降级失败也不报错 */ }
-    }));
-  }
-
-  return Array.from(seenDocs.values());
-}
-
-// ─── 读取子库索引文档 ──────────────────────────────────
-
-/** 按 doc_id/book_namespace 读取子库索引文档，展开源文档指针 */
-async function readIndexDocs(
+/** 按文档级 namespace 直接读索引文档，展开源文档指针 */
+async function readIndexDocsFromRoutes(
   routeEntries: RouteEntry[]
 ): Promise<{ entries: SourceEntry[]; dirtyBlocks: number; errors: { token: string; reason: string }[] }> {
   const errors: { token: string; reason: string }[] = [];
@@ -238,22 +180,31 @@ async function readIndexDocs(
   const CONCURRENCY = config.search_concurrency || 5;
   const deduped = dedupByDocIdNs(routeEntries);
 
-  // 分批并发读索引文档
+  // 分批并发读索引文档（book_namespace 是文档级路径 group/slug/slug，
+  // 拆成 repo_ns + doc_slug 后调 GET /repos/{repo_ns}/docs/{slug}）
   for (let i = 0; i < deduped.length; i += CONCURRENCY) {
     const chunk = deduped.slice(i, i + CONCURRENCY);
 
     const results = await Promise.all(chunk.map(async (re) => {
       try {
-        const data = await get(`/repos/${re.book_namespace}/docs/${re.doc_id}`) as any;
+        // 文档级 namespace 如 yehuoshun/idx-java-1/springboot
+        // → repo_ns=yehuoshun/idx-java-1, doc_slug=springboot
+        const parts = re.book_namespace.split("/");
+        if (parts.length < 3) {
+          errors.push({ token: 'body_read', reason: `namespace=${re.book_namespace}: 不是文档级路径（需要三段 group/slug/slug）` });
+          return { book_namespace: re.book_namespace, title: "", body: "" };
+        }
+        const repoNs = parts.slice(0, 2).join("/");
+        const docSlug = parts.slice(2).join("/");
+        const data = await get(`/repos/${repoNs}/docs/${docSlug}`) as any;
         return {
-          doc_id: re.doc_id,
           book_namespace: re.book_namespace,
           title: (data.data || data).title || "",
           body: (data.data || data).body || "",
         };
       } catch (err: any) {
-        errors.push({ token: 'body_read', reason: `doc_id=${re.doc_id}, book_namespace=${re.book_namespace}: ${err.message || String(err)}` });
-        return { doc_id: re.doc_id, book_namespace: re.book_namespace, title: "", body: "" };
+        errors.push({ token: 'body_read', reason: `namespace=${re.book_namespace}: ${err.message || String(err)}` });
+        return { book_namespace: re.book_namespace, title: "", body: "" };
       }
     }));
 
@@ -310,8 +261,7 @@ function formatSearchResults(
   entries: SourceEntry[],
   dirtyBlocks: number,
   routeErrors: { token: string; reason: string }[],
-  readErrors: { token: string; reason: string }[],
-  _sourceBooks: { book_id: number | string; namespace: string; last_built?: string }[]
+  readErrors: { token: string; reason: string }[]
 ): string {
   const errors = [...routeErrors, ...readErrors];
   const hitNS = [...new Set(entries.map(e => e.sub_index_ns).filter(Boolean))];

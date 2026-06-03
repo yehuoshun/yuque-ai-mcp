@@ -125,6 +125,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 
   // 子库写入幂等：重试时已有同名文档则覆盖，不重复创建
   let docId: number;
+  let docSlug: string;
   let isNew = false;
   const existingSubDoc = await findDocByTitle(bookId, cleanKw);
   if (existingSubDoc) {
@@ -133,6 +134,9 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
       body,
     });
     docId = existingSubDoc.id;
+    // PUT 不返回 slug，需单独读
+    const docData = await get(`/repos/${bookId}/docs/${docId}`) as any;
+    docSlug = (docData.data || docData).slug || "";
   } else {
     const data = await post(`/repos/${bookId}/docs`, {
       title: cleanKw,
@@ -141,7 +145,12 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     }) as any;
     const created = data.data || data;
     docId = created.id as number;
+    docSlug = created.slug || "";
     isNew = true;
+  }
+
+  if (!docSlug) {
+    throw new Error(`无法获取索引文档 slug（doc_id=${docId}），路由同步中断`);
   }
 
   if (isNew) {
@@ -155,14 +164,16 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }
 
   // 路由同步：子库索引文档写入成功后在总库创建路由指针
-  // 总库路由文档 body 是 JSON 数组 [{book_id, namespace}]，指向各子库中的索引文档
+  // 总库路由文档 body 是 JSON 数组 [{book_id, namespace}]，
+  // namespace 是文档级路径（group/slug/slug），指向子库中的具体索引文档
   if (route_book_id) {
     const subRepo = await get(`/repos/${bookId}`) as any;
-    const subNs = subRepo.data?.namespace || subRepo.namespace || "";
-    if (!subNs) {
+    const subRepoNs = (subRepo.data || subRepo).namespace || "";
+    if (!subRepoNs) {
       throw new Error(`无法获取子索引库 namespace（book_id=${bookId}），路由同步中断`);
     }
-    await upsertRouteDoc(route_book_id, cleanKw, Number(bookId), subNs);
+    const docNs = `${subRepoNs}/${docSlug}`;
+    await upsertRouteDoc(route_book_id, cleanKw, Number(bookId), docNs);
   }
 
   return JSON.stringify({
@@ -186,16 +197,17 @@ async function findDocByTitle(bookId: number | string, title: string): Promise<{
 
 /**
  * 总库路由文档 upsert：body 为 JSON 数组 [{book_id, namespace}]，
- * 每项指向一个子库中的索引文档。按 book_id 去重合并，不覆盖已有其他子库的指针。
+ * namespace 是文档级路径（group/slug/slug），指向子库中的具体索引文档。
+ * 按 book_id 去重合并，不覆盖已有其他子库的指针。
  */
 async function upsertRouteDoc(
   routeBookId: number | string,
   keyword: string,
   subBookId: number,
-  subNs: string
+  docNs: string
 ): Promise<void> {
   const existing = await findDocByTitle(routeBookId, keyword);
-  const newEntry = { book_id: subBookId, namespace: subNs };
+  const newEntry = { book_id: subBookId, namespace: docNs };
 
   if (existing) {
     // 已有路由文档：读 body → 合并数组 → 写回
