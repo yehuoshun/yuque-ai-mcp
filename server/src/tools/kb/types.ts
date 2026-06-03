@@ -10,6 +10,39 @@ export interface SourceEntry {
   sub_index_ns?: string;
   parse_error?: string;
   weight?: number;  // LLM 拟合度 1-10
+  tree?: {          // 章节树（透传给 Agent 做树搜索）
+    sections: Array<{
+      id: string;
+      title: string;
+      summary: string;
+    }>;
+  };
+}
+
+// yuque_kb_search 结构化返回
+export interface KbSearchResult {
+  tokens: string[];
+  route_hits: number;                    // 路由命中数
+  source_entries: SourceEntry[];         // 去重排序后的源文档指针
+  graph_expanded: boolean;              // 是否触发了图谱扩展
+  graph_neighbors: string[];            // 图谱扩展的邻居关键词
+  fallback_used: "none" | "global_search"; // 降级策略
+  dirty_blocks: number;                 // 索引文档 body 解析失败的个数
+  errors: { token: string; reason: string }[];
+  hint?: string;                        // 建议下一步操作
+}
+
+// _graph 索引文档 body 格式
+export interface GraphDoc {
+  built_at?: string;
+  nodes?: number;
+  edges?: number;
+  communities?: Array<{
+    id: number;
+    label: string;
+    keywords: string[];
+    cohesion: number;
+  }>;
 }
 
 // 源文档指针（写入索引文档 body）

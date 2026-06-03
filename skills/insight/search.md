@@ -19,48 +19,88 @@
 ① LLM 生成 2-5 个搜索 token
   "Spring事务怎么配" → ["Spring", "事务", "Transactional"]
   ↓
-② 调 yuque_kb_search(tokens)
-  → N 路并行搜总库 → 找关键词路由文档
-  → 路由文档 body 解析出 [{book_id, namespace}]，namespace 是文档级路径（group/slug/slug）
-  → 直接按文档级 namespace 读索引文档（不再搜子库）
-  → parseIndexDoc 解析 keywords / summary / entries
-  → 展开 entries → doc_id 去重合并
-  → 返回 source_entries（源文档指针列表）
+② 调 yuque_kb_search(tokens)  ← 工具内部自动完成以下步骤
+  ├─ 路由定位：N 路并行搜总库 → 找关键词路由文档
+  │   └─ 路由 0 命中 → 自动降级语雀全库搜索（fallback_used="global_search"）
+  ├─ 读索引文档：按文档级 namespace 直接 GET 读 → parseIndexDoc → 展开 entries
+  ├─ 图谱扩展：命中 < 3 篇 → 搜 _graph → 找社区 → 1 跳邻居补搜 → 去重合并
+  └─ 返回结构化 JSON（KbSearchResult）
   ↓
-②.5 图谱扩展（条件触发，见 §5）
-  → yuque_kb_search(["_graph"]) 找图谱文档
-  → 命中关键词的 1 跳邻居（权重 Top 5）
-  → 补搜邻居关键词的索引文档
-  → 展开新 entries → 去重合并
+③ Agent 读 KbSearchResult.source_entries
+  → 候选 > 5 篇？→ 用 summary + keywords → LLM 重排 → Top 5
   ↓
-③ 命中 0？→ 二轮搜新 token 或降级全库搜索
-  ↓
-④ 候选 > 5 篇？→ 用 summary + keywords → LLM 重排 → Top 5
-  ↓
-⑤ 树搜索读原文（见 §6）
-  → 对每篇候选：检查 entry 有无 tree 字段
-  → 有 tree → LLM 读 tree.sections 选相关章节 → 只读相关章节原文
+④ 树搜索读原文（Agent 层，见 §6）
+  → 对每篇候选：检查 entry.tree 字段
+  → 有 tree → LLM 读 sections 选相关章节 → 只读相关章节原文
   → 无 tree → 降级读全文
-  → LLM 生成答案 + 引用
+  ↓
+⑤ LLM 生成答案 + 引用
 ```
 
-### 1.1 为什么独立 token 并行而不是 AND 查询
+### 1.1 工具层 vs Agent 层
+
+| 步骤 | 在哪 | 说明 |
+|------|------|------|
+| 路由定位 | 工具层 | `yuque_kb_search` 内部自动完成 |
+| 降级全库搜索 | 工具层 | 路由 0 命中时自动触发，返回 `fallback_used="global_search"` |
+| 图谱扩展 | 工具层 | 命中 < 3 篇时自动触发，返回 `graph_expanded=true` |
+| 重排序 | Agent 层 | 需要 LLM 根据用户问题语义判断相关性 |
+| 二轮 token 重试 | Agent 层 | 需要 LLM 分析缺什么 → 生成新 token |
+| 树搜索章节选择 | Agent 层 | 需要 LLM 读 tree.sections 选相关章节 |
+| 读原文 + 生成答案 | Agent 层 | 需要 LLM 综合多篇文档 |
+
+### 1.2 返回值结构
+
+```json
+{
+  "tokens": ["Spring", "事务"],
+  "route_hits": 3,
+  "source_entries": [
+    {
+      "doc_id": 584,
+      "namespace": "yehuoshun/huwsx0",
+      "title": "SpringBoot自动配置原理",
+      "url": "https://www.yuque.com/yehuoshun/huwsx0/kf8s0xue",
+      "keywords": ["SpringBoot", "自动配置", "AutoConfiguration"],
+      "search_surface": "SpringBoot自动配置怎么工作的",
+      "summary": "[SpringBoot] 本文详解SpringBoot自动配置原理...",
+      "weight": 10,
+      "tree": { "sections": [{"id": "s1", "title": "...", "summary": "..."}] },
+      "sub_index_ns": "yehuoshun/idx-java-1/springboot"
+    }
+  ],
+  "graph_expanded": false,
+  "graph_neighbors": [],
+  "fallback_used": "none",
+  "dirty_blocks": 0,
+  "errors": [],
+  "hint": null
+}
+```
+
+### 1.3 为什么独立 token 并行而不是 AND 查询
 
 - 语雀搜索 API 对多 token 做 AND 匹配："前端 部署" 要求两词同时出现在同一文档 → 极易 0 命中
 - 独立 token 并行：["前端"] + ["部署"] 各自搜 → 每个 token 独立命中 → 去重合并
 - 实测：AND 模式命中率 73%，独立 token 并行 **100%**（15/15）
 - 每个 token 独立命中后，LLM 重排筛选保证准确率
 
-### 1.2 降级策略
+### 1.4 降级策略
 
 ```
-索引管线搜索 0 命中
-  ↓
-二轮搜索：LLM 分析缺什么 → 生成新 token → 再跑 yuque_kb_search
-  ↓ 仍不够
-降级全库搜索：yuque_search 不传 scope → 语雀原生全库搜索
-  ↓ 仍 0 命中
-返回「未找到相关内容，请尝试换个问法」
+yuque_kb_search 内部：
+  路由搜索 0 命中
+    ↓ 自动
+  降级语雀全库搜索（不传 scope）
+    → fallback_used="global_search"
+    → source_entries 来自全库搜索结果
+
+Agent 层：
+  工具返回 source_entries 为空
+    ↓
+  二轮搜索：LLM 分析缺什么 → 生成新 token → 再跑 yuque_kb_search
+    ↓ 仍不够
+  返回「未找到相关内容，请尝试换个问法」
 ```
 
 ---
@@ -87,7 +127,7 @@
 ["token1", "token2", ...]
 ```
 
-### 2.2 重排序 Prompt
+### 2.2 重排序 Prompt（Agent 层）
 
 ```
 以下是从语雀索引库搜索到的源文档摘要和关键词。根据用户问题判断每篇的相关性，筛选出最相关的 5-8 篇，按相关性降序输出。
@@ -125,20 +165,25 @@
 
 ### yuque_kb_search
 
-| 参数 | 说明 |
-|------|------|
-| `tokens` | 搜索 token 数组（LLM 生成） |
-| `index_book_ns` | 子索引库 namespace（如 yehuoshun/idx-misc-1） |
-| `index_book_id` | 子索引库 book_id |
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `tokens` | ✅ | 搜索 token 数组（LLM 生成，每个独立并行搜） |
+| `route_ns` | ❌ | 索引总库 namespace（不传则读 config） |
+| `route_id` | ❌ | 索引总库 book_id（不传则读 config） |
 
-### 子索引库选择
+### 返回值字段
 
-先通过域名判断：
-- Java / Spring / JVM 相关 → idx-java-1 (79349679)
-- Python / Django / Flask → idx-python-1 (79350288)
-- 其他 / 不确定 → idx-misc-1 (79350299)
-
-> 域名判断由 LLM 根据用户问题内容推断。不确定时默认走 idx-misc-1。
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `tokens` | string[] | 使用的搜索 token |
+| `route_hits` | number | 路由文档命中数 |
+| `source_entries` | SourceEntry[] | 去重排序后的源文档指针，按 weight 降序 |
+| `graph_expanded` | boolean | 是否触发了图谱扩展 |
+| `graph_neighbors` | string[] | 图谱扩展的邻居关键词 |
+| `fallback_used` | "none" \| "global_search" | 降级策略 |
+| `dirty_blocks` | number | 索引文档 body 解析失败的个数 |
+| `errors` | array | 错误列表 |
+| `hint` | string? | 建议下一步操作 |
 
 ---
 
@@ -146,60 +191,66 @@
 
 | 阶段 | 并发数 | 说明 |
 |------|--------|------|
-| 搜索子索引库 | N（token 数） | 每个 token 独立并行搜，结果去重合并 |
-| 读索引文档 body | `search_concurrency`（默认 5） | 分批并发 yuque_get_doc，由 config 控制 |
-| 重排序 | - | LLM 单次调用，直接用 summary 字段 |
-| 读源文档原文 | `search_concurrency`（默认 5） | 并发 yuque_get_doc |
+| 路由搜索 | N（token 数）× M（总库数） | 每个 token 在每个总库独立并行搜 |
+| 读索引文档 body | `search_concurrency`（默认 5） | 分批并发，由 config 控制 |
+| 图谱扩展 | 串行 | 搜 _graph → 搜邻居路由 → 读邻居索引文档 |
+| 全库降级 | N（token 数） | 每个 token 独立搜全库 |
 
 > 并发数可通过配置文件 `search_concurrency` 或环境变量 `YUQUE_SEARCH_CONCURRENCY` 调整。
 
 ---
 
-## 5. 图谱扩展
+## 5. 图谱扩展（工具层自动）
 
 ### 5.1 触发条件
 
-满足以下任一条件时触发：
-
-| 条件 | 逻辑 |
-|------|------|
-| 直接命中 < 3 篇 | 候选太少，图扩展补量 |
-| 用户问题涉及「关系」「对比」「关联」「相关」 | 语义上需要关联知识 |
-| 子索引库存在 `_graph` 文档且 `built_at` 距今 ≤ 30 天 | 图数据可用 |
+工具内部自动判断：`source_entries.length < 3` 时触发。
 
 ### 5.2 流程
 
 ```
-1. yuque_kb_search(["_graph"], ...) → 找 _graph 文档
-   → 不存在或过期 → 跳过图扩展
-2. yuque_get_doc → 读完整 JSON（nodes + edges + communities）
-3. 提取命中关键词的 1 跳邻居，按边权重降序取 Top 5
-4. 对每个邻居关键词：yuque_kb_search([neighbor], ...)
-   → 搜邻居的索引文档 → 展开 entries
+1. 搜 _graph 路由文档 → 读 body → 解析 GraphDoc
+2. 在 communities 中找命中关键词所属社区
+3. 取同社区内其他关键词（排除已命中），按社区 cohesion 排序
+4. 取 Top 5 邻居关键词 → 搜路由 → 读索引文档 → 展开 entries
 5. 与原有 source_entries 去重合并
-6. 进入重排阶段
+6. 返回 graph_expanded=true + graph_neighbors
 ```
 
-### 5.3 不触发时
+### 5.3 _graph 文档格式
 
-跳过此步，直接进入步骤 ③。
+```json
+{
+  "built_at": "2026-06-02T20:00:00Z",
+  "nodes": 156,
+  "edges": 423,
+  "communities": [
+    {"id": 0, "label": "Spring生态", "keywords": ["SpringBoot","自动配置","JPA"], "cohesion": 0.72},
+    {"id": 1, "label": "容器化", "keywords": ["Docker","K8s"], "cohesion": 0.85}
+  ]
+}
+```
+
+> 图谱由索引构建完成后自动生成，详见 [knowledge.md](knowledge.md)。
 
 ---
 
-## 6. 树搜索
+## 6. 树搜索（Agent 层）
 
 ### 6.1 流程
 
 ```
-⑤-a. 对每篇候选 entry：检查有无 tree 字段
-      ├─ 有 tree → 进入 ⑤-b
+工具返回的 source_entries 中，每个 entry 可能含 tree 字段。
+
+⑥-a. 对每篇候选 entry：检查 entry.tree 字段
+      ├─ 有 tree → 进入 ⑥-b
       └─ 无 tree → 降级读全文
 
-⑤-b. LLM 读 tree.sections（仅标题+摘要，几十 token）
+⑥-b. LLM 读 tree.sections（仅标题+摘要，几十 token）
       → 判断哪些 section 与用户问题相关
       → 输出相关 section id 列表
 
-⑤-c. 只读相关 section 的原文
+⑥-c. 只读相关 section 的原文
       → 拼接后送 LLM 生成答案 + 引用
 ```
 
@@ -222,4 +273,4 @@
 
 ### 6.3 数据来源
 
-`tree` 字段在索引构建时生成，详见 [knowledge.md](knowledge.md) 四、树搜索。
+`tree` 字段在索引构建时生成，工具层透传，详见 [knowledge.md](knowledge.md) 四、树搜索。

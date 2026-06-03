@@ -9,6 +9,38 @@ export interface SourceEntry {
     sub_index_ns?: string;
     parse_error?: string;
     weight?: number;
+    tree?: {
+        sections: Array<{
+            id: string;
+            title: string;
+            summary: string;
+        }>;
+    };
+}
+export interface KbSearchResult {
+    tokens: string[];
+    route_hits: number;
+    source_entries: SourceEntry[];
+    graph_expanded: boolean;
+    graph_neighbors: string[];
+    fallback_used: "none" | "global_search";
+    dirty_blocks: number;
+    errors: {
+        token: string;
+        reason: string;
+    }[];
+    hint?: string;
+}
+export interface GraphDoc {
+    built_at?: string;
+    nodes?: number;
+    edges?: number;
+    communities?: Array<{
+        id: number;
+        label: string;
+        keywords: string[];
+        cohesion: number;
+    }>;
 }
 export interface DocEntry {
     doc_id: number;

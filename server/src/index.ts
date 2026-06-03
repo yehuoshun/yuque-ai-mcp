@@ -476,7 +476,7 @@ const tools: Tool[] = [
   // ═══════════ 知识库搜索 & 索引构建 ═══════════
   {
     name: "yuque_kb_search",
-    description: "知识库管道搜索（双层：总库关键词路由 + 子库关键词索引）。输入搜索 token 数组，自动从 config 读索引总库做路由确认，再搜子索引库命中关键词文档。返回 Markdown 文本（title/url/summary/keywords + 脏块标记）。错误和脏块不静默。",
+    description: "知识库管道搜索（双层路由 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 总库路由定位 2) 子库索引文档读取 3) 命中<3篇时图谱1跳邻居扩展 4) 路由0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/route_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
     inputSchema: {
       type: "object",
       properties: {

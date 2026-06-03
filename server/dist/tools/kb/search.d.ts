@@ -1,10 +1,11 @@
 /**
- * 知识库搜索 — 双层路由：总库关键词路由 → 子库关键词索引
+ * 知识库搜索 — 双层路由 + 图谱扩展 + 降级
  *
- * 1. 全文搜索总库 + 客户端标题过滤 → 找到关键词路由文档
- * 2. 路由文档 body 为 JSON 数组 [{book_id, namespace}]，namespace 是文档级路径
- * 3. 按文档级 namespace 直接读索引文档（不再搜子库）
- * 4. parseIndexDoc 展开 → 返回源文档指针
+ * 1. 搜索总库 → 找关键词路由文档 → 解析文档级 namespace
+ * 2. 按 namespace 直接读索引文档 → 展开 entries
+ * 3. 命中 < 3 篇 → 图谱扩展（1 跳邻居补搜）
+ * 4. 路由 0 命中 → 自动降级语雀全库搜索
+ * 5. 返回结构化 JSON（KbSearchResult）
  */
 export declare function kbSearch(params: {
     tokens: string[];
