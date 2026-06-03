@@ -24,14 +24,24 @@
   → doc_id 去重
   → 5 并发读索引文档 body
   → parseIndexDoc 解析 keywords / summary / entries
-  → 展开 entries → did 去重合并
+  → 展开 entries → doc_id 去重合并
   → 返回 source_entries（源文档指针列表）
+  ↓
+②.5 图谱扩展（条件触发，见 §5）
+  → yuque_kb_search(["_graph"]) 找图谱文档
+  → 命中关键词的 1 跳邻居（权重 Top 5）
+  → 补搜邻居关键词的索引文档
+  → 展开新 entries → 去重合并
   ↓
 ③ 命中 0？→ 二轮搜新 token 或降级全库搜索
   ↓
 ④ 候选 > 5 篇？→ 用 summary + keywords → LLM 重排 → Top 5
   ↓
-⑤ 5 并发 yuque_get_doc 读源文档原文 → LLM 生成答案 + 引用
+⑤ 树搜索读原文（见 §6）
+  → 对每篇候选：检查 entry 有无 tree 字段
+  → 有 tree → LLM 读 tree.sections 选相关章节 → 只读相关章节原文
+  → 无 tree → 降级读全文
+  → LLM 生成答案 + 引用
 ```
 
 ### 1.1 为什么独立 token 并行而不是 AND 查询
@@ -89,7 +99,7 @@
 
 要求：
 1. 只输出最相关的 5-8 篇，不相关的不输出
-2. 相同 did 出现多次（来自不同关键词索引）→ 取最相关的那次即可
+2. 相同 doc_id 出现多次（来自不同关键词索引）→ 取最相关的那次即可
 3. 输出格式：序号. doc_id 标题 — 相关原因（一句话）
 ```
 
@@ -142,3 +152,74 @@
 | 读源文档原文 | `search_concurrency`（默认 5） | 并发 yuque_get_doc |
 
 > 并发数可通过配置文件 `search_concurrency` 或环境变量 `YUQUE_SEARCH_CONCURRENCY` 调整。
+
+---
+
+## 5. 图谱扩展
+
+### 5.1 触发条件
+
+满足以下任一条件时触发：
+
+| 条件 | 逻辑 |
+|------|------|
+| 直接命中 < 3 篇 | 候选太少，图扩展补量 |
+| 用户问题涉及「关系」「对比」「关联」「相关」 | 语义上需要关联知识 |
+| 子索引库存在 `_graph` 文档且 `built_at` 距今 ≤ 30 天 | 图数据可用 |
+
+### 5.2 流程
+
+```
+1. yuque_kb_search(["_graph"], ...) → 找 _graph 文档
+   → 不存在或过期 → 跳过图扩展
+2. yuque_get_doc → 读完整 JSON（nodes + edges + communities）
+3. 提取命中关键词的 1 跳邻居，按边权重降序取 Top 5
+4. 对每个邻居关键词：yuque_kb_search([neighbor], ...)
+   → 搜邻居的索引文档 → 展开 entries
+5. 与原有 source_entries 去重合并
+6. 进入重排阶段
+```
+
+### 5.3 不触发时
+
+跳过此步，直接进入步骤 ③。
+
+---
+
+## 6. 树搜索
+
+### 6.1 流程
+
+```
+⑤-a. 对每篇候选 entry：检查有无 tree 字段
+      ├─ 有 tree → 进入 ⑤-b
+      └─ 无 tree → 降级读全文
+
+⑤-b. LLM 读 tree.sections（仅标题+摘要，几十 token）
+      → 判断哪些 section 与用户问题相关
+      → 输出相关 section id 列表
+
+⑤-c. 只读相关 section 的原文
+      → 拼接后送 LLM 生成答案 + 引用
+```
+
+### 6.2 Tree 选择 Prompt
+
+```
+以下是一篇文档的章节树。根据用户问题，判断哪些章节与问题相关。
+
+用户问题：{question}
+
+章节树：
+{tree_sections}
+
+要求：
+1. 只输出相关的 section id 列表（JSON 数组），如 ["s1", "s3"]
+2. 如果所有章节都相关 → 输出全部 id
+3. 如果都不相关 → 输出空数组 []
+4. 不要输出任何其他内容
+```
+
+### 6.3 数据来源
+
+`tree` 字段在索引构建时生成，详见 [knowledge.md](knowledge.md) 四、树搜索。

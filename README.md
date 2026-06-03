@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 48 MCP Tools + 19 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 48 MCP Tools + 24 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
@@ -44,7 +44,7 @@
 
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
-| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **23 个** |
+| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **24 个** |
 | 知识库问答 | `smart-search` | `smart-search` | **两层索引 + 多路并发 + 降级** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
@@ -75,7 +75,7 @@
 ```
 yuque-mcp (MCP Server)     ← 48 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载/配置管理/分组管理）
     ↓
-业务 Skills                ← 19 个 Skill Markdown（batch/write/map 三分类）
+业务 Skills                ← 24 个 Skill Markdown（manage/transform/insight/collect/write 五分类）
     ↓
 LLM Agent                  ← 问答编排 & 业务流转
 ```
@@ -83,7 +83,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
 | `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 48 个 tools |
-| `skills/` | Markdown | 业务 Skills（batch/write/map 三分类，19 个技能） |
+| `skills/` | Markdown | 业务 Skills（manage/transform/insight/collect/write 五分类，24 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
 ---
@@ -362,12 +362,12 @@ yuque-ai-mcp/
 │   └── yuque-config.json     # 不入库
 ├── references/
 │   └── api_reference.md      # 语雀 OpenAPI 完整参考
-├── skills/                   # 业务 Skills（23 个）
+├── skills/                   # 业务 Skills（24 个）
 │   ├── manage/               # 知识管理（9 个）
 │   ├── transform/            # 内容加工（3 个）
 │   ├── insight/              # 洞察分析（6 个）
 │   ├── collect/              # 碎片收集（1 个）
-│   └── write/                # 写作辅助（5 个，含 polish 路由）
+│   └── write/                # 写作辅助（5 个）
 ├── server/               # MCP Server (TypeScript)
 │   ├── package.json
 │   ├── tsconfig.json

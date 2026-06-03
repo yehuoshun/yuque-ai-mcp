@@ -24,7 +24,9 @@ npx yuque-mcp
         "YUQUE_TOKEN": "<你的API Token>",
         "YUQUE_GROUP": "<用户名>",
         "YUQUE_DEFAULT_BOOK_ID": "123456",
-        "YUQUE_INDEX_BOOK_ID": "789012"
+        "YUQUE_DEFAULT_BOOK_NS": "<namespace>",
+        "YUQUE_ROUTE_BOOK": "[{\"book_id\":123,\"namespace\":\"group/route\"}]",
+        "YUQUE_ROUTE_SUB": "[{\"book_id\":456,\"namespace\":\"group/index-sub\"}]"
       }
     }
   }
@@ -39,21 +41,23 @@ npx yuque-mcp
 | `YUQUE_GROUP` | ✅ | 用户名/团队名 |
 | `YUQUE_DEFAULT_BOOK_ID` | | 默认知识库 ID |
 | `YUQUE_DEFAULT_BOOK_NS` | | 默认知识库 namespace |
-| `YUQUE_INDEX_BOOK_ID` | | 索引知识库 ID |
-| `YUQUE_INDEX_BOOK_NS` | | 索引知识库 namespace |
-| `YUQUE_INDEX_CONCURRENCY` | | 索引构建并发数（默认 1） |
+| `YUQUE_ROUTE_BOOK` | | 索引总库列表（JSON 数组） |
+| `YUQUE_ROUTE_SUB` | | 子索引库列表（JSON 数组） |
 | `YUQUE_SEARCH_CONCURRENCY` | | 搜索/批量读取并发数（默认 5） |
-| `YUQUE_COOKIE` | | 登录 Cookie（上传附件用） |
+| `YUQUE_COOKIE` | | 登录 Cookie（上传附件/回收站管理用） |
 | `YUQUE_CTOKEN` | | CSRF Token |
 | `YUQUE_USER_ID` | | 用户 ID |
 | `YUQUE_CONFIG_PATH` | | 配置文件路径（覆盖环境变量） |
 
 > 也可用配置文件：创建 `yuque-config.json`，通过 `YUQUE_CONFIG_PATH` 指定路径。
 
-## Tools (43)
+## Tools (48)
 
 ### 知识库
 - `yuque_list_repos` · `yuque_get_repo` · `yuque_create_repo` · `yuque_update_repo` · `yuque_delete_repo`
+
+### 知识库分组 ⚠️ 需 Cookie
+- `yuque_list_repo_groups` · `yuque_create_book_stack` · `yuque_update_book_stack` · `yuque_sort_book_stacks` · `yuque_move_books`
 
 ### 文档
 - `yuque_list_docs` · `yuque_get_doc` · `yuque_create_doc` · `yuque_update_doc` · `yuque_delete_doc`
@@ -83,7 +87,7 @@ npx yuque-mcp
 ### 统计
 - `yuque_get_group_stats` · `yuque_get_member_stats` · `yuque_get_book_stats` · `yuque_get_doc_stats`
 
-### 回收站
+### 回收站 ⚠️ 需 Cookie
 - `yuque_list_recycles` · `yuque_restore_recycle` · `yuque_destroy_recycle`
 
 ### 配置
