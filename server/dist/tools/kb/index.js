@@ -135,14 +135,12 @@ export async function createIndexDoc(params) {
     let isNew = false;
     const existingSubDoc = await findDocByTitle(bookId, cleanKw);
     if (existingSubDoc) {
-        await put(`/repos/${bookId}/docs/${existingSubDoc.id}`, {
+        const putResult = await put(`/repos/${bookId}/docs/${existingSubDoc.id}`, {
             title: cleanKw,
             body,
         });
         docId = existingSubDoc.id;
-        // PUT 不返回 slug，需单独读
-        const docData = await get(`/repos/${bookId}/docs/${docId}`);
-        docSlug = (docData.data || docData).slug || "";
+        docSlug = (putResult.data || putResult).slug || existingSubDoc.slug || "";
     }
     else {
         const data = await post(`/repos/${bookId}/docs`, {
@@ -171,8 +169,8 @@ export async function createIndexDoc(params) {
     // 总库路由文档 body 是 JSON 数组 [{book_id, namespace}]，
     // namespace 是文档级路径（group/slug/slug），指向子库中的具体索引文档
     if (route_book_id) {
-        const subRepo = await get(`/repos/${bookId}`);
-        const subRepoNs = (subRepo.data || subRepo).namespace || "";
+        const subBook = config.route_book_sub.find(b => String(b.book_id) === String(bookId));
+        const subRepoNs = subBook?.namespace || "";
         if (!subRepoNs) {
             throw new Error(`无法获取子索引库 namespace（book_id=${bookId}），路由同步中断`);
         }
@@ -190,11 +188,22 @@ export async function createIndexDoc(params) {
         ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
     }, null, 2);
 }
-/** 按标题查找总库/子库中已存在的文档（用于幂等） */
+// 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs）
+const titleCache = new Map();
+/** 按标题查找总库/子库中已存在的文档（用于幂等），带缓存 */
 export async function findDocByTitle(bookId, title) {
+    const cacheKey = `${bookId}:${title}`;
+    const cached = titleCache.get(cacheKey);
+    if (cached)
+        return cached;
     const allDocs = await listAllDocs(bookId);
-    const found = allDocs.find((d) => (d.title || "").trim() === title);
-    return found ? { id: found.id } : null;
+    // 批量写入缓存
+    for (const d of allDocs) {
+        const t = (d.title || "").trim();
+        if (t)
+            titleCache.set(`${bookId}:${t}`, { id: d.id, slug: d.slug || "" });
+    }
+    return titleCache.get(cacheKey) || null;
 }
 /**
  * 总库路由文档 upsert：body 为 JSON 数组 [{book_id, namespace}]，

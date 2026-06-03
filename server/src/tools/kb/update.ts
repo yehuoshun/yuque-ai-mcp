@@ -1,4 +1,5 @@
 import { get, post, put, del } from "../../client.js";
+import { loadConfig } from "../../config.js";
 import { DocEntry } from "./types.js";
 import { cleanToken } from "./utils.js";
 import { findDocByTitle, parseIndexDoc, createIndexDoc, upsertRouteDoc } from "./index.js";
@@ -155,15 +156,13 @@ export async function updateIndexEntries(params: {
   });
 
   // 9. 路由同步（确保总库路由文档指向最新）
-  if (route_book_id) {
-    const subRepo = await get(`/repos/${index_book_id}`) as any;
-    const subRepoNs = (subRepo.data || subRepo).namespace || "";
+  // slug 在创建时确定，更新 body 不改变 slug，findDocByTitle 已返回
+  if (route_book_id && existing.slug) {
+    const config = loadConfig();
+    const subBook = config.route_book_sub.find(b => String(b.book_id) === String(index_book_id));
+    const subRepoNs = subBook?.namespace || "";
     if (subRepoNs) {
-      const updatedDoc = await get(`/repos/${index_book_id}/docs/${existing.id}`) as any;
-      const docSlug = (updatedDoc.data || updatedDoc).slug || "";
-      if (docSlug) {
-        await upsertRouteDoc(route_book_id, cleanKw, Number(index_book_id), `${subRepoNs}/${docSlug}`);
-      }
+      await upsertRouteDoc(route_book_id, cleanKw, Number(index_book_id), `${subRepoNs}/${existing.slug}`);
     }
   }
 

@@ -82,7 +82,10 @@ export async function kbSearch(params) {
     let graphNeighbors = [];
     if (allEntries.size < 3 && hitKeywords.length > 0) {
         const graphResult = await expandWithGraph(hitKeywords, routeBooks, routeEntries);
-        if (graphResult && graphResult.entries.length > 0) {
+        if (graphResult.error) {
+            errors.push({ token: "_graph", reason: graphResult.error });
+        }
+        if (graphResult.entries.length > 0) {
             for (const e of graphResult.entries) {
                 const existing = allEntries.get(e.doc_id);
                 if (!existing || (e.weight ?? 0) > (existing.weight ?? 0)) {
@@ -289,17 +292,12 @@ async function expandWithGraph(hitKeywords, routeBooks, existingRoutes) {
         // 1. 找 _graph 路由文档
         const graphRoutes = await findRouteDocs(["_graph"], routeBooks, []);
         if (graphRoutes.length === 0)
-            return null;
-        // 2. 读 _graph 文档 body
-        const { entries: graphEntries } = await readIndexDocsFromRoutes(graphRoutes);
-        if (graphEntries.length === 0)
-            return null;
-        // _graph 的 body 存在第一个 entry 的 summary 里？不对，_graph 是特殊格式
-        // 需要直接读 _graph 索引文档的 body
+            return { entries: [], neighbors: [] };
+        // 2. 直接读 _graph 文档 body（_graph 是 GraphDoc 格式，不需要走 parseIndexDoc）
         const graphRoute = graphRoutes[0];
         const parts = graphRoute.book_namespace.split("/");
         if (parts.length < 3)
-            return null;
+            return { entries: [], neighbors: [] };
         const repoNs = parts.slice(0, 2).join("/");
         const docSlug = parts.slice(2).join("/");
         const data = await get(`/repos/${repoNs}/docs/${docSlug}`);
@@ -308,12 +306,12 @@ async function expandWithGraph(hitKeywords, routeBooks, existingRoutes) {
         try {
             graphDoc = JSON.parse(body);
         }
-        catch {
-            return null;
+        catch (e) {
+            return { entries: [], neighbors: [], error: `_graph body JSON 解析失败: ${e instanceof Error ? e.message : String(e)}` };
         }
         const communities = graphDoc.communities;
         if (!communities || communities.length === 0)
-            return null;
+            return { entries: [], neighbors: [] };
         // 3. 找命中关键词所属社区，收集邻居关键词
         const hitSet = new Set(hitKeywords.map(k => k.toLowerCase()));
         const neighborCandidates = [];
@@ -329,7 +327,7 @@ async function expandWithGraph(hitKeywords, routeBooks, existingRoutes) {
             }
         }
         if (neighborCandidates.length === 0)
-            return null;
+            return { entries: [], neighbors: [] };
         // 按 cohesion 排序，取 Top 5
         const topNeighbors = neighborCandidates
             .sort((a, b) => b.cohesion - a.cohesion)
@@ -338,17 +336,17 @@ async function expandWithGraph(hitKeywords, routeBooks, existingRoutes) {
         // 4. 搜邻居关键词的路由文档
         const neighborRoutes = await findRouteDocs(topNeighbors, routeBooks, []);
         if (neighborRoutes.length === 0)
-            return null;
+            return { entries: [], neighbors: [] };
         // 去重：排除已搜过的路由
         const existingSet = new Set(existingRoutes.map(r => r.book_namespace));
         const newRoutes = neighborRoutes.filter(r => !existingSet.has(r.book_namespace));
         if (newRoutes.length === 0)
-            return null;
+            return { entries: [], neighbors: [] };
         const { entries: neighborEntries } = await readIndexDocsFromRoutes(newRoutes);
         return { entries: neighborEntries, neighbors: topNeighbors };
     }
-    catch {
-        return null;
+    catch (err) {
+        return { entries: [], neighbors: [], error: `图谱扩展异常: ${err.message || err}` };
     }
 }
 // ═══════════════════════════════════════════════════════
@@ -375,6 +373,7 @@ async function globalSearchFallback(tokens) {
                         : "",
                     summary: (info.description || r.description || "").slice(0, 200),
                     weight: 5,
+                    tree: undefined, // 降级路径无章节树，Agent 层直接读全文
                 });
             }
         }
