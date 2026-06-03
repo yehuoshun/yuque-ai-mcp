@@ -259,7 +259,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Tool | 说明 |
 |------|------|
-| `yuque_kb_search` | 知识库管道搜索（双层：总库关键词路由 → 子库关键词索引）：token 数组 → in:title 搜总库确认关键词已索引 → in:title 搜子库命中索引文档 → 展开 entries → Markdown 输出 |
+| `yuque_kb_search` | 知识库管道搜索（双层：总库关键词路由 → 直接读索引文档）：token 数组 → 搜总库找路由文档 → 路由文档 body 的 namespace 是文档级路径 → 直接 GET /repos/{group/slug/slug} 读索引文档 → 展开 entries → Markdown 输出 |
 | `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 搜索面自然语言 + 摘要 + entry 指针，doc_id/namespace/doc_title/slug/url/weight 全部必填，weight 为 1-10 权重）。传 route_book_id 后自动同步总库路由 |
 
 ### 搜索 & 批量获取 & 元信息
@@ -291,7 +291,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 知识库问答
 
-两级索引架构：总库路由 + 子索引库。一级索引按关键词分片子索引库，二级索引在子索引库内搜索找到源文档指针，LLM 跨库读原文生成答案。纯 LLM + 语雀 API，零外部向量数据库依赖。
+两级索引架构：总库路由 + 子索引库。总库路由文档存储文档级 namespace 指针，直接定位到子库中的索引文档。纯 LLM + 语雀 API，零外部向量数据库依赖。
 
 搜索管线、索引构建、搜索降级 → **[SKILL.md](./SKILL.md#二知识库问答系统)**。
 
