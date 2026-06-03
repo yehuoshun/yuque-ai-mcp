@@ -159,6 +159,8 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     docId = created.id as number;
     docSlug = created.slug || "";
     isNew = true;
+    // 新建后更新缓存，避免同批次后续查重返回过期 null
+    if (docSlug) titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug });
   }
 
   if (!docSlug) {
@@ -201,7 +203,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 }
 
 // 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs）
-const titleCache = new Map<string, { id: number; slug: string }>();
+export const titleCache = new Map<string, { id: number; slug: string }>();
 
 /** 按标题查找总库/子库中已存在的文档（用于幂等），带缓存 */
 export async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number; slug: string } | null> {
@@ -256,11 +258,13 @@ export async function upsertRouteDoc(
     });
   } else {
     // 新建路由文档
-    await post(`/repos/${routeBookId}/docs`, {
+    const data = await post(`/repos/${routeBookId}/docs`, {
       title: keyword,
       body: JSON.stringify([newEntry]),
       format: "markdown",
-    });
+    }) as any;
+    const created = data.data || data;
+    if (created.slug) titleCache.set(`${routeBookId}:${keyword}`, { id: created.id, slug: created.slug });
   }
 }
 

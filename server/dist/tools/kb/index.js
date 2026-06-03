@@ -152,6 +152,9 @@ export async function createIndexDoc(params) {
         docId = created.id;
         docSlug = created.slug || "";
         isNew = true;
+        // 新建后更新缓存，避免同批次后续查重返回过期 null
+        if (docSlug)
+            titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug });
     }
     if (!docSlug) {
         throw new Error(`无法获取索引文档 slug（doc_id=${docId}），路由同步中断`);
@@ -189,7 +192,7 @@ export async function createIndexDoc(params) {
     }, null, 2);
 }
 // 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs）
-const titleCache = new Map();
+export const titleCache = new Map();
 /** 按标题查找总库/子库中已存在的文档（用于幂等），带缓存 */
 export async function findDocByTitle(bookId, title) {
     const cacheKey = `${bookId}:${title}`;
@@ -238,11 +241,14 @@ export async function upsertRouteDoc(routeBookId, keyword, subBookId, docNs) {
     }
     else {
         // 新建路由文档
-        await post(`/repos/${routeBookId}/docs`, {
+        const data = await post(`/repos/${routeBookId}/docs`, {
             title: keyword,
             body: JSON.stringify([newEntry]),
             format: "markdown",
         });
+        const created = data.data || data;
+        if (created.slug)
+            titleCache.set(`${routeBookId}:${keyword}`, { id: created.id, slug: created.slug });
     }
 }
 /**

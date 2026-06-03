@@ -1,7 +1,7 @@
 import { get, put, del } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { cleanToken } from "./utils.js";
-import { findDocByTitle, parseIndexDoc, createIndexDoc, upsertRouteDoc } from "./index.js";
+import { findDocByTitle, parseIndexDoc, createIndexDoc, upsertRouteDoc, titleCache } from "./index.js";
 const MAX_BODY_BYTES = 200 * 1024;
 /**
  * 增量更新关键词索引文档的 entries
@@ -97,6 +97,7 @@ export async function updateIndexEntries(params) {
     // 6. entries 为空 → 删除索引文档 + 清理总库路由
     if (entries.length === 0) {
         await del(`/repos/${index_book_id}/docs/${existing.id}`);
+        titleCache.delete(`${index_book_id}:${cleanKw}`);
         if (route_book_id) {
             await removeRouteEntry(route_book_id, cleanKw, Number(index_book_id));
         }
@@ -177,6 +178,7 @@ async function removeRouteEntry(routeBookId, keyword, subBookId) {
     if (filtered.length === 0) {
         // 路由文档无剩余条目 → DELETE
         await del(`/repos/${routeBookId}/docs/${existing.id}`);
+        titleCache.delete(`${routeBookId}:${keyword}`);
     }
     else {
         // PUT 写回

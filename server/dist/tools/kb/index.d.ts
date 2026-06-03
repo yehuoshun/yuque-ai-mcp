@@ -6,6 +6,10 @@ import { CreateIndexDocParams, ParsedIndexDoc } from "./types.js";
  * body 为 JSON 数组，每项为一个 DocEntry。
  */
 export declare function createIndexDoc(params: CreateIndexDocParams): Promise<string>;
+export declare const titleCache: Map<string, {
+    id: number;
+    slug: string;
+}>;
 /** 按标题查找总库/子库中已存在的文档（用于幂等），带缓存 */
 export declare function findDocByTitle(bookId: number | string, title: string): Promise<{
     id: number;
