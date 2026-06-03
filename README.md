@@ -118,6 +118,7 @@ cp config/yuque-config.example.json config/yuque-config.json
   "route_book_sub": [
     { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" }
   ],
+  "graph_book": { "book_id": 79724085, "namespace": "yehuoshun/graph-book-xxx" },
   "user_id": "25689388",
   "cookie": "完整的浏览器 Cookie 字符串（文件上传/回收站管理必填）",
   "ctoken": "从 Cookie 中提取 yuque_ctoken 的值"
@@ -131,6 +132,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | `default_book` | ✅ | 默认知识库（创建文档时未指定目标则用此库） |
 | `route_book` | ✅ | 索引总库列表（存路由文档，kb_search 路由层用，支持多总库分片） |
 | `route_book_sub` | 按需 | 默认子索引库列表（创建索引文档时未指定目标则用首个） |
+| `graph_book` | 按需 | 图谱知识库（存 graphN 分片，搜索扩展用，不配则图谱扩展静默跳过） |
 | `user_id` | 按需 | 用户 ID（文件上传必填，`yuque_get_user` 可查） |
 | `cookie` | 按需 | 浏览器 Cookie 完整字符串（文件上传/回收站管理必填） |
 | `ctoken` | 按需 | 从 Cookie 中提取 `yuque_ctoken` 的值 |
@@ -292,7 +294,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 知识库问答
 
-两级索引架构：总库路由 + 子索引库。总库路由文档存储文档级 namespace 指针，直接定位到子库中的索引文档。纯 LLM + 语雀 API，零外部向量数据库依赖。
+两级索引架构：总库路由 + 子索引库 + 图谱库。总库路由文档存储文档级 namespace 指针，直接定位到子库中的索引文档。图谱库存储关键词共现邻接表（graphN 分片），listAllDocs 全量读取用于搜索扩展。纯 LLM + 语雀 API，零外部向量数据库依赖。
 
 搜索管线、索引构建、搜索降级 → **[SKILL.md](./SKILL.md#二知识库问答系统)**。
 

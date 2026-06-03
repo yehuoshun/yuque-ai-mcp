@@ -54,26 +54,37 @@
 
 ### 1.4 存储
 
-图谱作为子索引库中的一篇索引文档，标题固定 `_graph`，body 为 JSON。
+图谱存储在独立的 `graph_book` 知识库中，分片存储：
 
 ```json
-// _graph 索引文档 body
 {
-  "built_at": "2026-06-02T20:00:00Z",
-  "nodes": 156,
-  "edges": 423,
-  "communities": [
-    {"id": 0, "label": "Spring生态", "keywords": ["SpringBoot","自动配置","JPA"], "cohesion": 0.72},
-    {"id": 1, "label": "容器化", "keywords": ["Docker","K8s"], "cohesion": 0.85}
-  ]
+  "shards": 2,
+  "built_at": "2026-06-03T18:00:00Z"
+}
+
+// graph0（分片 0）
+{
+  "neighbors": {
+    "SpringBoot": ["自动配置", "JPA"],
+    "Docker": ["K8s", "容器"]
+  }
+}
+
+// graph1（分片 1）
+{
+  "neighbors": {
+    "JVM": ["GC", "内存模型"],
+    "React": ["Vue", "前端"]
+  }
 }
 ```
 
-> 跟其他关键词索引文档一样，通过 `yuque_kb_search(["_graph"])` 定位，`yuque_get_doc` 读取。
+> 每片 ≤ 200KB。扩容时增加分片数，重建索引时重新分配。
+> 搜索时：listAllDocs → 筛选 graph\d+ → 并发读 → 合并 neighbors → 查邻居。
 
 ### 1.5 查看图谱
 
-用户说「查看图谱」→ `yuque_kb_search(["_graph"])` → 找到就读 → 没有就现场从索引 entries 算一份 → 输出报告。
+用户说「查看图谱」→ listAllDocs(graph_book_id) → 筛选 graph\d+ 分片 → 并发读 → 没有就现场从索引 entries 算一份 → 输出报告。
 
 报告内容：社区概览表 + 孤立关键词 + 可选 Mermaid 图。不存成独立文档，直接回复。
 
@@ -90,8 +101,8 @@
 
 增强后：token 搜索引 → 展开 entries
            ↓
-        yuque_kb_search(["_graph"]) 找图谱文档
-          → 命中关键词的 1 跳邻居（权重前 5）
+        listAllDocs(graph_book) + 筛选分片 → 找邻居表
+          → 命中关键词的 1 跳邻居（Top 5）
           → 补搜邻居关键词的索引文档
           → 展开新 entries → 去重合并
            ↓
@@ -115,7 +126,7 @@
 |------|------|
 | 直接命中 < 3 篇 | 候选太少，图扩展补量 |
 | 用户问题涉及「关系」「对比」「关联」 | 语义上需要关联知识 |
-| 子索引库 graph 字段存在且新鲜（built_at > 30 天前） | 图数据可用 |
+| graph_book 已配置且有分片文档 | 图数据可用 |
 
 ### 2.4 search.md 集成
 
@@ -304,3 +315,4 @@
 | 搜索 | `yuque_kb_search` |
 | 建树 | 索引构建时的 LLM 调用（复用） |
 | 共现图计算 | 纯代码（非 LLM） |
+| 写图库 | `yuque_create_doc` / `yuque_update_doc`（graph_book） |

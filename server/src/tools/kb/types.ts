@@ -32,17 +32,10 @@ export interface KbSearchResult {
   hint?: string;                        // 建议下一步操作
 }
 
-// _graph 索引文档 body 格式
-export interface GraphDoc {
-  built_at?: string;
-  nodes?: number;
-  edges?: number;
-  communities?: Array<{
-    id: number;
-    label: string;
-    keywords: string[];
-    cohesion: number;
-  }>;
+// graph 文档 body 格式（分片存储）
+// graphN: { neighbors: { keyword: [neighbor1, neighbor2, ...] } }
+export interface GraphShard {
+  neighbors: Record<string, string[]>;
 }
 
 // 源文档指针（写入索引文档 body）

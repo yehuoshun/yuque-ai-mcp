@@ -31,16 +31,8 @@ export interface KbSearchResult {
     }[];
     hint?: string;
 }
-export interface GraphDoc {
-    built_at?: string;
-    nodes?: number;
-    edges?: number;
-    communities?: Array<{
-        id: number;
-        label: string;
-        keywords: string[];
-        cohesion: number;
-    }>;
+export interface GraphShard {
+    neighbors: Record<string, string[]>;
 }
 export interface DocEntry {
     doc_id: number;

@@ -83,7 +83,7 @@ export async function kbSearch(params) {
     if (allEntries.size < 3 && hitKeywords.length > 0) {
         const graphResult = await expandWithGraph(hitKeywords, routeBooks, routeEntries);
         if (graphResult.error) {
-            errors.push({ token: "_graph", reason: graphResult.error });
+            errors.push({ token: "graph", reason: graphResult.error });
         }
         if (graphResult.entries.length > 0) {
             for (const e of graphResult.entries) {
@@ -166,8 +166,10 @@ async function findRouteDocs(tokens, routeBooks, errors) {
                 return;
             }
             for (const item of list) {
-                if (!item.namespace)
+                if (!item.namespace) {
+                    errors.push({ token: `路由 doc_${docId}`, reason: `条目缺少 namespace 字段（book_id=${item.book_id || '无'}）` });
                     continue;
+                }
                 const parts = item.namespace.split("/");
                 const key = `${parts.slice(0, 2).join("/")}/${item.namespace}`;
                 if (!seenKeys.has(key)) {
@@ -263,64 +265,64 @@ function dedupByNs(entries) {
 // 图谱扩展
 // ═══════════════════════════════════════════════════════
 /**
- * 通过 _graph 文档做 1 跳邻居扩展
+ * 通过 graph_book 分片文档做 1 跳邻居扩展
  *
- * 1. 搜 _graph 路由文档 → 读 body → 解析 GraphDoc
- * 2. 在 communities 中找命中关键词所属社区
- * 3. 取同社区内其他关键词（排除已命中），按社区 cohesion 排序
+ * 1. listAllDocs(graph_book) → 全量文档即分片
+ * 2. 并发读所有分片 → 合并 neighbors
+ * 3. 查命中关键词的邻居 → Top 5
  * 4. 对邻居关键词搜路由 → 读索引文档 → 展开 entries
  */
 async function expandWithGraph(hitKeywords, routeBooks, existingRoutes) {
+    const config = loadConfig();
+    const graphBook = config.graph_book;
+    if (!graphBook || !graphBook.book_id)
+        return { entries: [], neighbors: [] };
     try {
-        // 1. 找 _graph 路由文档
-        const graphRoutes = await findRouteDocs(["_graph"], routeBooks, []);
-        if (graphRoutes.length === 0)
+        // 1. 列出 graph_book 全部文档（专用库，返回即分片）
+        const allDocs = await listAllDocs(graphBook.book_id);
+        if (allDocs.length === 0)
             return { entries: [], neighbors: [] };
-        // 2. 直接读 _graph 文档 body（_graph 是 GraphDoc 格式，不需要走 parseIndexDoc）
-        const graphRoute = graphRoutes[0];
-        const parts = graphRoute.book_namespace.split("/");
-        if (parts.length < 3)
-            return { entries: [], neighbors: [] };
-        const repoNs = parts.slice(0, 2).join("/");
-        const docSlug = parts.slice(2).join("/");
-        const data = await get(`/repos/${repoNs}/docs/${docSlug}`);
-        const body = (data.data || data).body || "";
-        let graphDoc;
-        try {
-            graphDoc = JSON.parse(body);
+        // 2. 并发读所有分片
+        const shardResults = await Promise.all(allDocs.map(async (doc) => {
+            try {
+                const data = await get(`/repos/${graphBook.book_id}/docs/${doc.id}`);
+                const body = (data.data || data).body || "";
+                const shard = JSON.parse(body);
+                return shard.neighbors || {};
+            }
+            catch {
+                return null;
+            }
+        }));
+        // 合并所有分片的 neighbors
+        const allNeighbors = {};
+        for (const neighbors of shardResults) {
+            if (neighbors)
+                Object.assign(allNeighbors, neighbors);
         }
-        catch (e) {
-            return { entries: [], neighbors: [], error: `_graph body JSON 解析失败: ${e instanceof Error ? e.message : String(e)}` };
-        }
-        const communities = graphDoc.communities;
-        if (!communities || communities.length === 0)
+        if (Object.keys(allNeighbors).length === 0)
             return { entries: [], neighbors: [] };
-        // 3. 找命中关键词所属社区，收集邻居关键词
+        // 3. 查命中关键词的邻居，取 Top 5
         const hitSet = new Set(hitKeywords.map(k => k.toLowerCase()));
-        const neighborCandidates = [];
-        for (const comm of communities) {
-            const commKeywords = comm.keywords || [];
-            const hasHit = commKeywords.some(k => hitSet.has(k.toLowerCase()));
-            if (!hasHit)
-                continue;
-            for (const kw of commKeywords) {
-                if (!hitSet.has(kw.toLowerCase())) {
-                    neighborCandidates.push({ keyword: kw, cohesion: comm.cohesion || 0.5 });
+        const neighborSet = new Set();
+        for (const hitKw of hitKeywords) {
+            const neighbors = allNeighbors[hitKw]
+                || Object.entries(allNeighbors).find(([k]) => k.toLowerCase() === hitKw.toLowerCase())?.[1];
+            if (neighbors) {
+                for (const n of neighbors) {
+                    if (!hitSet.has(n.toLowerCase())) {
+                        neighborSet.add(n);
+                    }
                 }
             }
         }
-        if (neighborCandidates.length === 0)
+        if (neighborSet.size === 0)
             return { entries: [], neighbors: [] };
-        // 按 cohesion 排序，取 Top 5
-        const topNeighbors = neighborCandidates
-            .sort((a, b) => b.cohesion - a.cohesion)
-            .slice(0, 5)
-            .map(n => n.keyword);
+        const topNeighbors = [...neighborSet].slice(0, 5);
         // 4. 搜邻居关键词的路由文档
         const neighborRoutes = await findRouteDocs(topNeighbors, routeBooks, []);
         if (neighborRoutes.length === 0)
             return { entries: [], neighbors: [] };
-        // 去重：排除已搜过的路由
         const existingSet = new Set(existingRoutes.map(r => r.book_namespace));
         const newRoutes = neighborRoutes.filter(r => !existingSet.has(r.book_namespace));
         if (newRoutes.length === 0)

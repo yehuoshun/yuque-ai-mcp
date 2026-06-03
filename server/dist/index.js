@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
 import { loadDarkArts } from "./tools/dark-arts-loader.js";
-import { addRouteBook, addRouteBookSub, loadConfig, reloadConfig } from "./config.js";
+import { addRouteBook, addRouteBookSub, addGraphBook, loadConfig, reloadConfig } from "./config.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
@@ -636,7 +636,7 @@ const tools = [
     },
     {
         name: "yuque_config_update",
-        description: "更新索引配置（追加 route_book 或 route_book_sub 条目，自动持久化到配置文件并重载）。创建新总库/子索引库后调此工具写入配置。",
+        description: "更新索引配置（追加 route_book/route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新总库/子索引库/图库后调此工具写入配置。",
         inputSchema: {
             type: "object",
             properties: {
@@ -649,6 +649,12 @@ const tools = [
                     type: "array",
                     items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
                     description: "追加到 route_book_sub 的条目",
+                },
+                graph_book: {
+                    type: "object",
+                    properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } },
+                    required: ["book_id", "namespace"],
+                    description: "设置 graph_book（图谱库），覆盖已有配置",
                 },
             },
             required: [],
@@ -813,6 +819,22 @@ async function configStatus() {
     lines.push("## 并发配置");
     lines.push(`🔧 index_concurrency=${cfg.index_concurrency || 1} | search_concurrency=${cfg.search_concurrency || 5}`);
     lines.push("");
+    lines.push("## 图谱库 (graph_book)");
+    if (cfg.graph_book?.book_id) {
+        try {
+            const { get } = await import("./client.js");
+            const data = await get(`/repos/${cfg.graph_book.book_id}`);
+            const repo = data.data || data;
+            lines.push(`✅ book_id=${cfg.graph_book.book_id} ns=${cfg.graph_book.namespace} | 文档: ${repo.items_count || 0} | 名称: ${repo.name || "—"}`);
+        }
+        catch {
+            lines.push(`❓ book_id=${cfg.graph_book.book_id} ns=${cfg.graph_book.namespace} | 无法获取详情`);
+        }
+    }
+    else {
+        lines.push("⚠️ 未配置。图谱扩展功能不可用。需 yuque_create_repo 创建图库后写入 config。");
+    }
+    lines.push("");
     if (hasRoute && hasSub) {
         lines.push("💡 索引配置完整，可直接构建索引。");
     }
@@ -839,8 +861,13 @@ async function configUpdate(args) {
         }
         changed = true;
     }
+    if (args.graph_book) {
+        addGraphBook(args.graph_book);
+        lines.push(`✅ 图库设置: book_id=${args.graph_book.book_id} ns=${args.graph_book.namespace}`);
+        changed = true;
+    }
     if (!changed) {
-        return "⚠️ 未指定 route_book_add 或 route_book_sub_add，无变更。";
+        return "⚠️ 未指定 route_book_add、route_book_sub_add 或 graph_book，无变更。";
     }
     reloadConfig(true);
     return lines.join("\n");

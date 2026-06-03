@@ -8,6 +8,7 @@ export interface YuqueConfig {
     default_book: YuqueBook;
     route_book: YuqueBook[];
     route_book_sub: YuqueBook[];
+    graph_book?: YuqueBook;
     index_concurrency: number;
     search_concurrency: number;
     cookie?: string;
@@ -29,3 +30,5 @@ export declare function saveConfig(): void;
 export declare function addRouteBook(book: YuqueBook): void;
 /** 追加子索引库条目 */
 export declare function addRouteBookSub(book: YuqueBook): void;
+/** 设置图谱库 */
+export declare function addGraphBook(book: YuqueBook): void;

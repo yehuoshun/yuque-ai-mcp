@@ -23,7 +23,7 @@
   ├─ 路由定位：N 路并行搜总库 → 找关键词路由文档
   │   └─ 路由 0 命中 → 自动降级语雀全库搜索（fallback_used="global_search"）
   ├─ 读索引文档：按文档级 namespace 直接 GET 读 → parseIndexDoc → 展开 entries
-  ├─ 图谱扩展：命中 < 3 篇 → 搜 _graph → 找社区 → 1 跳邻居补搜 → 去重合并
+  ├─ 图谱扩展：命中 < 3 篇 → listAllDocs + 筛选分片 → 找邻居 → 补搜
   └─ 返回结构化 JSON（KbSearchResult）
   ↓
 ③ Agent 读 KbSearchResult.source_entries
@@ -193,7 +193,7 @@ Agent 层：
 |------|--------|------|
 | 路由搜索 | N（token 数）× M（总库数） | 每个 token 在每个总库独立并行搜 |
 | 读索引文档 body | `search_concurrency`（默认 5） | 分批并发，由 config 控制 |
-| 图谱扩展 | 串行 | 搜 _graph → 搜邻居路由 → 读邻居索引文档 |
+| 图谱扩展 | 串行 | listAllDocs 筛选分片 → 并发读 → 搜邻居路由 |
 | 全库降级 | N（token 数） | 每个 token 独立搜全库 |
 
 > 并发数可通过配置文件 `search_concurrency` 或环境变量 `YUQUE_SEARCH_CONCURRENCY` 调整。
@@ -209,29 +209,33 @@ Agent 层：
 ### 5.2 流程
 
 ```
-1. 搜 _graph 路由文档 → 读 body → 解析 GraphDoc
-2. 在 communities 中找命中关键词所属社区
-3. 取同社区内其他关键词（排除已命中），按社区 cohesion 排序
-4. 取 Top 5 邻居关键词 → 搜路由 → 读索引文档 → 展开 entries
+1. listAllDocs(graph_book) → 筛选 graph\d+ 分片
+2. 并发读全量分片 → 合并 neighbors
+3. 查命中关键词的邻居 → Top 5
+4. 对邻居关键词搜路由 → 读索引文档 → 展开 entries
 5. 与原有 source_entries 去重合并
 6. 返回 graph_expanded=true + graph_neighbors
 ```
 
-### 5.3 _graph 文档格式
+### 5.3 图数据格式
 
 ```json
 {
-  "built_at": "2026-06-02T20:00:00Z",
-  "nodes": 156,
-  "edges": 423,
-  "communities": [
-    {"id": 0, "label": "Spring生态", "keywords": ["SpringBoot","自动配置","JPA"], "cohesion": 0.72},
-    {"id": 1, "label": "容器化", "keywords": ["Docker","K8s"], "cohesion": 0.85}
-  ]
+  "shards": 2,
+  "built_at": "2026-06-03T18:00:00Z"
+}
+
+// graph0（分片，每片 ≤ 200KB）
+{
+  "neighbors": {
+    "SpringBoot": ["自动配置", "JPA", "Starter"],
+    "Docker": ["K8s", "容器", "镜像"]
+  }
 }
 ```
 
 > 图谱由索引构建完成后自动生成，详见 [knowledge.md](knowledge.md)。
+> 图库未配置时图谱扩展静默跳过（不报错）。
 
 ---
 
