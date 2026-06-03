@@ -92,7 +92,7 @@ async function findRouteDocs(
   routeBooks: YuqueBook[],
   errors: { token: string; reason: string }[]
 ): Promise<{ book_id: number | string; namespace: string; last_built?: string }[]> {
-  const seenDocs = new Map<number, string>();
+  const seenDocs = new Map<number, { title: string; book_id: number | string }>();
 
   // N 路并行搜总库 — 语雀 v2 API 不支持 in:title，客户端过滤
   await Promise.all(routeBooks.map(async (rb) => {
@@ -105,7 +105,7 @@ async function findRouteDocs(
           const title = (info.title || r.title || "").trim();
           // 客户端过滤：标题包含 token（忽略大小写），容忍 cleanToken 差异
           if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(id)) {
-            seenDocs.set(id, title);
+            seenDocs.set(id, { title, book_id: rb.book_id });
           }
         }
       } catch (err: any) {
@@ -122,7 +122,7 @@ async function findRouteDocs(
         for (const doc of allDocs) {
           const title = (doc.title || "").trim();
           if (title && tokens.some(t => title.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(title.toLowerCase()))) {
-            seenDocs.set(doc.id, title);
+            seenDocs.set(doc.id, { title, book_id: rb.book_id });
           }
         }
       } catch { /* 降级失败也不报错 */ }
@@ -136,41 +136,39 @@ async function findRouteDocs(
   const seenSourceBooks = new Set<string>();
 
   await Promise.all(
-    routeBooks.map(async (rb) => {
-      await Promise.all(Array.from(seenDocs.keys()).map(async (docId) => {
+    Array.from(seenDocs.entries()).map(async ([docId, doc]) => {
+      try {
+        const data = await get(`/repos/${doc.book_id}/docs/${docId}`) as any;
+        const body: string = (data.data || data).body || "";
+
+        // 路由文档 body — 格式：[{book_id, namespace, last_built?}]
+        let list: any[] = [];
         try {
-          const data = await get(`/repos/${rb.book_id}/docs/${docId}`) as any;
-          const body: string = (data.data || data).body || "";
-
-          // 路由文档 body — 格式：[{book_id, namespace, last_built?}]
-          let list: any[] = [];
-          try {
-            const parsed = JSON.parse(body);
-            list = Array.isArray(parsed) ? parsed : [];
-          } catch {
-            // body 不是合法 JSON
-          }
-
-          if (list.length === 0) {
-            errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 source_books` });
-            return;
-          }
-
-          for (const item of list) {
-            const key = `${item.book_id}/${item.namespace}`;
-            if (item.book_id && item.namespace && !seenSourceBooks.has(key)) {
-              seenSourceBooks.add(key);
-              allSourceBooks.push({
-                book_id: item.book_id,
-                namespace: item.namespace,
-                last_built: item.last_built,
-              });
-            }
-          }
-        } catch (err: any) {
-          errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
+          const parsed = JSON.parse(body);
+          list = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          // body 不是合法 JSON
         }
-      }));
+
+        if (list.length === 0) {
+          errors.push({ token: `路由 doc_${docId}`, reason: `无法解析 source_books` });
+          return;
+        }
+
+        for (const item of list) {
+          const key = `${item.book_id}/${item.namespace}`;
+          if (item.book_id && item.namespace && !seenSourceBooks.has(key)) {
+            seenSourceBooks.add(key);
+            allSourceBooks.push({
+              book_id: item.book_id,
+              namespace: item.namespace,
+              last_built: item.last_built,
+            });
+          }
+        }
+      } catch (err: any) {
+        errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
+      }
     })
   );
 
