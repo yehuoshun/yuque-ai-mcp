@@ -27,6 +27,8 @@ export async function kbSearch(params) {
             tokens,
             route_hits: 0,
             source_entries: [],
+            total_entries: 0,
+            truncated: false,
             graph_expanded: false,
             graph_neighbors: [],
             fallback_used: "none",
@@ -40,6 +42,8 @@ export async function kbSearch(params) {
             tokens,
             route_hits: 0,
             source_entries: [],
+            total_entries: 0,
+            truncated: false,
             graph_expanded: false,
             graph_neighbors: [],
             fallback_used: "none",
@@ -53,10 +57,16 @@ export async function kbSearch(params) {
     // ── Step 1.5: 路由 0 命中 → 自动降级全库搜索 ──
     if (routeEntries.length === 0) {
         const fallbackEntries = await globalSearchFallback(tokens);
+        const maxEntries = params.max_entries ?? 20;
+        const fbTotal = fallbackEntries.length;
+        const fbTruncated = fbTotal > maxEntries;
+        const fbEntries = fbTruncated ? fallbackEntries.slice(0, maxEntries) : fallbackEntries;
         return JSON.stringify({
             tokens,
             route_hits: 0,
-            source_entries: fallbackEntries,
+            source_entries: fbEntries,
+            total_entries: fbTotal,
+            truncated: fbTruncated,
             graph_expanded: false,
             graph_neighbors: [],
             fallback_used: fallbackEntries.length > 0 ? "global_search" : "none",
@@ -96,12 +106,18 @@ export async function kbSearch(params) {
             graphNeighbors = graphResult.neighbors;
         }
     }
-    // 按 weight 降序
+    // 按 weight 降序 → 截断
+    const maxEntries = params.max_entries ?? 20;
     const sorted = [...allEntries.values()].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
+    const totalEntries = sorted.length;
+    const truncated = totalEntries > maxEntries;
+    const sourceEntries = truncated ? sorted.slice(0, maxEntries) : sorted;
     return JSON.stringify({
         tokens,
         route_hits: routeEntries.length,
-        source_entries: sorted,
+        source_entries: sourceEntries,
+        total_entries: totalEntries,
+        truncated,
         graph_expanded: graphExpanded,
         graph_neighbors: graphNeighbors,
         fallback_used: "none",

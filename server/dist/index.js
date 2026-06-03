@@ -465,6 +465,7 @@ const tools = [
             type: "object",
             properties: {
                 tokens: { type: "array", items: { type: "string" }, description: "搜索 token 数组（由 Agent LLM 生成，每个 token 独立并行搜）" },
+                max_entries: { type: "number", description: "返回源文档最大条数（默认 20）。超出的按 weight 降序截断，低权重自然淘汰" },
                 route_ns: { type: "string", description: "索引总库 namespace（可选，默认读 config YUQUE_ROUTE_BOOK_NS）" },
                 route_id: { type: ["number", "string"], description: "索引总库 book_id（可选，默认读 config YUQUE_ROUTE_BOOK_ID）" },
             },

@@ -21,6 +21,8 @@ export interface KbSearchResult {
     tokens: string[];
     route_hits: number;
     source_entries: SourceEntry[];
+    total_entries: number;
+    truncated: boolean;
     graph_expanded: boolean;
     graph_neighbors: string[];
     fallback_used: "none" | "global_search";

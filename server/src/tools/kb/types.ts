@@ -24,6 +24,8 @@ export interface KbSearchResult {
   tokens: string[];
   route_hits: number;                    // 路由命中数
   source_entries: SourceEntry[];         // 去重排序后的源文档指针
+  total_entries: number;                // 截断前总数
+  truncated: boolean;                   // 是否被截断（max_entries 限制）
   graph_expanded: boolean;              // 是否触发了图谱扩展
   graph_neighbors: string[];            // 图谱扩展的邻居关键词
   fallback_used: "none" | "global_search"; // 降级策略

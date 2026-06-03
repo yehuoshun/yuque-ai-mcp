@@ -11,6 +11,7 @@ export declare function kbSearch(params: {
     tokens: string[];
     route_ns?: string;
     route_id?: number | string;
+    max_entries?: number;
 }): Promise<string>;
 /** 逐页拉取知识库全部文档（语雀 API limit ≤ 100） */
 export declare function listAllDocs(bookId: number | string): Promise<any[]>;

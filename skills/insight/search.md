@@ -168,6 +168,7 @@ Agent 层：
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `tokens` | ✅ | 搜索 token 数组（LLM 生成，每个独立并行搜） |
+| `max_entries` | ❌ | 返回源文档最大条数（默认 20），超出的按 weight 降序截断，低权重自然淘汰 |
 | `route_ns` | ❌ | 索引总库 namespace（不传则读 config） |
 | `route_id` | ❌ | 索引总库 book_id（不传则读 config） |
 
@@ -177,7 +178,9 @@ Agent 层：
 |------|------|------|
 | `tokens` | string[] | 使用的搜索 token |
 | `route_hits` | number | 路由文档命中数 |
-| `source_entries` | SourceEntry[] | 去重排序后的源文档指针，按 weight 降序 |
+| `source_entries` | SourceEntry[] | 去重排序后的源文档指针，按 weight 降序。受 `max_entries` 截断 |
+| `total_entries` | number | 截断前源文档总数，`source_entries.length` 可能小于此值 |
+| `truncated` | boolean | 是否被 `max_entries` 截断，`true` 时可调大 `max_entries` 翻页 |
 | `graph_expanded` | boolean | 是否触发了图谱扩展 |
 | `graph_neighbors` | string[] | 图谱扩展的邻居关键词 |
 | `fallback_used` | "none" \| "global_search" | 降级策略 |

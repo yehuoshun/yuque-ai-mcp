@@ -261,7 +261,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 | Tool | 说明 |
 |------|------|
-| `yuque_kb_search` | 知识库管道搜索（双层：总库关键词路由 → 直接读索引文档）：token 数组 → 搜总库找路由文档 → 路由文档 body 的 namespace 是文档级路径 → 直接 GET /repos/{group/slug/slug} 读索引文档 → 展开 entries → Markdown 输出 |
+| `yuque_kb_search` | 知识库管道搜索（双层路由 + 图谱扩展 + 自动降级）：token 数组 → 搜总库找路由文档 → 路由文档 body 的 namespace 是文档级路径 → 直接 GET /repos/{group/slug/slug} 读索引文档 → 展开 entries → 按 weight 降序返回。默认截断 20 条，超出的低权重自然淘汰。返回 `total_entries`/`truncated` 标识截断状态 |
 | `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 搜索面自然语言 + 摘要 + entry 指针，doc_id/namespace/doc_title/slug/url/weight 全部必填，weight 为 1-10 权重）。传 route_book_id 后自动同步总库路由 |
 | `yuque_index_update_entries` | 增量更新关键词索引文档 entries：支持 add（追加）/ remove（移除）/ update（按 doc_id 合并字段）。自动完成读-改-写-路由同步原子操作。entries 清空时自动删除索引文档 + 清理总库路由。200KB body 检查 |
 
