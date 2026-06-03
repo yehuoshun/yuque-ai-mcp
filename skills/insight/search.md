@@ -19,10 +19,10 @@
 ① LLM 生成 2-5 个搜索 token
   "Spring事务怎么配" → ["Spring", "事务", "Transactional"]
   ↓
-② 调 yuque_kb_search(tokens, index_book_ns, index_book_id)
-  → N 路并行搜索子索引库
-  → doc_id 去重
-  → 5 并发读索引文档 body
+② 调 yuque_kb_search(tokens)
+  → N 路并行搜总库 → 找关键词路由文档
+  → 路由文档 body 解析出 [{book_id, namespace}]，namespace 是文档级路径（group/slug/slug）
+  → 直接按文档级 namespace 读索引文档（不再搜子库）
   → parseIndexDoc 解析 keywords / summary / entries
   → 展开 entries → doc_id 去重合并
   → 返回 source_entries（源文档指针列表）
