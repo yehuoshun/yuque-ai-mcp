@@ -15,10 +15,12 @@ function entriesToMarkdown(entries) {
         lines.push(`## ${title}`);
         if (surface) {
             lines.push("");
+            lines.push("### 搜索面");
             lines.push(surface);
         }
         if (summary) {
             lines.push("");
+            lines.push("### 摘要");
             lines.push(summary);
         }
         lines.push("");

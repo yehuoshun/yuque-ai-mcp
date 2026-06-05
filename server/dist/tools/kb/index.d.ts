@@ -21,8 +21,11 @@ export declare function findDocByTitle(bookId: number | string, title: string): 
  *
  * body 格式（每个 entry 一个 ## 块）：
  *   ## {doc_title}
+ *
+ *   ### 搜索面
  *   {search_surface}
  *
+ *   ### 摘要
  *   {summary}
  *
  *   - doc_id: {doc_id}

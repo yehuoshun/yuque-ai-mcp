@@ -32,8 +32,11 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
  *
  * 格式（每个 entry 一块）：
  *   ## {doc_title}
+ *
+ *   ### 搜索面
  *   {search_surface}
  *
+ *   ### 摘要
  *   {summary}
  *
  *   - doc_id: {doc_id}
@@ -51,10 +54,12 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     lines.push(`## ${title}`);
     if (surface) {
       lines.push("");
+      lines.push("### 搜索面");
       lines.push(surface);
     }
     if (summary) {
       lines.push("");
+      lines.push("### 摘要");
       lines.push(summary);
     }
     lines.push("");
@@ -245,8 +250,11 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
  *
  * body 格式（每个 entry 一个 ## 块）：
  *   ## {doc_title}
+ *
+ *   ### 搜索面
  *   {search_surface}
  *
+ *   ### 摘要
  *   {summary}
  *
  *   - doc_id: {doc_id}
