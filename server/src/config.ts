@@ -64,7 +64,7 @@ export function loadConfig(): YuqueConfig {
     let fileIndexConcurrency: number | undefined;
     let fileSearchConcurrency: number | undefined;
 
-    const indexBooksFromEnv = parseBookList("YUQUE_ROUTE_SUB");
+    const indexBooksFromEnv = parseBookList("YUQUE_ROUTE_SUBS");
 
     // cookie/ctoken/index_books 优先 env，兜底读 config 文件
     if (!cookie || !ctoken || indexBooksFromEnv.length === 0) {
@@ -165,7 +165,7 @@ function normalizeBooks(raw: any): YuqueBook[] {
 
 /** 从环境变量解析 JSON 数组格式的 book 列表 */
 function parseBookList(prefix: string): YuqueBook[] {
-  // YUQUE_ROUTE_SUB='[{"book_id":123,"namespace":"xx"}]'
+  // YUQUE_ROUTE_SUBS='[{"book_id":123,"namespace":"xx"}]'
   const raw = process.env[prefix];
   if (!raw) return [];
   try {
