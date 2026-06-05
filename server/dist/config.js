@@ -54,7 +54,7 @@ export function loadConfig() {
                     if (!fileUserId)
                         fileUserId = raw.user_id;
                     if (indexBooksFromEnv.length === 0)
-                        fileIndexBooks = normalizeBooks(raw.route_book_sub || raw.index_book);
+                        fileIndexBooks = normalizeBooks(raw.route_book_sub);
                     if (fileIndexConcurrency === undefined)
                         fileIndexConcurrency = raw.index_concurrency;
                     if (fileSearchConcurrency === undefined)
@@ -118,7 +118,7 @@ export function loadConfig() {
         token: raw.token || "",
         group: raw.group || "",
         default_book: normalizeBook(raw.default_book),
-        route_book_sub: normalizeBooks(raw.route_book_sub || raw.index_book),
+        route_book_sub: normalizeBooks(raw.route_book_sub),
         graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
         index_concurrency: raw.index_concurrency || 1,
         search_concurrency: raw.search_concurrency || 5,
@@ -180,7 +180,7 @@ export function saveConfig() {
     }
     catch { /* 文件损坏则覆盖 */ }
     // 覆盖路由配置
-    raw.index_books = raw.route_book_sub = cached.route_book_sub;
+    raw.route_book_sub = cached.route_book_sub;
     if (cached.graph_book)
         raw.graph_book = cached.graph_book;
     if (cached.default_book.book_id)
