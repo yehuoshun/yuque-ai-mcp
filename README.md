@@ -1,6 +1,6 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 48 MCP Tools + 24 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> 语雀全功能 AI Agent 技能 —— 49 MCP Tools + 24 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
 [![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
@@ -73,7 +73,7 @@
 ## 架构
 
 ```
-yuque-mcp (MCP Server)     ← 48 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载/配置管理/分组管理）
+yuque-mcp (MCP Server)     ← 49 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/热重载/配置管理/分组管理）
     ↓
 业务 Skills                ← 24 个 Skill Markdown（manage/transform/insight/collect/write 五分类）
     ↓
@@ -82,7 +82,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 48 个 tools |
+| `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 49 个 tools |
 | `skills/` | Markdown | 业务 Skills（manage/transform/insight/collect/write 五分类，24 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 索引构建 + 业务 skill 路由） |
 
@@ -179,7 +179,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ---
 
-## MCP Tools 全览（48 个）
+## MCP Tools 全览（49 个）
 
 ### 知识库分组操作 ⚠️ 需 Cookie 登录态
 
@@ -302,7 +302,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 业务 Skills
 
-基于 MCP 48 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
+基于 MCP 49 tools 的高层业务能力。全部遵循：先预览后确认、单篇隔离不传染、上限 100 篇、结束出报告。
 
 ### 知识管理（manage/）
 
@@ -376,7 +376,7 @@ yuque-ai-mcp/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       ├── index.ts           # Server 入口（注册 48 个 tools）
+│       ├── index.ts           # Server 入口（注册 49 个 tools）
 │       ├── client.ts          # 语雀 HTTP 客户端（v2 API + web API）
 │       ├── config.ts          # 配置读取（支持环境变量 + 配置文件）
 │       ├── shared/types.ts    # 共享类型
