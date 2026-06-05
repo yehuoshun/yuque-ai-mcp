@@ -3,6 +3,35 @@ import { cleanToken } from "./utils.js";
 import { findDocByTitle, parseIndexDoc, createIndexDoc, titleCache } from "./index.js";
 const MAX_BODY_BYTES = 200 * 1024;
 /**
+ * 将 DocEntry[] 序列化为 Markdown body
+ */
+function entriesToMarkdown(entries) {
+    const blocks = entries.map(e => {
+        const title = e.doc_title || "";
+        const surface = (e.search_surface || "").trim();
+        const summary = (e.summary || "").trim();
+        const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
+        const lines = [];
+        lines.push(`## ${title}`);
+        if (surface) {
+            lines.push("");
+            lines.push(surface);
+        }
+        if (summary) {
+            lines.push("");
+            lines.push(summary);
+        }
+        lines.push("");
+        lines.push(`- doc_id: ${e.doc_id}`);
+        lines.push(`- 链接: ${url}`);
+        lines.push(`- 权重: ${e.weight}`);
+        lines.push("");
+        lines.push("---");
+        return lines.join("\n");
+    });
+    return blocks.join("\n\n") + "\n";
+}
+/**
  * 增量更新关键词索引文档的 entries
  *
  * 自动完成读-改-写的原子操作。
@@ -11,9 +40,7 @@ const MAX_BODY_BYTES = 200 * 1024;
 export async function updateIndexEntries(params) {
     const { keyword, index_book_id } = params;
     const cleanKw = cleanToken(keyword);
-    // 1. 找现有索引文档
     const existing = await findDocByTitle(index_book_id, cleanKw);
-    // 不存在 + 只有 remove → 无需操作
     if (!existing && params.remove?.length && !params.add?.length && !params.update?.length) {
         return JSON.stringify({
             keyword: cleanKw,
@@ -21,7 +48,6 @@ export async function updateIndexEntries(params) {
             reason: "索引文档不存在，无需移除",
         }, null, 2);
     }
-    // 不存在 + 有 add（无 remove/update）→ 降级 createIndexDoc
     if (!existing && params.add?.length && !params.remove?.length && !params.update?.length) {
         return createIndexDoc({
             keyword: cleanKw,
@@ -36,7 +62,6 @@ export async function updateIndexEntries(params) {
             reason: "索引文档不存在，且未提供 add",
         }, null, 2);
     }
-    // 2. 读 body → parse
     const docData = await get(`/repos/${index_book_id}/docs/${existing.id}`);
     const body = (docData.data || docData).body || "";
     const parsed = parseIndexDoc(body);
@@ -50,35 +75,32 @@ export async function updateIndexEntries(params) {
     }
     let entries = parsed.entries;
     const stats = { added: 0, removed: 0, updated: 0, skipped: 0 };
-    // 3. 应用 remove（按 doc_id 过滤）
+    // 应用 remove
     if (params.remove?.length) {
         const removeSet = new Set(params.remove);
         const before = entries.length;
         entries = entries.filter(e => !removeSet.has(e.doc_id));
         stats.removed = before - entries.length;
     }
-    // 4. 应用 update（按 doc_id 匹配，浅合并字段）
+    // 应用 update
     if (params.update?.length) {
         for (const upd of params.update) {
             const idx = entries.findIndex(e => e.doc_id === upd.doc_id);
             if (idx >= 0) {
                 entries[idx] = {
                     ...entries[idx],
-                    ...(upd.title !== undefined ? { title: upd.title } : {}),
                     ...(upd.doc_title !== undefined ? { doc_title: upd.doc_title } : {}),
                     ...(upd.slug !== undefined ? { slug: upd.slug } : {}),
                     ...(upd.url !== undefined ? { url: upd.url } : {}),
                     ...(upd.weight !== undefined ? { weight: upd.weight } : {}),
-                    ...(upd.keywords !== undefined ? { keywords: upd.keywords } : {}),
                     ...(upd.search_surface !== undefined ? { search_surface: upd.search_surface } : {}),
                     ...(upd.summary !== undefined ? { summary: upd.summary } : {}),
-                    ...(upd.tree !== undefined ? { tree: upd.tree } : {}),
                 };
                 stats.updated++;
             }
         }
     }
-    // 5. 应用 add（按 doc_id 去重追加）
+    // 应用 add
     if (params.add?.length) {
         const existingIds = new Set(entries.map(e => e.doc_id));
         for (const e of params.add) {
@@ -86,13 +108,22 @@ export async function updateIndexEntries(params) {
                 stats.skipped++;
             }
             else {
-                entries.push(e);
+                entries.push({
+                    doc_id: e.doc_id,
+                    namespace: e.namespace,
+                    doc_title: e.doc_title,
+                    slug: e.slug,
+                    url: e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`,
+                    weight: e.weight,
+                    search_surface: e.search_surface,
+                    summary: e.summary,
+                });
                 existingIds.add(e.doc_id);
                 stats.added++;
             }
         }
     }
-    // 6. entries 为空 → 删除索引文档
+    // entries 为空 → 删除索引文档
     if (entries.length === 0) {
         await del(`/repos/${index_book_id}/docs/${existing.id}`);
         titleCache.delete(`${index_book_id}:${cleanKw}`);
@@ -106,8 +137,7 @@ export async function updateIndexEntries(params) {
             deleted: true,
         }, null, 2);
     }
-    // 7. 200KB 检查
-    const newBody = JSON.stringify(entries, null, 2);
+    const newBody = entriesToMarkdown(entries);
     const bodyBytes = Buffer.byteLength(newBody, "utf-8");
     if (bodyBytes > MAX_BODY_BYTES) {
         return JSON.stringify({
@@ -121,7 +151,6 @@ export async function updateIndexEntries(params) {
             hint: `合并后 body ${(bodyBytes / 1024).toFixed(1)}KB 超过 ${MAX_BODY_BYTES / 1024}KB 上限。建议拆分关键词。`,
         }, null, 2);
     }
-    // 8. PUT 写回子库索引文档
     await put(`/repos/${index_book_id}/docs/${existing.id}`, {
         title: cleanKw,
         body: newBody,

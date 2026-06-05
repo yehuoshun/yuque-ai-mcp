@@ -4,9 +4,6 @@ export interface SourceEntry {
   namespace: string;
   title?: string;
   url?: string;
-  keywords?: string[];
-  search_surface?: string;
-  summary?: string;
   sub_index_ns?: string;
   parse_error?: string;
   weight?: number;  // LLM 拟合度 1-10
@@ -22,39 +19,33 @@ export interface SourceEntry {
 // yuque_kb_search 结构化返回
 export interface KbSearchResult {
   tokens: string[];
-  index_hits: number;                    // 索引文档命中数
-  source_entries: SourceEntry[];         // 去重排序后的源文档指针
-  total_entries: number;                // 截断前总数
-  truncated: boolean;                   // 是否被截断（max_entries 限制）
-  graph_expanded: boolean;              // 是否触发了图谱扩展
-  graph_neighbors: string[];            // 图谱扩展的邻居关键词
-  fallback_used: "none" | "global_search"; // 降级策略
-  dirty_blocks: number;                 // 索引文档 body 解析失败的个数
+  index_hits: number;
+  source_entries: SourceEntry[];
+  total_entries: number;
+  truncated: boolean;
+  graph_expanded: boolean;
+  graph_neighbors: string[];
+  fallback_used: "none" | "global_search";
+  dirty_blocks: number;
   errors: { token: string; reason: string }[];
-  hint?: string;                        // 建议下一步操作
+  hint?: string;
 }
 
-// graph 文档 body 格式（分片存储）
-// graphN: { neighbors: { keyword: [neighbor1, neighbor2, ...] } }
 export interface GraphShard {
   neighbors: Record<string, string[]>;
 }
 
-// 源文档指针（写入索引文档 body）
-// body 格式：JSON 数组，每项为一个 DocEntry
+// 源文档指针（MCP tool 输入 / 结构化读取输出）
 export interface DocEntry {
   doc_id: number;
   namespace: string;
   doc_title: string;
   slug: string;
   url: string;
-  weight: number;  // 权重 1-10
-  // 每个 entry 的自有元数据（一对多场景）
-  title?: string;        // entry 文档标题
-  keywords?: string[];   // entry 关键词
-  search_surface?: string; // entry 搜索面
-  summary?: string;      // entry 摘要
-  tree?: {              // 章节树（文档 > 5000 字时可选）
+  weight: number;
+  search_surface?: string; // 该文档的搜索面文本
+  summary?: string;        // 该文档的摘要
+  tree?: {
     sections: Array<{
       id: string;
       title: string;
@@ -63,14 +54,14 @@ export interface DocEntry {
   };
 }
 
-// 解析后的索引文档 body（JSON 数组 → DocEntry[]）
+// 解析后的索引文档 body
 export interface ParsedIndexDoc {
   entries: DocEntry[];
   parse_error?: string;
 }
 
 export interface CreateIndexDocParams {
-  keyword: string;       // 文档标题（也是关键词，经 cleanToken 清洗）
+  keyword: string;
   entries: DocEntry[];
   index_book_id: number | string;
 }

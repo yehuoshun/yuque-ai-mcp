@@ -3,7 +3,7 @@ import { CreateIndexDocParams, ParsedIndexDoc } from "./types.js";
  * 创建关键词索引文档
  *
  * 一个关键词 = 一篇索引文档，标题即关键词。
- * body 为 JSON 数组，每项为一个 DocEntry。
+ * body 为 Markdown 格式：每个源文档一个块（标题 + 搜索面 + 摘要 + 元数据）。
  */
 export declare function createIndexDoc(params: CreateIndexDocParams): Promise<string>;
 interface CacheEntry {
@@ -12,15 +12,24 @@ interface CacheEntry {
     ts: number;
 }
 export declare const titleCache: Map<string, CacheEntry>;
-/** 按标题查找子库中已存在的文档（用于幂等），带 TTL 缓存 */
 export declare function findDocByTitle(bookId: number | string, title: string): Promise<{
     id: number;
     slug: string;
 } | null>;
 /**
- * 解析索引文档 body → entries
+ * 解析索引文档 Markdown body → ParsedIndexDoc
  *
- * body 格式：JSON 数组 [{doc_id, namespace, doc_title, slug, url, weight, ...}]
+ * body 格式（每个 entry 一块）：
+ *   ## {doc_title}
+ *   {search_surface}
+ *
+ *   {summary}
+ *
+ *   - doc_id: {doc_id}
+ *   - 链接: {url}
+ *   - 权重: {weight}
+ *
+ *   ---
  */
 export declare function parseIndexDoc(body: string): ParsedIndexDoc;
 export {};

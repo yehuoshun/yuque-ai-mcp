@@ -164,16 +164,12 @@ async function readIndexDocs(indexDocs) {
                 dirtyBlocks++;
                 continue;
             }
-            const indexKeyword = doc.title?.trim();
             for (const entry of parsed.entries) {
                 allEntries.push({
                     doc_id: entry.doc_id,
                     namespace: entry.namespace,
-                    title: entry.title || entry.doc_title,
+                    title: entry.doc_title,
                     url: entry.url || `https://www.yuque.com/${entry.namespace}/${entry.slug}`,
-                    keywords: entry.keywords,
-                    search_surface: entry.search_surface,
-                    summary: indexKeyword ? `[${indexKeyword}] ${entry.summary || entry.doc_title}` : (entry.summary || entry.doc_title),
                     sub_index_ns: `${doc.book_id}/${doc.doc_id}`,
                     weight: entry.weight,
                     tree: entry.tree,
@@ -274,9 +270,7 @@ async function globalSearchFallback(tokens) {
                     url: info.slug && info.book?.namespace
                         ? `https://www.yuque.com/${info.book.namespace}/${info.slug}`
                         : "",
-                    summary: (info.description || r.description || "").slice(0, 200),
                     weight: 5,
-                    tree: undefined,
                 });
             }
         }

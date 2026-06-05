@@ -4,14 +4,10 @@ import { CreateIndexDocParams, DocEntry, ParsedIndexDoc } from "./types.js";
 import { cleanToken } from "./utils.js";
 import { listAllDocs } from "./search.js";
 
-// 容量上限（语雀单库文档上限约 5000）
 const REPO_DOC_LIMIT = 5000;
-// 扩容阈值：到达此比例时提示需要新建子库
 const REPO_CAPACITY_WARN_PCT = 90;
-// 阻塞阈值：到达此比例时拒绝写入
 const REPO_CAPACITY_BLOCK_PCT = 97;
 
-/** 检查知识库容量，返回 { count, pct, level: ok|warn|block } */
 async function checkRepoCapacity(bookId: number | string): Promise<{ count: number; pct: number; level: "ok" | "warn" | "block"; label: string }> {
   try {
     const data = await get(`/repos/${bookId}`) as any;
@@ -32,10 +28,55 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
 }
 
 /**
+ * 将 DocEntry[] 序列化为 Markdown body
+ *
+ * 格式（每个 entry 一块）：
+ *   ## {doc_title}
+ *   {search_surface}
+ *
+ *   {summary}
+ *
+ *   - doc_id: {doc_id}
+ *   - 链接: {url}
+ *   - 权重: {weight}
+ *
+ *   ---
+ */
+function entriesToMarkdown(entries: DocEntry[]): string {
+  const blocks = entries.map(e => {
+    const title = e.doc_title || "";
+    const surface = (e.search_surface || "").trim();
+    const summary = (e.summary || "").trim();
+    const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
+
+    const lines: string[] = [];
+    lines.push(`## ${title}`);
+    if (surface) {
+      lines.push("");
+      lines.push(surface);
+    }
+    if (summary) {
+      lines.push("");
+      lines.push(summary);
+    }
+    lines.push("");
+    lines.push(`- doc_id: ${e.doc_id}`);
+    lines.push(`- 链接: ${url}`);
+    lines.push(`- 权重: ${e.weight}`);
+    lines.push("");
+    lines.push("---");
+
+    return lines.join("\n");
+  });
+
+  return blocks.join("\n\n") + "\n";
+}
+
+/**
  * 创建关键词索引文档
  *
  * 一个关键词 = 一篇索引文档，标题即关键词。
- * body 为 JSON 数组，每项为一个 DocEntry。
+ * body 为 Markdown 格式：每个源文档一个块（标题 + 搜索面 + 摘要 + 元数据）。
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
   const { keyword, entries, index_book_id } = params;
@@ -45,16 +86,14 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
 
   const cleanKw = cleanToken(keyword);
 
-  // 校验必填字段
   for (const e of entries) {
     if (!e.doc_id) throw new Error("每个 entry 必须有 doc_id");
     if (!e.namespace) throw new Error("每个 entry 必须有 namespace");
-    if (!e.doc_title) throw new Error("每个 entry 必须有 doc_title（源文档标题）");
+    if (!e.doc_title) throw new Error("每个 entry 必须有 doc_title");
     if (!e.slug) throw new Error("每个 entry 必须有 slug");
     if (e.weight == null || e.weight < 1 || e.weight > 10) throw new Error("每个 entry 必须有 weight（权重 1-10）");
   }
 
-  // 补全 url（写入时自动从 namespace + slug 拼接兜底）
   const enrichedEntries: DocEntry[] = entries.map(e => ({
     doc_id: e.doc_id,
     namespace: e.namespace,
@@ -62,17 +101,13 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     slug: e.slug,
     url: e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`,
     weight: e.weight,
-    title: e.title,
-    keywords: e.keywords,
     search_surface: e.search_surface,
     summary: e.summary,
     tree: e.tree,
   }));
 
-  // body = JSON 数组，agent 直接 JSON.parse
-  const body = JSON.stringify(enrichedEntries, null, 2);
+  const body = entriesToMarkdown(enrichedEntries);
 
-  // 200KB 上限检查（语雀上限 500KB，留余量防读取超时）
   const MAX_BODY_BYTES = 200 * 1024;
   const bodyBytes = Buffer.byteLength(body, "utf-8");
   if (bodyBytes > MAX_BODY_BYTES) {
@@ -82,7 +117,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
       body_bytes: bodyBytes,
       limit_bytes: MAX_BODY_BYTES,
       entry_count: enrichedEntries.length,
-      hint: `索引文档 body ${(bodyBytes / 1024).toFixed(1)}KB 超过 ${MAX_BODY_BYTES / 1024}KB 上限。建议：1) 拆分关键词（如 SpringBoot-1, SpringBoot-2）2) 减少低权重 entry（weight < 5 的可考虑不收录）`,
+      hint: `索引文档 body ${(bodyBytes / 1024).toFixed(1)}KB 超过 ${MAX_BODY_BYTES / 1024}KB 上限。建议拆分关键词或减少低权重 entry。`,
     }, null, 2);
   }
 
@@ -97,7 +132,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
         created: false,
         error: `index_book_id=${index_book_id} 不在配置的 route_book_sub 中`,
         valid_book_ids: route_book_sub.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
-        hint: `请使用配置中已有的子索引库：${validIds || "（无）"}。如需新建子索引库，先用 yuque_create_repo + yuque_config_update。`,
+        hint: `请使用配置中已有的子索引库：${validIds || "（无）"}。`,
       });
     }
   }
@@ -107,7 +142,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     return JSON.stringify({
       created: false,
       error: "route_book_sub 未配置",
-      hint: "子索引库未配置。请先创建子索引库并写入 config 的 route_book_sub。",
+      hint: "子索引库未配置。",
     });
   }
 
@@ -117,14 +152,13 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
       created: false,
       error: "capacity_blocked",
       current_book: { book_id: bookId, count: capacity.count, pct: capacity.pct },
-      hint: `子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线，需要新建子索引库。`,
+      hint: `子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线。`,
     });
   }
   const capacityWarning = capacity.level === "warn"
     ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线`
     : "";
 
-  // 子库写入幂等：重试时已有同名文档则覆盖，不重复创建
   let docId: number;
   let docSlug: string;
   let isNew = false;
@@ -146,7 +180,6 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     docId = created.id as number;
     docSlug = created.slug || "";
     isNew = true;
-    // 新建后更新缓存，避免同批次后续查重返回过期 null
     if (docSlug) titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug, ts: Date.now() });
   }
 
@@ -175,7 +208,8 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }, null, 2);
 }
 
-// 标题→文档信息缓存（同一批次构建中避免重复 listAllDocs，5 分钟过期）
+// ─── 标题缓存 ─────────────────────────────────────────
+
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry {
@@ -186,17 +220,13 @@ interface CacheEntry {
 
 export const titleCache = new Map<string, CacheEntry>();
 
-/** 清理过期缓存（每次查缓存前调用） */
 function pruneCache() {
   const now = Date.now();
   for (const [key, entry] of titleCache) {
-    if (now - entry.ts > CACHE_TTL_MS) {
-      titleCache.delete(key);
-    }
+    if (now - entry.ts > CACHE_TTL_MS) titleCache.delete(key);
   }
 }
 
-/** 按标题查找子库中已存在的文档（用于幂等），带 TTL 缓存 */
 export async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number; slug: string } | null> {
   pruneCache();
   const cacheKey = `${bookId}:${title}`;
@@ -205,7 +235,6 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
 
   const allDocs = await listAllDocs(bookId);
   const now = Date.now();
-  // 批量写入缓存
   for (const d of allDocs) {
     const t = (d.title || "").trim();
     if (t) titleCache.set(`${bookId}:${t}`, { id: d.id, slug: d.slug || "", ts: now });
@@ -214,36 +243,98 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
   return fresh ? { id: fresh.id, slug: fresh.slug } : null;
 }
 
+// ─── 解析 ─────────────────────────────────────────────
+
 /**
- * 解析索引文档 body → entries
+ * 解析索引文档 Markdown body → ParsedIndexDoc
  *
- * body 格式：JSON 数组 [{doc_id, namespace, doc_title, slug, url, weight, ...}]
+ * body 格式（每个 entry 一块）：
+ *   ## {doc_title}
+ *   {search_surface}
+ *
+ *   {summary}
+ *
+ *   - doc_id: {doc_id}
+ *   - 链接: {url}
+ *   - 权重: {weight}
+ *
+ *   ---
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
   if (!body) return { entries: [], parse_error: "空 body" };
 
-  try {
-    const parsed = JSON.parse(body);
-    if (!Array.isArray(parsed)) {
-      return { entries: [], parse_error: "body 不是 JSON 数组" };
-    }
-
-    const entries: DocEntry[] = parsed.map((e: any) => ({
-      doc_id: e.doc_id || 0,
-      namespace: e.namespace || "",
-      doc_title: e.doc_title || "",
-      slug: e.slug || "",
-      url: e.url || (e.namespace && e.slug ? `https://www.yuque.com/${e.namespace}/${e.slug}` : ""),
-      weight: e.weight ?? 5,
-      title: e.title,
-      keywords: e.keywords,
-      search_surface: e.search_surface,
-      summary: e.summary,
-      tree: e.tree,
-    }));
-
-    return { entries };
-  } catch (e) {
-    return { entries: [], parse_error: `JSON 解析失败: ${e instanceof Error ? e.message : String(e)}` };
+  // 按 `\n---\n` 分割各块
+  const blocks = body.split(/\n---\n?/).filter(b => b.trim());
+  if (blocks.length === 0) {
+    return { entries: [], parse_error: "未找到有效块" };
   }
+
+  const entries: DocEntry[] = [];
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    const entry = parseBlock(trimmed);
+    if (entry) entries.push(entry);
+  }
+
+  if (entries.length === 0) {
+    return { entries: [], parse_error: "所有块解析失败" };
+  }
+
+  return { entries };
+}
+
+/** 解析单个块 → DocEntry */
+function parseBlock(block: string): DocEntry | null {
+  const lines = block.split("\n");
+
+  // 第一行是 ## {doc_title}
+  const titleLine = lines[0]?.trim();
+  const docTitle = titleLine?.startsWith("## ") ? titleLine.substring(3).trim() : "";
+
+  // 提取 doc_id、链接、权重
+  let docId = 0;
+  let url = "";
+  let weight = 5;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("- doc_id:")) {
+      docId = parseInt(trimmed.substring("- doc_id:".length).trim(), 10);
+    } else if (trimmed.startsWith("- 链接:")) {
+      url = trimmed.substring("- 链接:".length).trim();
+    } else if (trimmed.startsWith("- 权重:")) {
+      weight = parseInt(trimmed.substring("- 权重:".length).trim(), 10);
+    }
+  }
+
+  if (!docId || !url) return null;
+
+  // 从 URL 提取 namespace 和 slug
+  const urlMatch = url.match(/yuque\.com\/(.+?)\/(.+?)\/([^/?#]+)/);
+  const namespace = urlMatch ? `${urlMatch[1]}/${urlMatch[2]}` : "";
+  const slug = urlMatch ? urlMatch[3] : "";
+
+  // 搜索面和摘要 = 标题行之后、元数据行之前的文本
+  const contentLines: string[] = [];
+  let inContent = false;
+  for (let i = 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("- doc_id:") || trimmed.startsWith("- 链接:") || trimmed.startsWith("- 权重:")) {
+      break;
+    }
+    if (trimmed && !inContent) inContent = true;
+    if (inContent) contentLines.push(trimmed);
+  }
+
+  return {
+    doc_id: docId,
+    namespace,
+    doc_title: docTitle,
+    slug,
+    url,
+    weight,
+  };
 }

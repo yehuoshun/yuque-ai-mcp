@@ -257,7 +257,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_kb_search` | 知识库管道搜索（子索引库直搜 + 图谱扩展 + 自动降级）：token 数组 → 并行搜所有子索引库找标题匹配的索引文档 → 读索引文档 body → 展开 entries → 按 weight 降序返回。默认截断 20 条，超出的低权重自然淘汰。返回 `total_entries`/`truncated` 标识截断状态 |
-| `yuque_index_create` | 创建细粒度关键词索引文档：一个关键词一篇索引文档，标题为精确知识点名称。⚠️ 每个关键词只对应 1 篇源文档。LLM 先做关键词质量过滤（丢弃栏目名/编号/标签等无效词），再写 body（关键词搜索面 + 搜索面自然语言 + 摘要 + entry 指针，doc_id/namespace/doc_title/slug/url/weight 全部必填，weight 为 1-10 权重） |
+| `yuque_index_create` | 创建关键词索引文档。标题为关键词，body 为 Markdown 格式（搜索面文本 + 文档引用表格），语雀全文索引可搜。entries 含 doc_id/namespace/doc_title/slug/url/weight 全部必填 |
 | `yuque_index_update_entries` | 增量更新关键词索引文档 entries：支持 add（追加）/ remove（移除）/ update（按 doc_id 合并字段）。自动完成读-改-写原子操作。entries 清空时自动删除索引文档。200KB body 检查 |
 
 ### 搜索 & 批量获取 & 元信息
