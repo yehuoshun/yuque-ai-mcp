@@ -67,5 +67,4 @@ export interface ParsedIndexDoc {
 export interface CreateIndexDocParams {
   keyword: string;
   entries: DocEntry[];
-  index_book_id: number | string;
 }

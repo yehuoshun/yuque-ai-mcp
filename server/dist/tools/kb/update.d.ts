@@ -7,7 +7,6 @@ import { DocEntry } from "./types.js";
  */
 export declare function updateIndexEntries(params: {
     keyword: string;
-    index_book_id: number | string;
     add?: DocEntry[];
     remove?: number[];
     update?: DocEntry[];

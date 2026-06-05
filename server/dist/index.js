@@ -17,7 +17,7 @@ import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
-import { kbSearch, createIndexDoc, updateIndexEntries } from "./tools/kb.js";
+import { kbSearch, createIndexDoc, updateIndexEntries, reverseLookup, diffIndex } from "./tools/kb.js";
 import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
 // ---- tool definitions ----
 const tools = [
@@ -497,9 +497,8 @@ const tools = [
                     },
                     description: "源文档指针列表，每项含 doc_id/namespace/doc_title/slug/url/weight 必填，可选 search_surface/summary/tree",
                 },
-                index_book_id: { type: ["number", "string"], description: "索引库 book_id" },
             },
-            required: ["keyword", "entries", "index_book_id"],
+            required: ["keyword", "entries"],
         },
     },
     {
@@ -509,7 +508,6 @@ const tools = [
             type: "object",
             properties: {
                 keyword: { type: "string", description: "关键词（索引文档标题）" },
-                index_book_id: { type: ["number", "string"], description: "索引库 book_id" },
                 add: {
                     type: "array",
                     items: {
@@ -549,7 +547,27 @@ const tools = [
                     description: "要更新的 entries（按 doc_id 匹配，只更新提供的字段）",
                 },
             },
-            required: ["keyword", "index_book_id"],
+            required: ["keyword"],
+        },
+    },
+    {
+        name: "yuque_index_reverse_lookup",
+        description: "反向查找：给定源文档 doc_id，用语雀搜索 API 反查索引库 body，找出所有包含它的关键词索引文档。返回 found_in 数组（含 keyword/index_doc_id/entry）。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                doc_id: { type: "number", description: "源文档 ID" },
+            },
+            required: ["doc_id"],
+        },
+    },
+    {
+        name: "yuque_index_diff",
+        description: "增量对比：读 doc-map 文档，对比每个源库的 updated_at 和文档 updated_at，找出上次构建后变更的文档。返回 changed_docs 数组（含 doc_id/title/slug/updated_at/source_book_id/source_namespace）。",
+        inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
         },
     },
     // --- 统计（需 statistic:read 权限）---
@@ -728,6 +746,8 @@ const handlers = {
     yuque_kb_search: (a) => kbSearch(a),
     yuque_index_create: (a) => createIndexDoc(a),
     yuque_index_update_entries: (a) => updateIndexEntries(a),
+    yuque_index_reverse_lookup: (a) => reverseLookup(a),
+    yuque_index_diff: (a) => diffIndex(),
     yuque_get_group_stats: (a) => getGroupStats(a),
     yuque_get_member_stats: (a) => getMemberStats(a),
     yuque_get_book_stats: (a) => getBookStats(a),

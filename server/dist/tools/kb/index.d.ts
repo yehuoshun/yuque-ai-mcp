@@ -6,16 +6,6 @@ import { CreateIndexDocParams, ParsedIndexDoc } from "./types.js";
  * body 为 Markdown 格式：每个源文档一个块（标题 + 搜索面 + 摘要 + 元数据）。
  */
 export declare function createIndexDoc(params: CreateIndexDocParams): Promise<string>;
-interface CacheEntry {
-    id: number;
-    slug: string;
-    ts: number;
-}
-export declare const titleCache: Map<string, CacheEntry>;
-export declare function findDocByTitle(bookId: number | string, title: string): Promise<{
-    id: number;
-    slug: string;
-} | null>;
 /**
  * 解析索引文档 Markdown body → ParsedIndexDoc
  *
@@ -42,4 +32,3 @@ export declare function findDocByTitle(bookId: number | string, title: string): 
  *   {weight}
  */
 export declare function parseIndexDoc(body: string): ParsedIndexDoc;
-export {};

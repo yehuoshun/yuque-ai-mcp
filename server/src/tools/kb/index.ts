@@ -2,7 +2,6 @@ import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { CreateIndexDocParams, DocEntry, ParsedIndexDoc } from "./types.js";
 import { cleanToken, entriesToMarkdown } from "./utils.js";
-import { listAllDocs } from "./search.js";
 
 const REPO_DOC_LIMIT = 5000;
 const REPO_CAPACITY_WARN_PCT = 90;
@@ -34,7 +33,7 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
  * body 为 Markdown 格式：每个源文档一个块（标题 + 搜索面 + 摘要 + 元数据）。
  */
 export async function createIndexDoc(params: CreateIndexDocParams): Promise<string> {
-  const { keyword, entries, index_book_id } = params;
+  const { keyword, entries } = params;
 
   if (!keyword) throw new Error("keyword 不能为空");
   if (!entries || entries.length === 0) throw new Error("entries 不能为空");
@@ -80,20 +79,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   const config = loadConfig();
   const { route_books } = config;
 
-  if (index_book_id) {
-    const matched = route_books.some(b => String(b.book_id) === String(index_book_id));
-    if (!matched) {
-      const validIds = route_books.map(b => `${b.book_id}（${b.namespace}）`).join(", ");
-      return JSON.stringify({
-        created: false,
-        error: `index_book_id=${index_book_id} 不在配置的 route_books 中`,
-        valid_book_ids: route_books.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
-        hint: `请使用配置中已有的索引库：${validIds || "（无）"}。`,
-      });
-    }
-  }
-
-  const bookId = index_book_id || route_books[0]?.book_id;
+  const bookId = route_books[0]?.book_id;
   if (!bookId) {
     return JSON.stringify({
       created: false,
@@ -118,7 +104,25 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   let docId: number;
   let docSlug: string;
   let isNew = false;
-  const existingSubDoc = await findDocByTitle(bookId, cleanKw);
+
+  // v3: 用语雀搜索 API 查关键词索引文档是否已存在
+  const routeBook = route_books.find(b => String(b.book_id) === String(bookId));
+  let existingSubDoc: { id: number; slug: string } | null = null;
+  if (routeBook) {
+    try {
+      const searchData = await get(`/search?q=${encodeURIComponent(cleanKw)}&type=doc&scope=${routeBook.namespace}`) as any;
+      const results: any[] = searchData.data || [];
+      const match = results.find((r: any) => {
+        const info = r.target || r;
+        return (info.title || r.title || "").trim() === cleanKw;
+      });
+      if (match) {
+        const info = match.target || match;
+        existingSubDoc = { id: info.id || match.id, slug: info.slug || match.slug || "" };
+      }
+    } catch { /* 搜索失败，走新建路径 */ }
+  }
+
   if (existingSubDoc) {
     const putResult = await put(`/repos/${bookId}/docs/${existingSubDoc.id}`, {
       title: cleanKw,
@@ -136,7 +140,6 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     docId = created.id as number;
     docSlug = created.slug || "";
     isNew = true;
-    if (docSlug) titleCache.set(`${bookId}:${cleanKw}`, { id: docId, slug: docSlug, ts: Date.now() });
   }
 
   if (!docSlug) {
@@ -162,41 +165,6 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     book_id: bookId,
     ...(capacityWarning ? { capacity_warning: capacityWarning } : {}),
   }, null, 2);
-}
-
-// ─── 标题缓存 ─────────────────────────────────────────
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-interface CacheEntry {
-  id: number;
-  slug: string;
-  ts: number;
-}
-
-export const titleCache = new Map<string, CacheEntry>();
-
-function pruneCache() {
-  const now = Date.now();
-  for (const [key, entry] of titleCache) {
-    if (now - entry.ts > CACHE_TTL_MS) titleCache.delete(key);
-  }
-}
-
-export async function findDocByTitle(bookId: number | string, title: string): Promise<{ id: number; slug: string } | null> {
-  pruneCache();
-  const cacheKey = `${bookId}:${title}`;
-  const cached = titleCache.get(cacheKey);
-  if (cached) return { id: cached.id, slug: cached.slug };
-
-  const allDocs = await listAllDocs(bookId);
-  const now = Date.now();
-  for (const d of allDocs) {
-    const t = (d.title || "").trim();
-    if (t) titleCache.set(`${bookId}:${t}`, { id: d.id, slug: d.slug || "", ts: now });
-  }
-  const fresh = titleCache.get(cacheKey);
-  return fresh ? { id: fresh.id, slug: fresh.slug } : null;
 }
 
 // ─── 解析 ─────────────────────────────────────────────

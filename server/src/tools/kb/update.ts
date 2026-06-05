@@ -1,7 +1,8 @@
 import { get, put, del } from "../../client.js";
+import { loadConfig } from "../../config.js";
 import { DocEntry } from "./types.js";
 import { cleanToken, entriesToMarkdown } from "./utils.js";
-import { findDocByTitle, parseIndexDoc, createIndexDoc, titleCache } from "./index.js";
+import { parseIndexDoc, createIndexDoc } from "./index.js";
 
 const MAX_BODY_BYTES = 200 * 1024;
 
@@ -13,15 +14,36 @@ const MAX_BODY_BYTES = 200 * 1024;
  */
 export async function updateIndexEntries(params: {
   keyword: string;
-  index_book_id: number | string;
   add?: DocEntry[];
   remove?: number[];
   update?: DocEntry[];
 }): Promise<string> {
-  const { keyword, index_book_id } = params;
+  const { keyword } = params;
   const cleanKw = cleanToken(keyword);
 
-  const existing = await findDocByTitle(index_book_id, cleanKw);
+  const { route_books } = loadConfig();
+  const bookId = route_books[0]?.book_id;
+  if (!bookId) {
+    return JSON.stringify({ keyword: cleanKw, action: "error", error: "route_books 未配置" }, null, 2);
+  }
+
+  // v3: 用语雀搜索 API 查关键词索引文档是否已存在
+  const routeBook = route_books.find(b => String(b.book_id) === String(bookId));
+  let existing: { id: number; slug: string } | null = null;
+  if (routeBook) {
+    try {
+      const searchData = await get(`/search?q=${encodeURIComponent(cleanKw)}&type=doc&scope=${routeBook.namespace}`) as any;
+      const results: any[] = searchData.data || [];
+      const match = results.find((r: any) => {
+        const info = r.target || r;
+        return (info.title || r.title || "").trim() === cleanKw;
+      });
+      if (match) {
+        const info = match.target || match;
+        existing = { id: info.id || match.id, slug: info.slug || match.slug || "" };
+      }
+    } catch { /* 搜索失败 */ }
+  }
 
   if (!existing && params.remove?.length && !params.add?.length && !params.update?.length) {
     return JSON.stringify({
@@ -35,7 +57,6 @@ export async function updateIndexEntries(params: {
     return createIndexDoc({
       keyword: cleanKw,
       entries: params.add,
-      index_book_id,
     });
   }
 
@@ -48,7 +69,7 @@ export async function updateIndexEntries(params: {
     }, null, 2);
   }
 
-  const docData = await get(`/repos/${index_book_id}/docs/${existing.id}`) as any;
+  const docData = await get(`/repos/${bookId}/docs/${existing.id}`) as any;
   const body: string = (docData.data || docData).body || "";
   const parsed = parseIndexDoc(body);
   if (parsed.parse_error) {
@@ -119,8 +140,7 @@ export async function updateIndexEntries(params: {
 
   // entries 为空 → 删除索引文档
   if (entries.length === 0) {
-    await del(`/repos/${index_book_id}/docs/${existing.id}`);
-    titleCache.delete(`${index_book_id}:${cleanKw}`);
+    await del(`/repos/${bookId}/docs/${existing.id}`);
 
     return JSON.stringify({
       keyword: cleanKw,
@@ -148,7 +168,7 @@ export async function updateIndexEntries(params: {
     }, null, 2);
   }
 
-  await put(`/repos/${index_book_id}/docs/${existing.id}`, {
+  await put(`/repos/${bookId}/docs/${existing.id}`, {
     title: cleanKw,
     body: newBody,
   });
