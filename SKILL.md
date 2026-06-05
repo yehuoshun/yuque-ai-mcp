@@ -140,8 +140,7 @@ spring.factories文件配置
 条件注解Conditional怎么用
 
 ## 摘要
-源码级分析@EnableAutoConfiguration和spring.factories机制，
-从启动类到自动配置类的完整链路
+源码级分析@EnableAutoConfiguration和spring.factories机制，从启动类到自动配置类的完整链路
 
 ## doc_id
 232072822
