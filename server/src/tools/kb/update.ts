@@ -16,10 +16,10 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
 
     const lines: string[] = [];
-    lines.push(`## ${title}`);
+    lines.push(`# ${title}`);
     if (surface) {
       lines.push("");
-      lines.push("### 搜索面");
+      lines.push("## 搜索面");
       lines.push(surface);
     }
     if (summary) {

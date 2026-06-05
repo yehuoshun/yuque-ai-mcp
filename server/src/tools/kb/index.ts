@@ -31,9 +31,9 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
  * 将 DocEntry[] 序列化为 Markdown body
  *
  * 格式（每个 entry 一块）：
- *   ## {doc_title}
+ *   # {doc_title}
  *
- *   ### 搜索面
+ *   ## 搜索面
  *   {search_surface}
  *
  *   ### 摘要
@@ -51,10 +51,10 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
 
     const lines: string[] = [];
-    lines.push(`## ${title}`);
+    lines.push(`# ${title}`);
     if (surface) {
       lines.push("");
-      lines.push("### 搜索面");
+      lines.push("## 搜索面");
       lines.push(surface);
     }
     if (summary) {
@@ -248,10 +248,10 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
 /**
  * 解析索引文档 Markdown body → ParsedIndexDoc
  *
- * body 格式（每个 entry 一个 ## 块）：
- *   ## {doc_title}
+ * body 格式（每个 entry 一个 # 块）：
+ *   # {doc_title}
  *
- *   ### 搜索面
+ *   ## 搜索面
  *   {search_surface}
  *
  *   ### 摘要
@@ -264,8 +264,8 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
 export function parseIndexDoc(body: string): ParsedIndexDoc {
   if (!body) return { entries: [], parse_error: "空 body" };
 
-  // 按 `\n## ` 分割各块
-  const blocks = body.split(/\n(?=## )/).filter(b => b.trim());
+  // 按 `\n# ` 分割各块
+  const blocks = body.split(/\n(?=# )/).filter(b => b.trim());
   if (blocks.length === 0) {
     return { entries: [], parse_error: "未找到有效块" };
   }
@@ -291,9 +291,9 @@ export function parseIndexDoc(body: string): ParsedIndexDoc {
 function parseBlock(block: string): DocEntry | null {
   const lines = block.split("\n");
 
-  // 第一行是 ## {doc_title}
+  // 第一行是 # {doc_title}
   const titleLine = lines[0]?.trim();
-  const docTitle = titleLine?.startsWith("## ") ? titleLine.substring(3).trim() : "";
+  const docTitle = titleLine?.startsWith("# ") ? titleLine.substring(2).trim() : "";
 
   // 提取 doc_id、链接、权重
   let docId = 0;

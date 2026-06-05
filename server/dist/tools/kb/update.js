@@ -12,10 +12,10 @@ function entriesToMarkdown(entries) {
         const summary = (e.summary || "").trim();
         const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
         const lines = [];
-        lines.push(`## ${title}`);
+        lines.push(`# ${title}`);
         if (surface) {
             lines.push("");
-            lines.push("### 搜索面");
+            lines.push("## 搜索面");
             lines.push(surface);
         }
         if (summary) {
