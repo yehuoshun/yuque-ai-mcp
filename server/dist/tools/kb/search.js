@@ -5,7 +5,7 @@ import { parseIndexDoc } from "./index.js";
 /**
  * 知识库搜索 — 索引库直搜 + 图谱扩展 + 降级
  *
- * 1. 搜所有索引库 → 找标题匹配的索引文档
+ * 1. 搜所有索引库 → 找匹配的索引文档
  * 2. 读索引文档 body → 展开 entries
  * 3. 命中 < 3 篇 → 图谱扩展（1 跳邻居补搜）
  * 4. 索引库 0 命中 → 自动降级语雀全库搜索
@@ -30,7 +30,7 @@ export async function kbSearch(params) {
             hint: "请配置 route_book_sub（索引库）",
         }, null, 2);
     }
-    // ── Step 1: 搜索引库 → 找标题匹配的索引文档 ──
+    // ── Step 1: 搜索引库 → 找匹配的索引文档 ──
     const { indexDocs, hitKeywords } = await searchIndexBooks(tokens, route_book_sub, errors);
     // ── Step 1.5: 0 命中 → 自动降级全库搜索 ──
     if (indexDocs.length === 0) {
@@ -115,7 +115,7 @@ async function searchIndexBooks(tokens, subBooks, errors) {
                     const info = r.target || r;
                     const id = info.id || r.id;
                     const title = (info.title || r.title || "").trim();
-                    if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(id)) {
+                    if (id && !seenDocs.has(id)) {
                         seenDocs.set(id, { book_id: sb.book_id, doc_id: id, title });
                     }
                 }

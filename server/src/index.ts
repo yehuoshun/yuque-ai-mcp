@@ -476,7 +476,7 @@ const tools: Tool[] = [
   // ═══════════ 知识库搜索 & 索引构建 ═══════════
   {
     name: "yuque_kb_search",
-    description: "知识库管道搜索（索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有索引库找标题匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 索引库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
+    description: "知识库管道搜索（索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有索引库找匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 索引库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
     inputSchema: {
       type: "object",
       properties: {
