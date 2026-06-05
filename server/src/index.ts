@@ -9,7 +9,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
 import { loadDarkArts } from "./tools/dark-arts-loader.js";
-import { addRouteBookSub, addGraphBook, loadConfig, reloadConfig, getConfigPath, saveConfig } from "./config.js";
+import { addRouteBooks, addGraphBook, loadConfig, reloadConfig, getConfigPath, saveConfig } from "./config.js";
 
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
@@ -868,7 +868,7 @@ async function configUpdate(args: { route_books_add?: { book_id: number | string
 
   if (args.route_books_add?.length) {
     for (const b of args.route_books_add) {
-      addRouteBookSub(b);
+      addRouteBooks(b);
       lines.push(`✅ 索引库追加: book_id=${b.book_id} ns=${b.namespace}`);
     }
     changed = true;

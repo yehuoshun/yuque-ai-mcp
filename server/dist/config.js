@@ -140,7 +140,7 @@ function normalizeBooks(raw) {
 }
 /** 从环境变量解析 JSON 数组格式的 book 列表 */
 function parseBookList(prefix) {
-    // YUQUE_ROUTE_BOOK='[{"book_id":123,"namespace":"xx"}]'
+    // YUQUE_INDEX_BOOKS='[{"book_id":123,"namespace":"xx"}]'
     const raw = process.env[prefix];
     if (!raw)
         return [];
@@ -186,7 +186,7 @@ export function saveConfig() {
     catch { }
 }
 /** 追加索引库条目 */
-export function addRouteBookSub(book) {
+export function addRouteBooks(book) {
     if (!cached)
         loadConfig();
     const exists = cached.route_books.some(b => String(b.book_id) === String(book.book_id));
