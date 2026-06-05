@@ -59,13 +59,16 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     }
     if (summary) {
       lines.push("");
-      lines.push("### 摘要");
+      lines.push("## 摘要");
       lines.push(summary);
     }
     lines.push("");
-    lines.push(`- doc_id: ${e.doc_id}`);
-    lines.push(`- 链接: ${url}`);
-    lines.push(`- 权重: ${e.weight}`);
+    lines.push("##doc_id");
+    lines.push(String(e.doc_id));
+    lines.push("##链接");
+    lines.push(url);
+    lines.push("##权重");
+    lines.push(String(e.weight));
     return lines.join("\n");
   });
 
@@ -254,12 +257,15 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
  *   ## 搜索面
  *   {search_surface}
  *
- *   ### 摘要
+ *   ## 摘要
  *   {summary}
  *
- *   - doc_id: {doc_id}
- *   - 链接: {url}
- *   - 权重: {weight}
+ *   ##doc_id
+ *   {doc_id}
+ *   ##链接
+ *   {url}
+ *   ##权重
+ *   {weight}
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
   if (!body) return { entries: [], parse_error: "空 body" };
@@ -295,19 +301,19 @@ function parseBlock(block: string): DocEntry | null {
   const titleLine = lines[0]?.trim();
   const docTitle = titleLine?.startsWith("# ") ? titleLine.substring(2).trim() : "";
 
-  // 提取 doc_id、链接、权重
+  // 提取 doc_id、链接、权重（按 ## 标签定位）
   let docId = 0;
   let url = "";
   let weight = 5;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("- doc_id:")) {
-      docId = parseInt(trimmed.substring("- doc_id:".length).trim(), 10);
-    } else if (trimmed.startsWith("- 链接:")) {
-      url = trimmed.substring("- 链接:".length).trim();
-    } else if (trimmed.startsWith("- 权重:")) {
-      weight = parseInt(trimmed.substring("- 权重:".length).trim(), 10);
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed === "##doc_id") {
+      docId = parseInt((lines[i + 1] || "").trim(), 10);
+    } else if (trimmed === "##链接") {
+      url = (lines[i + 1] || "").trim();
+    } else if (trimmed === "##权重") {
+      weight = parseInt((lines[i + 1] || "").trim(), 10);
     }
   }
 
@@ -318,14 +324,12 @@ function parseBlock(block: string): DocEntry | null {
   const namespace = urlMatch ? `${urlMatch[1]}/${urlMatch[2]}` : "";
   const slug = urlMatch ? urlMatch[3] : "";
 
-  // 搜索面和摘要 = 标题行之后、元数据行之前的文本
+  // 搜索面和摘要 = 标题行之后、##doc_id 之前的文本
   const contentLines: string[] = [];
   let inContent = false;
   for (let i = 1; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (trimmed.startsWith("- doc_id:") || trimmed.startsWith("- 链接:") || trimmed.startsWith("- 权重:")) {
-      break;
-    }
+    if (trimmed === "##doc_id") break;
     if (trimmed && !inContent) inContent = true;
     if (inContent) contentLines.push(trimmed);
   }

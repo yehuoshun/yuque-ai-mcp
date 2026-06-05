@@ -20,13 +20,16 @@ function entriesToMarkdown(entries) {
         }
         if (summary) {
             lines.push("");
-            lines.push("### 摘要");
+            lines.push("## 摘要");
             lines.push(summary);
         }
         lines.push("");
-        lines.push(`- doc_id: ${e.doc_id}`);
-        lines.push(`- 链接: ${url}`);
-        lines.push(`- 权重: ${e.weight}`);
+        lines.push("##doc_id");
+        lines.push(String(e.doc_id));
+        lines.push("##链接");
+        lines.push(url);
+        lines.push("##权重");
+        lines.push(String(e.weight));
         return lines.join("\n");
     });
     return blocks.join("\n\n") + "\n";

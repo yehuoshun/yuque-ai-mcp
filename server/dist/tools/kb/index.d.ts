@@ -25,12 +25,15 @@ export declare function findDocByTitle(bookId: number | string, title: string): 
  *   ## 搜索面
  *   {search_surface}
  *
- *   ### 摘要
+ *   ## 摘要
  *   {summary}
  *
- *   - doc_id: {doc_id}
- *   - 链接: {url}
- *   - 权重: {weight}
+ *   ##doc_id
+ *   {doc_id}
+ *   ##链接
+ *   {url}
+ *   ##权重
+ *   {weight}
  */
 export declare function parseIndexDoc(body: string): ParsedIndexDoc;
 export {};
