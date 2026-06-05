@@ -144,7 +144,7 @@ cp config/yuque-config.example.json config/yuque-config.json
       "env": {
         "YUQUE_TOKEN": "<Token>",
         "YUQUE_GROUP": "<用户名>",
-        "YUQUE_ROUTE_BOOKS": "[{\"book_id\":78276514,\"namespace\":\"yehuoshun/index-lib\"}]",
+        "YUQUE_ROUTE_SUB": "[{\"book_id\":78276514,\"namespace\":\"yehuoshun/index-lib\"}]",
         "YUQUE_GRAPH_BOOK": "{\"book_id\":79724085,\"namespace\":\"yehuoshun/graph-lib\"}",
         "YUQUE_SEARCH_CONCURRENCY": "5",
         "YUQUE_COOKIE": "<Cookie>",
