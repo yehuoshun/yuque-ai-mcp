@@ -1,6 +1,6 @@
 # 知识库搜索
 
-基于 `yuque_kb_search` MCP 工具的两层索引搜索管道。
+基于 `yuque_kb_search` MCP 工具的单层索引搜索管道。
 
 ## 触发词
 
@@ -20,9 +20,9 @@
   "Spring事务怎么配" → ["Spring", "事务", "Transactional"]
   ↓
 ② 调 yuque_kb_search(tokens)  ← 工具内部自动完成以下步骤
-  ├─ 路由定位：N 路并行搜总库 → 找关键词路由文档
-  │   └─ 路由 0 命中 → 自动降级语雀全库搜索（fallback_used="global_search"）
-  ├─ 读索引文档：按文档级 namespace 直接 GET 读 → parseIndexDoc → 展开 entries
+  ├─ 子索引库直搜：N 路并行搜所有子索引库 → 标题匹配索引文档
+  │   └─ 子库 0 命中 → 自动降级语雀全库搜索（fallback_used="global_search"）
+  ├─ 读索引文档：读 body → parseIndexDoc → 展开 entries
   ├─ 图谱扩展：命中 < 3 篇 → listAllDocs + 筛选分片 → 找邻居 → 补搜
   └─ 返回结构化 JSON（KbSearchResult）
   ↓
@@ -41,8 +41,8 @@
 
 | 步骤 | 在哪 | 说明 |
 |------|------|------|
-| 路由定位 | 工具层 | `yuque_kb_search` 内部自动完成 |
-| 降级全库搜索 | 工具层 | 路由 0 命中时自动触发，返回 `fallback_used="global_search"` |
+| 子索引库直搜 | 工具层 | `yuque_kb_search` 内部自动完成 |
+| 降级全库搜索 | 工具层 | 子库 0 命中时自动触发，返回 `fallback_used="global_search"` |
 | 图谱扩展 | 工具层 | 命中 < 3 篇时自动触发，返回 `graph_expanded=true` |
 | 重排序 | Agent 层 | 需要 LLM 根据用户问题语义判断相关性 |
 | 二轮 token 重试 | Agent 层 | 需要 LLM 分析缺什么 → 生成新 token |
@@ -54,7 +54,7 @@
 ```json
 {
   "tokens": ["Spring", "事务"],
-  "route_hits": 3,
+  "index_hits": 3,
   "source_entries": [
     {
       "doc_id": 584,
@@ -66,7 +66,7 @@
       "summary": "[SpringBoot] 本文详解SpringBoot自动配置原理...",
       "weight": 10,
       "tree": { "sections": [{"id": "s1", "title": "...", "summary": "..."}] },
-      "sub_index_ns": "yehuoshun/idx-java-1/springboot"
+      "sub_index_ns": "idx-java-1/springboot"
     }
   ],
   "graph_expanded": false,
@@ -89,7 +89,7 @@
 
 ```
 yuque_kb_search 内部：
-  路由搜索 0 命中
+  子索引库搜索 0 命中
     ↓ 自动
   降级语雀全库搜索（不传 scope）
     → fallback_used="global_search"
@@ -169,15 +169,13 @@ Agent 层：
 |------|------|------|
 | `tokens` | ✅ | 搜索 token 数组（LLM 生成，每个独立并行搜） |
 | `max_entries` | ❌ | 返回源文档最大条数（默认 20），超出的按 weight 降序截断，低权重自然淘汰 |
-| `route_ns` | ❌ | 索引总库 namespace（不传则读 config） |
-| `route_id` | ❌ | 索引总库 book_id（不传则读 config） |
 
 ### 返回值字段
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `tokens` | string[] | 使用的搜索 token |
-| `route_hits` | number | 路由文档命中数 |
+| `index_hits` | number | 索引文档命中数 |
 | `source_entries` | SourceEntry[] | 去重排序后的源文档指针，按 weight 降序。受 `max_entries` 截断 |
 | `total_entries` | number | 截断前源文档总数，`source_entries.length` 可能小于此值 |
 | `truncated` | boolean | 是否被 `max_entries` 截断，`true` 时可调大 `max_entries` 翻页 |
@@ -194,9 +192,9 @@ Agent 层：
 
 | 阶段 | 并发数 | 说明 |
 |------|--------|------|
-| 路由搜索 | N（token 数）× M（总库数） | 每个 token 在每个总库独立并行搜 |
+| 子索引库搜索 | N（token 数）× M（子库数） | 每个 token 在每个子库独立并行搜 |
 | 读索引文档 body | `search_concurrency`（默认 5） | 分批并发，由 config 控制 |
-| 图谱扩展 | 串行 | listAllDocs 筛选分片 → 并发读 → 搜邻居路由 |
+| 图谱扩展 | 串行 | listAllDocs 筛选分片 → 并发读 → 搜邻居子索引库 |
 | 全库降级 | N（token 数） | 每个 token 独立搜全库 |
 
 > 并发数可通过配置文件 `search_concurrency` 或环境变量 `YUQUE_SEARCH_CONCURRENCY` 调整。
@@ -215,7 +213,7 @@ Agent 层：
 1. listAllDocs(graph_book) → 筛选 graph\d+ 分片
 2. 并发读全量分片 → 合并 neighbors
 3. 查命中关键词的邻居 → Top 5
-4. 对邻居关键词搜路由 → 读索引文档 → 展开 entries
+4. 对邻居关键词搜子索引库 → 读索引文档 → 展开 entries
 5. 与原有 source_entries 去重合并
 6. 返回 graph_expanded=true + graph_neighbors
 ```

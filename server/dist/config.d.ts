@@ -6,7 +6,6 @@ export interface YuqueConfig {
     token: string;
     group: string;
     default_book: YuqueBook;
-    route_book: YuqueBook[];
     route_book_sub: YuqueBook[];
     graph_book?: YuqueBook;
     index_concurrency: number;
@@ -26,8 +25,6 @@ export declare function loadConfig(): YuqueConfig;
 export declare function updateConfig(updates: Partial<YuqueConfig>): void;
 /** 持久化配置到 config/yuque-config.json */
 export declare function saveConfig(): void;
-/** 追加总库路由条目 */
-export declare function addRouteBook(book: YuqueBook): void;
 /** 追加子索引库条目 */
 export declare function addRouteBookSub(book: YuqueBook): void;
 /** 设置图谱库 */

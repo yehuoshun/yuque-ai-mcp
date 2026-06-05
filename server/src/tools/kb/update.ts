@@ -1,26 +1,24 @@
-import { get, post, put, del } from "../../client.js";
-import { loadConfig } from "../../config.js";
+import { get, put, del } from "../../client.js";
 import { DocEntry } from "./types.js";
 import { cleanToken } from "./utils.js";
-import { findDocByTitle, parseIndexDoc, createIndexDoc, upsertRouteDoc, titleCache } from "./index.js";
+import { findDocByTitle, parseIndexDoc, createIndexDoc, titleCache } from "./index.js";
 
 const MAX_BODY_BYTES = 200 * 1024;
 
 /**
  * 增量更新关键词索引文档的 entries
  *
- * 自动完成读-改-写-路由同步的原子操作。
+ * 自动完成读-改-写的原子操作。
  * 支持 add（追加）、remove（移除）、update（按 doc_id 合并字段）。
  */
 export async function updateIndexEntries(params: {
   keyword: string;
   index_book_id: number | string;
-  route_book_id?: number | string;
   add?: DocEntry[];
   remove?: number[];
   update?: DocEntry[];
 }): Promise<string> {
-  const { keyword, index_book_id, route_book_id } = params;
+  const { keyword, index_book_id } = params;
   const cleanKw = cleanToken(keyword);
 
   // 1. 找现有索引文档
@@ -41,7 +39,6 @@ export async function updateIndexEntries(params: {
       keyword: cleanKw,
       entries: params.add,
       index_book_id,
-      route_book_id,
     });
   }
 
@@ -113,14 +110,10 @@ export async function updateIndexEntries(params: {
     }
   }
 
-  // 6. entries 为空 → 删除索引文档 + 清理总库路由
+  // 6. entries 为空 → 删除索引文档
   if (entries.length === 0) {
     await del(`/repos/${index_book_id}/docs/${existing.id}`);
     titleCache.delete(`${index_book_id}:${cleanKw}`);
-
-    if (route_book_id) {
-      await removeRouteEntry(route_book_id, cleanKw, Number(index_book_id));
-    }
 
     return JSON.stringify({
       keyword: cleanKw,
@@ -130,7 +123,6 @@ export async function updateIndexEntries(params: {
       entries_after: 0,
       ...stats,
       deleted: true,
-      route_sync: route_book_id ? "已清理" : "未启用",
     }, null, 2);
   }
 
@@ -156,17 +148,6 @@ export async function updateIndexEntries(params: {
     body: newBody,
   });
 
-  // 9. 路由同步（确保总库路由文档指向最新）
-  // slug 在创建时确定，更新 body 不改变 slug，findDocByTitle 已返回
-  if (route_book_id && existing.slug) {
-    const config = loadConfig();
-    const subBook = config.route_book_sub.find(b => String(b.book_id) === String(index_book_id));
-    const subRepoNs = subBook?.namespace || "";
-    if (subRepoNs) {
-      await upsertRouteDoc(route_book_id, cleanKw, Number(index_book_id), `${subRepoNs}/${existing.slug}`);
-    }
-  }
-
   return JSON.stringify({
     keyword: cleanKw,
     index_doc_id: existing.id,
@@ -175,47 +156,5 @@ export async function updateIndexEntries(params: {
     entries_after: entries.length,
     ...stats,
     deleted: false,
-    route_sync: route_book_id ? "已同步" : "未启用",
   }, null, 2);
-}
-
-/**
- * 从总库路由文档中移除指定子索引库的条目
- * 如果路由文档 entries 清空，则删除路由文档本身
- */
-async function removeRouteEntry(
-  routeBookId: number | string,
-  keyword: string,
-  subBookId: number
-): Promise<void> {
-  const existing = await findDocByTitle(routeBookId, keyword);
-  if (!existing) return;
-
-  // GET 读路由文档
-  const docData = await get(`/repos/${routeBookId}/docs/${existing.id}`) as any;
-  const rawBody: string = (docData.data || docData).body || "";
-
-  let list: any[] = [];
-  try {
-    const parsed = JSON.parse(rawBody);
-    list = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // body 损坏，直接删除路由文档
-    await del(`/repos/${routeBookId}/docs/${existing.id}`);
-    return;
-  }
-
-  const filtered = list.filter((e: any) => String(e.book_id) !== String(subBookId));
-
-  if (filtered.length === 0) {
-    // 路由文档无剩余条目 → DELETE
-    await del(`/repos/${routeBookId}/docs/${existing.id}`);
-    titleCache.delete(`${routeBookId}:${keyword}`);
-  } else {
-    // PUT 写回
-    await put(`/repos/${routeBookId}/docs/${existing.id}`, {
-      title: keyword,
-      body: JSON.stringify(filtered),
-    });
-  }
 }

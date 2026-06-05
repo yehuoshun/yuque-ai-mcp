@@ -19,7 +19,7 @@ export interface SourceEntry {
 }
 export interface KbSearchResult {
     tokens: string[];
-    route_hits: number;
+    index_hits: number;
     source_entries: SourceEntry[];
     total_entries: number;
     truncated: boolean;
@@ -59,12 +59,8 @@ export interface ParsedIndexDoc {
     entries: DocEntry[];
     parse_error?: string;
 }
-export interface RouteEntry {
-    book_namespace: string;
-}
 export interface CreateIndexDocParams {
     keyword: string;
     entries: DocEntry[];
     index_book_id: number | string;
-    route_book_id?: number | string;
 }

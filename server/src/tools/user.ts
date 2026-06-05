@@ -57,21 +57,11 @@ export async function healthCheck(): Promise<string> {
     results.push(`❌ 默认知识库不可用: ${e.message}`);
   }
 
-  // 3. 索引总库 + 子索引库检查
+  // 3. 子索引库检查
   try {
-    const { route_book, route_book_sub } = await import("../config.js").then((m) => ({
-      route_book: m.loadConfig().route_book,
+    const { route_book_sub } = await import("../config.js").then((m) => ({
       route_book_sub: m.loadConfig().route_book_sub,
     }));
-    if (route_book.length > 0) {
-      results.push(`✅ 索引总库: ${route_book.length} 个`);
-      for (const rb of route_book) {
-        await get(`/repos/${rb.book_id}`);
-        results.push(`   ✅ ${rb.namespace} (id=${rb.book_id})`);
-      }
-    } else {
-      results.push("⏭️ 未配置索引总库 (route_book)");
-    }
     if (route_book_sub.length > 0) {
       results.push(`✅ 默认子索引库: ${route_book_sub.length} 个`);
       for (const rs of route_book_sub) {

@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
 import { loadDarkArts } from "./tools/dark-arts-loader.js";
-import { addRouteBook, addRouteBookSub, addGraphBook, loadConfig, reloadConfig } from "./config.js";
+import { addRouteBookSub, addGraphBook, loadConfig, reloadConfig } from "./config.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
@@ -460,14 +460,12 @@ const tools = [
     // ═══════════ 知识库搜索 & 索引构建 ═══════════
     {
         name: "yuque_kb_search",
-        description: "知识库管道搜索（双层路由 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 总库路由定位 2) 子库索引文档读取 3) 命中<3篇时图谱1跳邻居扩展 4) 路由0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/route_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
+        description: "知识库管道搜索（子索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有子索引库找标题匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 子库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
         inputSchema: {
             type: "object",
             properties: {
                 tokens: { type: "array", items: { type: "string" }, description: "搜索 token 数组（由 Agent LLM 生成，每个 token 独立并行搜）" },
                 max_entries: { type: "number", description: "返回源文档最大条数（默认 20）。超出的按 weight 降序截断，低权重自然淘汰" },
-                route_ns: { type: "string", description: "索引总库 namespace（可选，默认读 config YUQUE_ROUTE_BOOK_NS）" },
-                route_id: { type: ["number", "string"], description: "索引总库 book_id（可选，默认读 config YUQUE_ROUTE_BOOK_ID）" },
             },
             required: ["tokens"],
         },
@@ -501,20 +499,18 @@ const tools = [
                     description: "源文档指针列表，一个关键词可对应多篇源文档。每项含 doc_id/namespace/doc_title/slug/url/weight 全部必填，可选 title/keywords/search_surface/summary/tree",
                 },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
-                route_book_id: { type: ["number", "string"], description: "总库 book_id（可选，传此参数则创建索引文档后立即自动创建总库路由文档，单文档粒度原子操作）" },
             },
             required: ["keyword", "entries", "index_book_id"],
         },
     },
     {
         name: "yuque_index_update_entries",
-        description: "增量更新关键词索引文档的 entries。支持 add（追加）、remove（移除）、update（按 doc_id 合并字段）。自动完成读-改-写-路由同步的原子操作。",
+        description: "增量更新关键词索引文档的 entries。支持 add（追加）、remove（移除）、update（按 doc_id 合并字段）。自动完成读-改-写的原子操作。",
         inputSchema: {
             type: "object",
             properties: {
                 keyword: { type: "string", description: "关键词（索引文档标题）" },
                 index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
-                route_book_id: { type: ["number", "string"], description: "总库 book_id（可选，传了则自动同步路由）" },
                 add: {
                     type: "array",
                     items: {
@@ -628,7 +624,7 @@ const tools = [
     },
     {
         name: "yuque_config_status",
-        description: "检查索引配置状态：总库/子库是否已配、子库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
+        description: "检查索引配置状态：子库是否已配、子库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
         inputSchema: {
             type: "object",
             properties: {},
@@ -637,15 +633,10 @@ const tools = [
     },
     {
         name: "yuque_config_update",
-        description: "更新索引配置（追加 route_book/route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新总库/子索引库/图库后调此工具写入配置。",
+        description: "更新索引配置（追加 route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新子索引库/图库后调此工具写入配置。",
         inputSchema: {
             type: "object",
             properties: {
-                route_book_add: {
-                    type: "array",
-                    items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
-                    description: "追加到 route_book 的条目",
-                },
                 route_book_sub_add: {
                     type: "array",
                     items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
@@ -746,7 +737,7 @@ const handlers = {
     yuque_list_recycles: (a) => listRecycles(a),
     yuque_restore_recycle: (a) => restoreRecycle(a),
     yuque_destroy_recycle: (a) => destroyRecycle(a),
-    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book.length} 个总库 / ${c.route_book_sub.length} 个子库）`; },
+    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book_sub.length} 个子索引库）`; },
     yuque_config_status: async () => configStatus(),
     yuque_config_update: async (a) => configUpdate(a),
 };
@@ -784,16 +775,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function configStatus() {
     const cfg = loadConfig();
     const lines = [];
-    lines.push("## 索引总库 (route_book)");
-    if (cfg.route_book.length === 0) {
-        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建总库。");
-    }
-    else {
-        for (const b of cfg.route_book) {
-            lines.push(`✅ book_id=${b.book_id} ns=${b.namespace}`);
-        }
-    }
-    lines.push("", "## 子索引库 (route_book_sub)");
+    lines.push("## 子索引库 (route_book_sub)");
     if (cfg.route_book_sub.length === 0) {
         lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建子索引库。");
     }
@@ -815,7 +797,6 @@ async function configStatus() {
         }
     }
     lines.push("");
-    const hasRoute = cfg.route_book.length > 0;
     const hasSub = cfg.route_book_sub.length > 0;
     lines.push("## 并发配置");
     lines.push(`🔧 index_concurrency=${cfg.index_concurrency || 1} | search_concurrency=${cfg.search_concurrency || 5}`);
@@ -836,25 +817,17 @@ async function configStatus() {
         lines.push("⚠️ 未配置。图谱扩展功能不可用。需 yuque_create_repo 创建图库后写入 config。");
     }
     lines.push("");
-    if (hasRoute && hasSub) {
+    if (hasSub) {
         lines.push("💡 索引配置完整，可直接构建索引。");
     }
     else {
-        const missing = [!hasRoute && "总库", !hasSub && "子库"].filter(Boolean).join("/");
-        lines.push(`⚠️ 索引配置不完整：缺 ${missing}。构建前需补齐。`);
+        lines.push("⚠️ 索引配置不完整：缺子库。构建前需补齐。");
     }
     return lines.join("\n");
 }
 async function configUpdate(args) {
     const lines = [];
     let changed = false;
-    if (args.route_book_add?.length) {
-        for (const b of args.route_book_add) {
-            addRouteBook(b);
-            lines.push(`✅ 总库追加: book_id=${b.book_id} ns=${b.namespace}`);
-        }
-        changed = true;
-    }
     if (args.route_book_sub_add?.length) {
         for (const b of args.route_book_sub_add) {
             addRouteBookSub(b);
@@ -868,7 +841,7 @@ async function configUpdate(args) {
         changed = true;
     }
     if (!changed) {
-        return "⚠️ 未指定 route_book_add、route_book_sub_add 或 graph_book，无变更。";
+        return "⚠️ 未指定 route_book_sub_add 或 graph_book，无变更。";
     }
     reloadConfig(true);
     return lines.join("\n");

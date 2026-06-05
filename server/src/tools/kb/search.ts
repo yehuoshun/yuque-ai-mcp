@@ -1,53 +1,30 @@
 import { get } from "../../client.js";
 import { loadConfig, YuqueBook } from "../../config.js";
-import { SourceEntry, RouteEntry, KbSearchResult, GraphShard } from "./types.js";
+import { SourceEntry, KbSearchResult, GraphShard } from "./types.js";
 import { cleanToken } from "./utils.js";
 import { parseIndexDoc } from "./index.js";
 
 /**
- * 知识库搜索 — 双层路由 + 图谱扩展 + 降级
+ * 知识库搜索 — 子索引库直搜 + 图谱扩展 + 降级
  *
- * 1. 搜索总库 → 找关键词路由文档 → 解析文档级 namespace
- * 2. 按 namespace 直接读索引文档 → 展开 entries
+ * 1. 搜所有子索引库 → 找标题匹配的索引文档
+ * 2. 读索引文档 body → 展开 entries
  * 3. 命中 < 3 篇 → 图谱扩展（1 跳邻居补搜）
- * 4. 路由 0 命中 → 自动降级语雀全库搜索
+ * 4. 子库 0 命中 → 自动降级语雀全库搜索
  * 5. 返回结构化 JSON（KbSearchResult）
  */
 export async function kbSearch(params: {
   tokens: string[];
-  route_ns?: string;
-  route_id?: number | string;
   max_entries?: number;
 }): Promise<string> {
-  const { route_book, route_book_sub } = loadConfig();
+  const { route_book_sub } = loadConfig();
   const tokens = params.tokens.map(cleanToken);
-  const routeErrors: { token: string; reason: string }[] = [];
-
-  let routeBooks: YuqueBook[];
-  if (params.route_ns && params.route_id) {
-    routeBooks = [{ book_id: params.route_id, namespace: params.route_ns }];
-  } else if (route_book.length > 0) {
-    routeBooks = route_book;
-  } else {
-    return JSON.stringify({
-      tokens,
-      route_hits: 0,
-      source_entries: [],
-      total_entries: 0,
-      truncated: false,
-      graph_expanded: false,
-      graph_neighbors: [],
-      fallback_used: "none",
-      dirty_blocks: 0,
-      errors: [{ token: "config", reason: "索引总库未配置" }],
-      hint: "请配置 route_book（索引总库）或传 route_ns + route_id 参数",
-    } as KbSearchResult, null, 2);
-  }
+  const errors: { token: string; reason: string }[] = [];
 
   if (route_book_sub.length === 0) {
     return JSON.stringify({
       tokens,
-      route_hits: 0,
+      index_hits: 0,
       source_entries: [],
       total_entries: 0,
       truncated: false,
@@ -60,11 +37,11 @@ export async function kbSearch(params: {
     } as KbSearchResult, null, 2);
   }
 
-  // ── Step 1: 路由定位 ──
-  const routeEntries = await findRouteDocs(tokens, routeBooks, routeErrors);
+  // ── Step 1: 搜子索引库 → 找标题匹配的索引文档 ──
+  const { indexDocs, hitKeywords } = await searchSubIndexes(tokens, route_book_sub, errors);
 
-  // ── Step 1.5: 路由 0 命中 → 自动降级全库搜索 ──
-  if (routeEntries.length === 0) {
+  // ── Step 1.5: 0 命中 → 自动降级全库搜索 ──
+  if (indexDocs.length === 0) {
     const fallbackEntries = await globalSearchFallback(tokens);
     const maxEntries = params.max_entries ?? 20;
     const fbTotal = fallbackEntries.length;
@@ -72,7 +49,7 @@ export async function kbSearch(params: {
     const fbEntries = fbTruncated ? fallbackEntries.slice(0, maxEntries) : fallbackEntries;
     return JSON.stringify({
       tokens,
-      route_hits: 0,
+      index_hits: 0,
       source_entries: fbEntries,
       total_entries: fbTotal,
       truncated: fbTruncated,
@@ -80,15 +57,16 @@ export async function kbSearch(params: {
       graph_neighbors: [],
       fallback_used: fallbackEntries.length > 0 ? "global_search" : "none",
       dirty_blocks: 0,
-      errors: routeErrors,
+      errors,
       hint: fallbackEntries.length === 0
         ? "索引和全库搜索均无结果，请尝试换搜索词或确认索引已构建"
         : undefined,
     } as KbSearchResult, null, 2);
   }
 
-  // ── Step 2: 读索引文档 → 展开源文档指针 ──
-  const { entries: rawEntries, hitKeywords, dirtyBlocks, errors } = await readIndexDocsFromRoutes(routeEntries);
+  // ── Step 2: 读索引文档 body → 展开源文档指针 ──
+  const { entries: rawEntries, dirtyBlocks, errors: readErrors } = await readIndexDocs(indexDocs);
+  errors.push(...readErrors);
 
   // 合并去重（按 doc_id，保留最高 weight）
   const allEntries = new Map<number, SourceEntry>();
@@ -103,7 +81,7 @@ export async function kbSearch(params: {
   let graphExpanded = false;
   let graphNeighbors: string[] = [];
   if (allEntries.size < 3 && hitKeywords.length > 0) {
-    const graphResult = await expandWithGraph(hitKeywords, routeBooks, routeEntries);
+    const graphResult = await expandWithGraph(hitKeywords, route_book_sub);
     if (graphResult.error) {
       errors.push({ token: "graph", reason: graphResult.error });
     }
@@ -128,7 +106,7 @@ export async function kbSearch(params: {
 
   return JSON.stringify({
     tokens,
-    route_hits: routeEntries.length,
+    index_hits: indexDocs.length,
     source_entries: sourceEntries,
     total_entries: totalEntries,
     truncated,
@@ -141,138 +119,80 @@ export async function kbSearch(params: {
 }
 
 // ═══════════════════════════════════════════════════════
-// 路由定位
+// 子索引库直搜
 // ═══════════════════════════════════════════════════════
 
-/** 搜索总库 → 解析路由文档 body → 返回索引文档指针（文档级 namespace） */
-async function findRouteDocs(
-  tokens: string[],
-  routeBooks: YuqueBook[],
-  errors: { token: string; reason: string }[]
-): Promise<RouteEntry[]> {
-  const seenDocs = new Map<number, { title: string; book_id: number | string }>();
+interface IndexDocHit {
+  book_id: number | string;
+  doc_id: number;
+  title: string;
+}
 
-  // 主路径：语雀搜索 API + 客户端标题过滤
-  await Promise.all(routeBooks.map(async (rb) => {
+/** 搜所有子索引库 → 找标题匹配的索引文档 */
+async function searchSubIndexes(
+  tokens: string[],
+  subBooks: YuqueBook[],
+  errors: { token: string; reason: string }[]
+): Promise<{ indexDocs: IndexDocHit[]; hitKeywords: string[] }> {
+  const seenDocs = new Map<number, IndexDocHit>();
+
+  await Promise.all(subBooks.map(async (sb) => {
     await Promise.all(tokens.map(async (token) => {
       try {
-        const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${rb.namespace}`) as any;
+        const data = await get(`/search?q=${encodeURIComponent(token)}&type=doc&scope=${sb.namespace}`) as any;
         for (const r of (data.data || [])) {
           const info = r.target || r;
           const id = info.id || r.id;
           const title = (info.title || r.title || "").trim();
           if (id && title.toLowerCase().includes(token.toLowerCase()) && !seenDocs.has(id)) {
-            seenDocs.set(id, { title, book_id: rb.book_id });
+            seenDocs.set(id, { book_id: sb.book_id, doc_id: id, title });
           }
         }
       } catch (err: any) {
-        errors.push({ token, reason: `路由搜索失败: ${err.message || err}` });
+        errors.push({ token, reason: `子索引库 ${sb.namespace} 搜索失败: ${err.message || err}` });
       }
     }));
   }));
 
-  if (seenDocs.size === 0) return [];
-
-  // 并发读路由文档 body → 解析路由指针
-  const allRoutes: RouteEntry[] = [];
-  const seenKeys = new Set<string>();
-
-  await Promise.all(
-    Array.from(seenDocs.entries()).map(async ([docId, doc]) => {
-      try {
-        const data = await get(`/repos/${doc.book_id}/docs/${docId}`) as any;
-        const body: string = (data.data || data).body || "";
-
-        let list: any[] = [];
-        let parseError: string | null = null;
-
-        try {
-          const parsed = JSON.parse(body);
-          if (!Array.isArray(parsed)) {
-            parseError = `body 不是 JSON 数组（实际类型: ${typeof parsed}）`;
-          } else {
-            list = parsed;
-          }
-        } catch (e) {
-          parseError = `body JSON 解析失败: ${e instanceof Error ? e.message : String(e)}`;
-        }
-
-        if (parseError) {
-          errors.push({ token: `路由 doc_${docId}`, reason: parseError });
-          return;
-        }
-
-        if (list.length === 0) {
-          errors.push({ token: `路由 doc_${docId}`, reason: `路由条目为空数组（无子索引库指针）` });
-          return;
-        }
-
-        for (const item of list) {
-          if (!item.namespace) {
-            errors.push({ token: `路由 doc_${docId}`, reason: `条目缺少 namespace 字段（book_id=${item.book_id || '无'}）` });
-            continue;
-          }
-          const parts = item.namespace.split("/");
-          const key = `${parts.slice(0, 2).join("/")}/${item.namespace}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            allRoutes.push({
-              book_namespace: item.namespace,
-            });
-          }
-        }
-      } catch (err: any) {
-        errors.push({ token: `路由 doc_${docId}`, reason: `解析失败: ${err.message || err}` });
-      }
-    })
-  );
-
-  return allRoutes;
+  const indexDocs = Array.from(seenDocs.values());
+  const hitKeywords = indexDocs.map(d => d.title);
+  return { indexDocs, hitKeywords };
 }
 
 // ═══════════════════════════════════════════════════════
 // 读索引文档
 // ═══════════════════════════════════════════════════════
 
-/** 按文档级 namespace 直接读索引文档，展开源文档指针 */
-async function readIndexDocsFromRoutes(
-  routeEntries: RouteEntry[]
+/** 并发读索引文档 body，展开源文档指针 */
+async function readIndexDocs(
+  indexDocs: IndexDocHit[]
 ): Promise<{
   entries: SourceEntry[];
-  hitKeywords: string[];
   dirtyBlocks: number;
   errors: { token: string; reason: string }[];
 }> {
   const errors: { token: string; reason: string }[] = [];
   const allEntries: SourceEntry[] = [];
-  const hitKeywords: string[] = [];
   let dirtyBlocks = 0;
 
   const config = loadConfig();
   const CONCURRENCY = config.search_concurrency || 5;
-  const deduped = dedupByNs(routeEntries);
 
-  for (let i = 0; i < deduped.length; i += CONCURRENCY) {
-    const chunk = deduped.slice(i, i + CONCURRENCY);
+  for (let i = 0; i < indexDocs.length; i += CONCURRENCY) {
+    const chunk = indexDocs.slice(i, i + CONCURRENCY);
 
-    const results = await Promise.all(chunk.map(async (re) => {
+    const results = await Promise.all(chunk.map(async (doc) => {
       try {
-        const parts = re.book_namespace.split("/");
-        if (parts.length < 3) {
-          errors.push({ token: 'body_read', reason: `namespace=${re.book_namespace}: 不是文档级路径（需要三段 group/slug/slug）` });
-          return { book_namespace: re.book_namespace, title: "", body: "" };
-        }
-        const repoNs = parts.slice(0, 2).join("/");
-        const docSlug = parts.slice(2).join("/");
-        const data = await get(`/repos/${repoNs}/docs/${docSlug}`) as any;
+        const data = await get(`/repos/${doc.book_id}/docs/${doc.doc_id}`) as any;
         return {
-          book_namespace: re.book_namespace,
+          book_id: doc.book_id,
+          doc_id: doc.doc_id,
           title: (data.data || data).title || "",
           body: (data.data || data).body || "",
         };
       } catch (err: any) {
-        errors.push({ token: 'body_read', reason: `namespace=${re.book_namespace}: ${err.message || String(err)}` });
-        return { book_namespace: re.book_namespace, title: "", body: "" };
+        errors.push({ token: 'body_read', reason: `book_id=${doc.book_id} doc_id=${doc.doc_id}: ${err.message || String(err)}` });
+        return { book_id: doc.book_id, doc_id: doc.doc_id, title: "", body: "" };
       }
     }));
 
@@ -286,7 +206,6 @@ async function readIndexDocsFromRoutes(
       }
 
       const indexKeyword = doc.title?.trim();
-      if (indexKeyword) hitKeywords.push(indexKeyword);
 
       for (const entry of parsed.entries) {
         allEntries.push({
@@ -297,27 +216,15 @@ async function readIndexDocsFromRoutes(
           keywords: entry.keywords,
           search_surface: entry.search_surface,
           summary: indexKeyword ? `[${indexKeyword}] ${entry.summary || entry.doc_title}` : (entry.summary || entry.doc_title),
-          sub_index_ns: doc.book_namespace,
+          sub_index_ns: `${doc.book_id}/${doc.doc_id}`,
           weight: entry.weight,
-          tree: entry.tree,  // 透传章节树给 Agent 做树搜索
+          tree: entry.tree,
         });
       }
     }
   }
 
-  return { entries: allEntries, hitKeywords, dirtyBlocks, errors };
-}
-
-function dedupByNs(entries: RouteEntry[]): RouteEntry[] {
-  const seen = new Set<string>();
-  const result: RouteEntry[] = [];
-  for (const e of entries) {
-    if (!seen.has(e.book_namespace)) {
-      seen.add(e.book_namespace);
-      result.push(e);
-    }
-  }
-  return result;
+  return { entries: allEntries, dirtyBlocks, errors };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -330,12 +237,11 @@ function dedupByNs(entries: RouteEntry[]): RouteEntry[] {
  * 1. listAllDocs(graph_book) → 全量文档即分片
  * 2. 并发读所有分片 → 合并 neighbors
  * 3. 查命中关键词的邻居 → Top 5
- * 4. 对邻居关键词搜路由 → 读索引文档 → 展开 entries
+ * 4. 对邻居关键词搜子索引库 → 读索引文档 → 展开 entries
  */
 async function expandWithGraph(
   hitKeywords: string[],
-  routeBooks: YuqueBook[],
-  existingRoutes: RouteEntry[]
+  subBooks: YuqueBook[]
 ): Promise<{ entries: SourceEntry[]; neighbors: string[]; error?: string }> {
   const config = loadConfig();
   const graphBook = config.graph_book;
@@ -388,15 +294,11 @@ async function expandWithGraph(
 
     const topNeighbors = [...neighborSet].slice(0, 5);
 
-    // 4. 搜邻居关键词的路由文档
-    const neighborRoutes = await findRouteDocs(topNeighbors, routeBooks, []);
-    if (neighborRoutes.length === 0) return { entries: [], neighbors: [] };
+    // 4. 搜邻居关键词的子索引库
+    const { indexDocs } = await searchSubIndexes(topNeighbors, subBooks, []);
+    if (indexDocs.length === 0) return { entries: [], neighbors: [] };
 
-    const existingSet = new Set(existingRoutes.map(r => r.book_namespace));
-    const newRoutes = neighborRoutes.filter(r => !existingSet.has(r.book_namespace));
-    if (newRoutes.length === 0) return { entries: [], neighbors: [] };
-
-    const { entries: neighborEntries } = await readIndexDocsFromRoutes(newRoutes);
+    const { entries: neighborEntries } = await readIndexDocs(indexDocs);
 
     return { entries: neighborEntries, neighbors: topNeighbors };
   } catch (err: any) {
@@ -408,7 +310,7 @@ async function expandWithGraph(
 // 降级：全库搜索
 // ═══════════════════════════════════════════════════════
 
-/** 路由 0 命中时自动降级，直接调语雀搜索 API 搜全库 */
+/** 子库 0 命中时自动降级，直接调语雀搜索 API 搜全库 */
 async function globalSearchFallback(tokens: string[]): Promise<SourceEntry[]> {
   const allEntries: SourceEntry[] = [];
 
@@ -429,7 +331,7 @@ async function globalSearchFallback(tokens: string[]): Promise<SourceEntry[]> {
             : "",
           summary: (info.description || r.description || "").slice(0, 200),
           weight: 5,
-          tree: undefined,  // 降级路径无章节树，Agent 层直接读全文
+          tree: undefined,
         });
       }
     } catch { /* 单个 token 失败不阻塞 */ }

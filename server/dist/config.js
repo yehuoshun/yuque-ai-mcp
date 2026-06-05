@@ -37,14 +37,12 @@ export function loadConfig() {
         let cookie = process.env.YUQUE_COOKIE || undefined;
         let ctoken = process.env.YUQUE_CTOKEN || undefined;
         let fileUserId;
-        let fileRouteBook;
         let fileRouteBookSub;
         let fileIndexConcurrency;
         let fileSearchConcurrency;
-        const routeBookFromEnv = parseBookList("YUQUE_ROUTE_BOOK");
         const routeBookSubFromEnv = parseBookList("YUQUE_ROUTE_SUB");
-        // cookie/ctoken/route_book/route_book_sub 优先 env，兜底读 config 文件
-        if (!cookie || !ctoken || routeBookFromEnv.length === 0 || routeBookSubFromEnv.length === 0) {
+        // cookie/ctoken/route_book_sub 优先 env，兜底读 config 文件
+        if (!cookie || !ctoken || routeBookSubFromEnv.length === 0) {
             try {
                 const configPath = resolveConfigPath();
                 if (existsSync(configPath)) {
@@ -55,8 +53,6 @@ export function loadConfig() {
                         ctoken = raw.ctoken;
                     if (!fileUserId)
                         fileUserId = raw.user_id;
-                    if (routeBookFromEnv.length === 0)
-                        fileRouteBook = normalizeBooks(raw.route_book);
                     if (routeBookSubFromEnv.length === 0)
                         fileRouteBookSub = normalizeBooks(raw.route_book_sub || raw.index_book);
                     if (fileIndexConcurrency === undefined)
@@ -91,7 +87,6 @@ export function loadConfig() {
                 book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
                 namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
             }),
-            route_book: routeBookFromEnv.length > 0 ? routeBookFromEnv : (fileRouteBook || []),
             route_book_sub: routeBookSubFromEnv.length > 0 ? routeBookSubFromEnv : (fileRouteBookSub || []),
             graph_book: graphBook,
             index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
@@ -123,7 +118,6 @@ export function loadConfig() {
         token: raw.token || "",
         group: raw.group || "",
         default_book: normalizeBook(raw.default_book),
-        route_book: normalizeBooks(raw.route_book),
         route_book_sub: normalizeBooks(raw.route_book_sub || raw.index_book),
         graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
         index_concurrency: raw.index_concurrency || 1,
@@ -186,7 +180,6 @@ export function saveConfig() {
     }
     catch { /* 文件损坏则覆盖 */ }
     // 覆盖路由配置
-    raw.route_book = cached.route_book;
     raw.route_book_sub = cached.route_book_sub;
     if (cached.graph_book)
         raw.graph_book = cached.graph_book;
@@ -198,16 +191,6 @@ export function saveConfig() {
         lastMtimeMs = statSync(configPath).mtimeMs;
     }
     catch { }
-}
-/** 追加总库路由条目 */
-export function addRouteBook(book) {
-    if (!cached)
-        loadConfig();
-    const exists = cached.route_book.some(b => String(b.book_id) === String(book.book_id));
-    if (!exists) {
-        cached.route_book = [...cached.route_book, book];
-        saveConfig();
-    }
 }
 /** 追加子索引库条目 */
 export function addRouteBookSub(book) {

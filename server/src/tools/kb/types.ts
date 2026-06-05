@@ -22,7 +22,7 @@ export interface SourceEntry {
 // yuque_kb_search 结构化返回
 export interface KbSearchResult {
   tokens: string[];
-  route_hits: number;                    // 路由命中数
+  index_hits: number;                    // 索引文档命中数
   source_entries: SourceEntry[];         // 去重排序后的源文档指针
   total_entries: number;                // 截断前总数
   truncated: boolean;                   // 是否被截断（max_entries 限制）
@@ -69,14 +69,8 @@ export interface ParsedIndexDoc {
   parse_error?: string;
 }
 
-// 总库路由指向的索引文档
-export interface RouteEntry {
-  book_namespace: string;
-}
-
 export interface CreateIndexDocParams {
   keyword: string;       // 文档标题（也是关键词，经 cleanToken 清洗）
   entries: DocEntry[];
   index_book_id: number | string;
-  route_book_id?: number | string;
 }
