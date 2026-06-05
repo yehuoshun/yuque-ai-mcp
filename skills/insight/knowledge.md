@@ -40,7 +40,7 @@
 ### 1.3 构建
 
 ```
-1. yuque_list_docs → 子索引库全部索引文档（标题 + id）
+1. yuque_list_docs → 索引库全部索引文档（标题 + id）
 2. 5 并发 yuque_get_doc → 读每个索引文档 body
 3. parseIndexDoc → 提取 entries 数组
 4. 纯计算：
@@ -157,7 +157,7 @@
 ### 3.3 关键词覆盖盲区
 
 ```
-已知：子索引库 description.source_books 里的所有源文档
+已知：索引库 description.source_books 里的所有源文档
 实际：所有索引文档 entries 里出现过的 doc_id 集合
 盲区 = 已知 - 实际 = 有文档但没被任何关键词索引覆盖
 ```
@@ -311,7 +311,7 @@
 |------|------|
 | 读索引文档 | `yuque_get_doc` |
 | 列索引文档 | `yuque_list_docs` |
-| 写子库 description | `yuque_update_repo` |
+| 写索引库 description | `yuque_update_repo` |
 | 搜索 | `yuque_kb_search` |
 | 建树 | 索引构建时的 LLM 调用（复用） |
 | 共现图计算 | 纯代码（非 LLM） |

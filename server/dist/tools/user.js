@@ -56,20 +56,20 @@ export async function healthCheck() {
     catch (e) {
         results.push(`❌ 默认知识库不可用: ${e.message}`);
     }
-    // 3. 子索引库检查
+    // 3. 索引库检查
     try {
         const { route_book_sub } = await import("../config.js").then((m) => ({
             route_book_sub: m.loadConfig().route_book_sub,
         }));
         if (route_book_sub.length > 0) {
-            results.push(`✅ 默认子索引库: ${route_book_sub.length} 个`);
+            results.push(`✅ 默认索引库: ${route_book_sub.length} 个`);
             for (const rs of route_book_sub) {
                 await get(`/repos/${rs.book_id}`);
                 results.push(`   ✅ ${rs.namespace} (id=${rs.book_id})`);
             }
         }
         else {
-            results.push("⏭️ 未配置默认子索引库 (route_book_sub)");
+            results.push("⏭️ 未配置默认索引库 (route_book_sub)");
         }
     }
     catch (e) {

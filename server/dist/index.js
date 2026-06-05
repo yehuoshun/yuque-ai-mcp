@@ -460,7 +460,7 @@ const tools = [
     // ═══════════ 知识库搜索 & 索引构建 ═══════════
     {
         name: "yuque_kb_search",
-        description: "知识库管道搜索（子索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有子索引库找标题匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 子库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
+        description: "知识库管道搜索（索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有索引库找标题匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 索引库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
         inputSchema: {
             type: "object",
             properties: {
@@ -497,7 +497,7 @@ const tools = [
                     },
                     description: "源文档指针列表，每项含 doc_id/namespace/doc_title/slug/url/weight 必填，可选 search_surface/summary/tree",
                 },
-                index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+                index_book_id: { type: ["number", "string"], description: "索引库 book_id" },
             },
             required: ["keyword", "entries", "index_book_id"],
         },
@@ -509,7 +509,7 @@ const tools = [
             type: "object",
             properties: {
                 keyword: { type: "string", description: "关键词（索引文档标题）" },
-                index_book_id: { type: ["number", "string"], description: "子索引库 book_id" },
+                index_book_id: { type: ["number", "string"], description: "索引库 book_id" },
                 add: {
                     type: "array",
                     items: {
@@ -622,7 +622,7 @@ const tools = [
     },
     {
         name: "yuque_config_status",
-        description: "检查索引配置状态：子库是否已配、子库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
+        description: "检查索引配置状态：索引库是否已配、索引库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
         inputSchema: {
             type: "object",
             properties: {},
@@ -631,7 +631,7 @@ const tools = [
     },
     {
         name: "yuque_config_update",
-        description: "更新索引配置（追加 route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新子索引库/图库后调此工具写入配置。",
+        description: "更新索引配置（追加 route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新索引库/图库后调此工具写入配置。",
         inputSchema: {
             type: "object",
             properties: {
@@ -735,7 +735,7 @@ const handlers = {
     yuque_list_recycles: (a) => listRecycles(a),
     yuque_restore_recycle: (a) => restoreRecycle(a),
     yuque_destroy_recycle: (a) => destroyRecycle(a),
-    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book_sub.length} 个子索引库）`; },
+    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book_sub.length} 个索引库）`; },
     yuque_config_status: async () => configStatus(),
     yuque_config_update: async (a) => configUpdate(a),
 };
@@ -773,9 +773,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function configStatus() {
     const cfg = loadConfig();
     const lines = [];
-    lines.push("## 子索引库 (route_book_sub)");
+    lines.push("## 索引库 (route_book_sub)");
     if (cfg.route_book_sub.length === 0) {
-        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建子索引库。");
+        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建索引库。");
     }
     else {
         for (const b of cfg.route_book_sub) {
@@ -819,7 +819,7 @@ async function configStatus() {
         lines.push("💡 索引配置完整，可直接构建索引。");
     }
     else {
-        lines.push("⚠️ 索引配置不完整：缺子库。构建前需补齐。");
+        lines.push("⚠️ 索引配置不完整：缺索引库。构建前需补齐。");
     }
     return lines.join("\n");
 }
@@ -829,7 +829,7 @@ async function configUpdate(args) {
     if (args.route_book_sub_add?.length) {
         for (const b of args.route_book_sub_add) {
             addRouteBookSub(b);
-            lines.push(`✅ 子库追加: book_id=${b.book_id} ns=${b.namespace}`);
+            lines.push(`✅ 索引库追加: book_id=${b.book_id} ns=${b.namespace}`);
         }
         changed = true;
     }

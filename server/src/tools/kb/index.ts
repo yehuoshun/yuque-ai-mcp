@@ -150,7 +150,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
         created: false,
         error: `index_book_id=${index_book_id} 不在配置的 route_book_sub 中`,
         valid_book_ids: route_book_sub.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
-        hint: `请使用配置中已有的子索引库：${validIds || "（无）"}。`,
+        hint: `请使用配置中已有的索引库：${validIds || "（无）"}。`,
       });
     }
   }
@@ -160,7 +160,7 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
     return JSON.stringify({
       created: false,
       error: "route_book_sub 未配置",
-      hint: "子索引库未配置。",
+      hint: "索引库未配置。",
     });
   }
 
@@ -170,11 +170,11 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
       created: false,
       error: "capacity_blocked",
       current_book: { book_id: bookId, count: capacity.count, pct: capacity.pct },
-      hint: `子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线。`,
+      hint: `索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_BLOCK_PCT}% 阻塞线。`,
     });
   }
   const capacityWarning = capacity.level === "warn"
-    ? `⚠️ 子索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线`
+    ? `⚠️ 索引库 ${capacity.label}，已超过 ${REPO_CAPACITY_WARN_PCT}% 预警线`
     : "";
 
   let docId: number;

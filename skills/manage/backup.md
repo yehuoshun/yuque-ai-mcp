@@ -105,7 +105,7 @@ yuque_get_doc(book_id, doc_id)
 doc_id: 123456
 slug: doc-slug
 book_id: 78276514
-book_name: 索引子库1
+book_name: 索引库1
 type: Doc          # Doc/Sheet/Thread/Board/Table
 format: markdown   # markdown/lake/html/lakesheet
 created_at: "2026-05-20T10:00:00+08:00"

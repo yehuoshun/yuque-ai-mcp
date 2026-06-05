@@ -3,12 +3,12 @@ import { loadConfig } from "../../config.js";
 import { cleanToken } from "./utils.js";
 import { parseIndexDoc } from "./index.js";
 /**
- * 知识库搜索 — 子索引库直搜 + 图谱扩展 + 降级
+ * 知识库搜索 — 索引库直搜 + 图谱扩展 + 降级
  *
- * 1. 搜所有子索引库 → 找标题匹配的索引文档
+ * 1. 搜所有索引库 → 找标题匹配的索引文档
  * 2. 读索引文档 body → 展开 entries
  * 3. 命中 < 3 篇 → 图谱扩展（1 跳邻居补搜）
- * 4. 子库 0 命中 → 自动降级语雀全库搜索
+ * 4. 索引库 0 命中 → 自动降级语雀全库搜索
  * 5. 返回结构化 JSON（KbSearchResult）
  */
 export async function kbSearch(params) {
@@ -26,12 +26,12 @@ export async function kbSearch(params) {
             graph_neighbors: [],
             fallback_used: "none",
             dirty_blocks: 0,
-            errors: [{ token: "config", reason: "子索引库未配置" }],
-            hint: "请配置 route_book_sub（子索引库）",
+            errors: [{ token: "config", reason: "索引库未配置" }],
+            hint: "请配置 route_book_sub（索引库）",
         }, null, 2);
     }
-    // ── Step 1: 搜子索引库 → 找标题匹配的索引文档 ──
-    const { indexDocs, hitKeywords } = await searchSubIndexes(tokens, route_book_sub, errors);
+    // ── Step 1: 搜索引库 → 找标题匹配的索引文档 ──
+    const { indexDocs, hitKeywords } = await searchIndexBooks(tokens, route_book_sub, errors);
     // ── Step 1.5: 0 命中 → 自动降级全库搜索 ──
     if (indexDocs.length === 0) {
         const fallbackEntries = await globalSearchFallback(tokens);
@@ -104,8 +104,8 @@ export async function kbSearch(params) {
         errors,
     }, null, 2);
 }
-/** 搜所有子索引库 → 找标题匹配的索引文档 */
-async function searchSubIndexes(tokens, subBooks, errors) {
+/** 搜所有索引库 → 找匹配的索引文档 */
+async function searchIndexBooks(tokens, subBooks, errors) {
     const seenDocs = new Map();
     await Promise.all(subBooks.map(async (sb) => {
         await Promise.all(tokens.map(async (token) => {
@@ -121,7 +121,7 @@ async function searchSubIndexes(tokens, subBooks, errors) {
                 }
             }
             catch (err) {
-                errors.push({ token, reason: `子索引库 ${sb.namespace} 搜索失败: ${err.message || err}` });
+                errors.push({ token, reason: `索引库 ${sb.namespace} 搜索失败: ${err.message || err}` });
             }
         }));
     }));
@@ -189,7 +189,7 @@ async function readIndexDocs(indexDocs) {
  * 1. listAllDocs(graph_book) → 全量文档即分片
  * 2. 并发读所有分片 → 合并 neighbors
  * 3. 查命中关键词的邻居 → Top 5
- * 4. 对邻居关键词搜子索引库 → 读索引文档 → 展开 entries
+ * 4. 对邻居关键词搜索引库 → 读索引文档 → 展开 entries
  */
 async function expandWithGraph(hitKeywords, subBooks) {
     const config = loadConfig();
@@ -238,8 +238,8 @@ async function expandWithGraph(hitKeywords, subBooks) {
         if (neighborSet.size === 0)
             return { entries: [], neighbors: [] };
         const topNeighbors = [...neighborSet].slice(0, 5);
-        // 4. 搜邻居关键词的子索引库
-        const { indexDocs } = await searchSubIndexes(topNeighbors, subBooks, []);
+        // 4. 搜邻居关键词的索引库
+        const { indexDocs } = await searchIndexBooks(topNeighbors, subBooks, []);
         if (indexDocs.length === 0)
             return { entries: [], neighbors: [] };
         const { entries: neighborEntries } = await readIndexDocs(indexDocs);
@@ -252,7 +252,7 @@ async function expandWithGraph(hitKeywords, subBooks) {
 // ═══════════════════════════════════════════════════════
 // 降级：全库搜索
 // ═══════════════════════════════════════════════════════
-/** 子库 0 命中时自动降级，直接调语雀搜索 API 搜全库 */
+/** 索引库 0 命中时自动降级，直接调语雀搜索 API 搜全库 */
 async function globalSearchFallback(tokens) {
     const allEntries = [];
     for (const token of tokens) {

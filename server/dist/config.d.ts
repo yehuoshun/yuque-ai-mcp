@@ -25,7 +25,7 @@ export declare function loadConfig(): YuqueConfig;
 export declare function updateConfig(updates: Partial<YuqueConfig>): void;
 /** 持久化配置到 config/yuque-config.json */
 export declare function saveConfig(): void;
-/** 追加子索引库条目 */
+/** 追加索引库条目 */
 export declare function addRouteBookSub(book: YuqueBook): void;
 /** 设置图谱库 */
 export declare function addGraphBook(book: YuqueBook): void;

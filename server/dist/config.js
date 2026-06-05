@@ -37,12 +37,12 @@ export function loadConfig() {
         let cookie = process.env.YUQUE_COOKIE || undefined;
         let ctoken = process.env.YUQUE_CTOKEN || undefined;
         let fileUserId;
-        let fileRouteBookSub;
+        let fileIndexBooks;
         let fileIndexConcurrency;
         let fileSearchConcurrency;
-        const routeBookSubFromEnv = parseBookList("YUQUE_ROUTE_SUB");
-        // cookie/ctoken/route_book_sub 优先 env，兜底读 config 文件
-        if (!cookie || !ctoken || routeBookSubFromEnv.length === 0) {
+        const indexBooksFromEnv = parseBookList("YUQUE_INDEX_BOOKS");
+        // cookie/ctoken/index_books 优先 env，兜底读 config 文件
+        if (!cookie || !ctoken || indexBooksFromEnv.length === 0) {
             try {
                 const configPath = resolveConfigPath();
                 if (existsSync(configPath)) {
@@ -53,8 +53,8 @@ export function loadConfig() {
                         ctoken = raw.ctoken;
                     if (!fileUserId)
                         fileUserId = raw.user_id;
-                    if (routeBookSubFromEnv.length === 0)
-                        fileRouteBookSub = normalizeBooks(raw.route_book_sub || raw.index_book);
+                    if (indexBooksFromEnv.length === 0)
+                        fileIndexBooks = normalizeBooks(raw.route_book_sub || raw.index_book);
                     if (fileIndexConcurrency === undefined)
                         fileIndexConcurrency = raw.index_concurrency;
                     if (fileSearchConcurrency === undefined)
@@ -87,7 +87,7 @@ export function loadConfig() {
                 book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
                 namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
             }),
-            route_book_sub: routeBookSubFromEnv.length > 0 ? routeBookSubFromEnv : (fileRouteBookSub || []),
+            route_book_sub: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
             graph_book: graphBook,
             index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
             search_concurrency: fileSearchConcurrency || parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
@@ -180,7 +180,7 @@ export function saveConfig() {
     }
     catch { /* 文件损坏则覆盖 */ }
     // 覆盖路由配置
-    raw.route_book_sub = cached.route_book_sub;
+    raw.index_books = raw.route_book_sub = cached.route_book_sub;
     if (cached.graph_book)
         raw.graph_book = cached.graph_book;
     if (cached.default_book.book_id)
@@ -192,7 +192,7 @@ export function saveConfig() {
     }
     catch { }
 }
-/** 追加子索引库条目 */
+/** 追加索引库条目 */
 export function addRouteBookSub(book) {
     if (!cached)
         loadConfig();
