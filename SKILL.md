@@ -134,11 +134,11 @@ SpringBoot自动配置怎么工作的？
 源码级分析@EnableAutoConfiguration和spring.factories机制，
 从启动类到自动配置类的完整链路
 
-##doc_id
+## doc_id
 232072822
-##链接
+## 链接
 https://www.yuque.com/yehuoshun/huwsx0/kf8s0xue
-##权重
+## 权重
 9
 
 # ConditionalOnClass详解
@@ -149,18 +149,18 @@ ConditionalOnClass注解怎么用？条件注解判断逻辑
 ## 摘要
 深入条件注解的判断逻辑与自定义条件类实现
 
-##doc_id
+## doc_id
 232072823
-##链接
+## 链接
 https://www.yuque.com/yehuoshun/huwsx0/abc123
-##权重
+## 权重
 8
 ```
 
 设计意图：
 - **`#` 分割块**：代码层按 `\n(?=# )` 切分
 - **`## 搜索面`/`## 摘要`**：自然语言 h2 区块，语雀全文索引
-- **`##doc_id`/`##链接`/`##权重`**：无空格标签 + 值在下一行，正则精准提取
+- **`## doc_id`/`## 链接`/`## 权重`**：h2 标签 + 值在下一行，正则精准提取
 
 字段说明：
 

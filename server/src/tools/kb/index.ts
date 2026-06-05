@@ -63,11 +63,11 @@ function entriesToMarkdown(entries: DocEntry[]): string {
       lines.push(summary);
     }
     lines.push("");
-    lines.push("##doc_id");
+    lines.push("## doc_id");
     lines.push(String(e.doc_id));
-    lines.push("##链接");
+    lines.push("## 链接");
     lines.push(url);
-    lines.push("##权重");
+    lines.push("## 权重");
     lines.push(String(e.weight));
     return lines.join("\n");
   });
@@ -260,11 +260,11 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
  *   ## 摘要
  *   {summary}
  *
- *   ##doc_id
+ *   ## doc_id
  *   {doc_id}
- *   ##链接
+ *   ## 链接
  *   {url}
- *   ##权重
+ *   ## 权重
  *   {weight}
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
@@ -308,11 +308,11 @@ function parseBlock(block: string): DocEntry | null {
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (trimmed === "##doc_id") {
+    if (trimmed === "## doc_id") {
       docId = parseInt((lines[i + 1] || "").trim(), 10);
-    } else if (trimmed === "##链接") {
+    } else if (trimmed === "## 链接") {
       url = (lines[i + 1] || "").trim();
-    } else if (trimmed === "##权重") {
+    } else if (trimmed === "## 权重") {
       weight = parseInt((lines[i + 1] || "").trim(), 10);
     }
   }
@@ -324,12 +324,12 @@ function parseBlock(block: string): DocEntry | null {
   const namespace = urlMatch ? `${urlMatch[1]}/${urlMatch[2]}` : "";
   const slug = urlMatch ? urlMatch[3] : "";
 
-  // 搜索面和摘要 = 标题行之后、##doc_id 之前的文本
+  // 搜索面和摘要 = 标题行之后、## doc_id 之前的文本
   const contentLines: string[] = [];
   let inContent = false;
   for (let i = 1; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (trimmed === "##doc_id") break;
+    if (trimmed === "## doc_id") break;
     if (trimmed && !inContent) inContent = true;
     if (inContent) contentLines.push(trimmed);
   }
