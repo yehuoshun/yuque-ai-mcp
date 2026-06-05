@@ -4,6 +4,7 @@ export interface SourceEntry {
   namespace: string;
   title?: string;
   url?: string;
+  keywords?: string[];
   sub_index_ns?: string;
   parse_error?: string;
   weight?: number;  // LLM 拟合度 1-10
@@ -43,6 +44,7 @@ export interface DocEntry {
   slug: string;
   url: string;
   weight: number;
+  keywords?: string[];      // 关键词数组
   search_surface?: string; // 该文档的搜索面文本
   summary?: string;        // 该文档的摘要
   tree?: {

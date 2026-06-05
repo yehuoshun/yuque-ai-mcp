@@ -170,6 +170,7 @@ async function readIndexDocs(indexDocs) {
                     namespace: entry.namespace,
                     title: entry.doc_title,
                     url: entry.url || `https://www.yuque.com/${entry.namespace}/${entry.slug}`,
+                    keywords: entry.keywords,
                     sub_index_ns: `${doc.book_id}/${doc.doc_id}`,
                     weight: entry.weight,
                     tree: entry.tree,

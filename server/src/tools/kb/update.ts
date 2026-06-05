@@ -17,6 +17,13 @@ function entriesToMarkdown(entries: DocEntry[]): string {
 
     const lines: string[] = [];
     lines.push(`# ${title}`);
+    if (e.keywords && e.keywords.length > 0) {
+      lines.push("");
+      lines.push("## 关键词");
+      for (const kw of e.keywords) {
+        lines.push(kw);
+      }
+    }
     if (surface) {
       lines.push("");
       lines.push("## 搜索面");
@@ -116,6 +123,7 @@ export async function updateIndexEntries(params: {
           ...(upd.slug !== undefined ? { slug: upd.slug } : {}),
           ...(upd.url !== undefined ? { url: upd.url } : {}),
           ...(upd.weight !== undefined ? { weight: upd.weight } : {}),
+          ...(upd.keywords !== undefined ? { keywords: upd.keywords } : {}),
           ...(upd.search_surface !== undefined ? { search_surface: upd.search_surface } : {}),
           ...(upd.summary !== undefined ? { summary: upd.summary } : {}),
         };
@@ -138,6 +146,7 @@ export async function updateIndexEntries(params: {
           slug: e.slug,
           url: e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`,
           weight: e.weight,
+          keywords: e.keywords,
           search_surface: e.search_surface,
           summary: e.summary,
         });

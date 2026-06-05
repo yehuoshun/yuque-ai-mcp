@@ -3,6 +3,7 @@ export interface SourceEntry {
     namespace: string;
     title?: string;
     url?: string;
+    keywords?: string[];
     sub_index_ns?: string;
     parse_error?: string;
     weight?: number;
@@ -40,6 +41,7 @@ export interface DocEntry {
     slug: string;
     url: string;
     weight: number;
+    keywords?: string[];
     search_surface?: string;
     summary?: string;
     tree?: {

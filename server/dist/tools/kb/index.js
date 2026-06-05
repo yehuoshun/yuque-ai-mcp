@@ -48,6 +48,13 @@ function entriesToMarkdown(entries) {
         const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
         const lines = [];
         lines.push(`# ${title}`);
+        if (e.keywords && e.keywords.length > 0) {
+            lines.push("");
+            lines.push("## 关键词");
+            for (const kw of e.keywords) {
+                lines.push(kw);
+            }
+        }
         if (surface) {
             lines.push("");
             lines.push("## 搜索面");
@@ -101,6 +108,7 @@ export async function createIndexDoc(params) {
         slug: e.slug,
         url: e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`,
         weight: e.weight,
+        keywords: e.keywords,
         search_surface: e.search_surface,
         summary: e.summary,
         tree: e.tree,
@@ -273,12 +281,25 @@ function parseBlock(block) {
     // 第一行是 # {doc_title}
     const titleLine = lines[0]?.trim();
     const docTitle = titleLine?.startsWith("# ") ? titleLine.substring(2).trim() : "";
-    // 提取 doc_id、链接、权重（按 ## 标签定位）
+    // 提取 关键词、doc_id、链接、权重
     let docId = 0;
     let url = "";
     let weight = 5;
+    const keywords = [];
+    let inKeywords = false;
     for (let i = 0; i < lines.length; i++) {
         const trimmed = lines[i].trim();
+        if (trimmed === "## 关键词") {
+            inKeywords = true;
+            continue;
+        }
+        if (inKeywords && (trimmed.startsWith("## ") || trimmed === "")) {
+            inKeywords = false;
+        }
+        if (inKeywords && trimmed) {
+            keywords.push(trimmed);
+            continue;
+        }
         if (trimmed === "## doc_id") {
             docId = parseInt((lines[i + 1] || "").trim(), 10);
         }
@@ -314,6 +335,7 @@ function parseBlock(block) {
         slug,
         url,
         weight,
+        keywords: keywords.length > 0 ? keywords : undefined,
     };
 }
 //# sourceMappingURL=index.js.map
