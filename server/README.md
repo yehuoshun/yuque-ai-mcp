@@ -23,7 +23,7 @@ npx yuque-mcp
       "env": {
         "YUQUE_TOKEN": "<你的API Token>",
         "YUQUE_GROUP": "<用户名>",
-        "YUQUE_INDEX_BOOKS": "[{\"book_id\":456,\"namespace\":\"group/index-lib\"}]",
+        "YUQUE_ROUTE_BOOKS": "[{\"book_id\":456,\"namespace\":\"group/index-lib\"}]",
         "YUQUE_GRAPH_BOOK": "{\"book_id\":789,\"namespace\":\"group/graph-lib\"}",
         "YUQUE_SEARCH_CONCURRENCY": "5",
         "YUQUE_COOKIE": "<Cookie>",
@@ -41,7 +41,7 @@ npx yuque-mcp
 |------|------|------|
 | `YUQUE_TOKEN` | ✅ | 语雀 API Token |
 | `YUQUE_GROUP` | ✅ | 用户名/团队名 |
-| `YUQUE_INDEX_BOOKS` | | 索引库列表（JSON 数组，对应 route_books 配置项） |
+| `YUQUE_ROUTE_BOOKS` | | 索引库列表（JSON 数组，对应 route_books 配置项） |
 | `YUQUE_GRAPH_BOOK` | | 图谱库（JSON 对象） |
 | `YUQUE_SEARCH_CONCURRENCY` | | 搜索/批量读取并发数（默认 5） |
 | `YUQUE_COOKIE` | | 登录 Cookie（上传附件/回收站管理用） |
