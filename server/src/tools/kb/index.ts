@@ -69,6 +69,13 @@ function entriesToMarkdown(entries: DocEntry[]): string {
       lines.push("## 摘要");
       lines.push(summary);
     }
+    if (e.tree && e.tree.sections && e.tree.sections.length > 0) {
+      lines.push("");
+      lines.push("## 章节树");
+      for (const sec of e.tree.sections) {
+        lines.push(`- ${sec.id}: ${sec.title} — ${sec.summary}`);
+      }
+    }
     lines.push("");
     lines.push("## doc_id");
     lines.push(String(e.doc_id));
@@ -309,28 +316,45 @@ function parseBlock(block: string): DocEntry | null {
   const titleLine = lines[0]?.trim();
   const docTitle = titleLine?.startsWith("# ") ? titleLine.substring(2).trim() : "";
 
-  // 提取 关键词、doc_id、链接、权重
+  // 提取 关键词、章节树、doc_id、链接、权重
   let docId = 0;
   let url = "";
   let weight = 5;
   const keywords: string[] = [];
+  const treeSections: Array<{ id: string; title: string; summary: string }> = [];
   let inKeywords = false;
+  let inTree = false;
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (trimmed === "## 关键词") {
       inKeywords = true;
+      inTree = false;
       continue;
     }
-    if (inKeywords && (trimmed.startsWith("## ") || trimmed === "")) {
+    if (trimmed === "## 章节树") {
       inKeywords = false;
+      inTree = true;
+      continue;
+    }
+    if ((inKeywords || inTree) && (trimmed.startsWith("## ") || trimmed === "")) {
+      inKeywords = false;
+      inTree = false;
+      continue;
     }
     if (inKeywords && trimmed) {
       keywords.push(trimmed);
       continue;
     }
+    if (inTree && trimmed.startsWith("- ")) {
+      const m = trimmed.match(/^- (\S+): (.+?) — (.+)$/);
+      if (m) treeSections.push({ id: m[1], title: m[2], summary: m[3] });
+      continue;
+    }
     if (trimmed === "## doc_id") {
       docId = parseInt((lines[i + 1] || "").trim(), 10);
+      inKeywords = false;
+      inTree = false;
     } else if (trimmed === "## 链接") {
       url = (lines[i + 1] || "").trim();
     } else if (trimmed === "## 权重") {
@@ -363,5 +387,6 @@ function parseBlock(block: string): DocEntry | null {
     url,
     weight,
     keywords: keywords.length > 0 ? keywords : undefined,
+    tree: treeSections.length > 0 ? { sections: treeSections } : undefined,
   };
 }

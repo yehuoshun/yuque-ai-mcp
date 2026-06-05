@@ -30,6 +30,13 @@ function entriesToMarkdown(entries) {
             lines.push("## 摘要");
             lines.push(summary);
         }
+        if (e.tree && e.tree.sections && e.tree.sections.length > 0) {
+            lines.push("");
+            lines.push("## 章节树");
+            for (const sec of e.tree.sections) {
+                lines.push(`- ${sec.id}: ${sec.title} — ${sec.summary}`);
+            }
+        }
         lines.push("");
         lines.push("## doc_id");
         lines.push(String(e.doc_id));
