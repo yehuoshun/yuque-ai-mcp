@@ -320,14 +320,17 @@ async function globalSearchFallback(tokens: string[]): Promise<SourceEntry[]> {
         const info = r.target || r;
         const id = info.id || r.id;
         if (!id) continue;
+        const title = (info.title || r.title || "").trim();
         allEntries.push({
           doc_id: id,
           namespace: info.book?.namespace || "",
-          title: info.title || r.title || "",
+          title,
           url: info.slug && info.book?.namespace
             ? `https://www.yuque.com/${info.book.namespace}/${info.slug}`
             : "",
           summary: r.summary || "",
+          search_surface: r.summary || "",
+          keywords: title ? extractKeywords(title) : undefined,
           weight: 5,
         });
       }
@@ -341,6 +344,15 @@ async function globalSearchFallback(tokens: string[]): Promise<SourceEntry[]> {
     seen.add(e.doc_id);
     return true;
   });
+}
+
+/** 从标题提取关键词（降级搜索用，拆分隔符取 2-20 字片段） */
+function extractKeywords(title: string): string[] {
+  const tokens = title
+    .split(/[\s,，、|｜丨\/\\·\-—–]+/)
+    .map(t => t.trim())
+    .filter(t => t.length >= 2 && t.length <= 20);
+  return [...new Set(tokens)].slice(0, 5);
 }
 
 // ═══════════════════════════════════════════════════════

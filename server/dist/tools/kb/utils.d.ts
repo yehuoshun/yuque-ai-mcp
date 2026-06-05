@@ -1,5 +1,5 @@
 import { DocEntry } from "./types.js";
-/** 搜索 token / 关键词清洗：去空格去符号 */
+/** 搜索 token / 关键词清洗：去空格 + 去所有非字母数字中文的符号 */
 export declare function cleanToken(token: string): string;
 /**
  * 将 DocEntry[] 序列化为 Markdown body

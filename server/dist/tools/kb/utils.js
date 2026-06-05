@@ -1,7 +1,7 @@
 // ─── 关键词清洗 ────────────────────────────────────────
-/** 搜索 token / 关键词清洗：去空格去符号 */
+/** 搜索 token / 关键词清洗：去空格 + 去所有非字母数字中文的符号 */
 export function cleanToken(token) {
-    return token.replace(/\s+/g, "").replace(/[@#$%`;；《》…—]/g, "");
+    return token.replace(/\s+/g, "").replace(/[^\w\u4e00-\u9fff]/g, "");
 }
 // ─── 索引文档序列化 ────────────────────────────────────
 /**
