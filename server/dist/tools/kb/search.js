@@ -12,10 +12,10 @@ import { parseIndexDoc } from "./index.js";
  * 5. 返回结构化 JSON（KbSearchResult）
  */
 export async function kbSearch(params) {
-    const { route_book_sub } = loadConfig();
+    const { route_books } = loadConfig();
     const tokens = params.tokens.map(cleanToken);
     const errors = [];
-    if (route_book_sub.length === 0) {
+    if (route_books.length === 0) {
         return JSON.stringify({
             tokens,
             index_hits: 0,
@@ -27,11 +27,11 @@ export async function kbSearch(params) {
             fallback_used: "none",
             dirty_blocks: 0,
             errors: [{ token: "config", reason: "索引库未配置" }],
-            hint: "请配置 route_book_sub（索引库）",
+            hint: "请配置 route_books（索引库）",
         }, null, 2);
     }
     // ── Step 1: 搜索引库 → 找匹配的索引文档 ──
-    const { indexDocs, hitKeywords } = await searchIndexBooks(tokens, route_book_sub, errors);
+    const { indexDocs, hitKeywords } = await searchIndexBooks(tokens, route_books, errors);
     // ── Step 1.5: 0 命中 → 自动降级全库搜索 ──
     if (indexDocs.length === 0) {
         const fallbackEntries = await globalSearchFallback(tokens);
@@ -70,7 +70,7 @@ export async function kbSearch(params) {
     let graphExpanded = false;
     let graphNeighbors = [];
     if (allEntries.size < 3 && hitKeywords.length > 0) {
-        const graphResult = await expandWithGraph(hitKeywords, route_book_sub);
+        const graphResult = await expandWithGraph(hitKeywords, route_books);
         if (graphResult.error) {
             errors.push({ token: "graph", reason: graphResult.error });
         }

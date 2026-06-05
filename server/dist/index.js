@@ -631,14 +631,14 @@ const tools = [
     },
     {
         name: "yuque_config_update",
-        description: "更新索引配置（追加 route_book_sub/graph_book 条目，自动持久化到配置文件并重载）。创建新索引库/图库后调此工具写入配置。",
+        description: "更新索引配置（追加 route_books/graph_book 条目，自动持久化到配置文件并重载）。创建新索引库/图库后调此工具写入配置。",
         inputSchema: {
             type: "object",
             properties: {
-                route_book_sub_add: {
+                route_books_add: {
                     type: "array",
                     items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
-                    description: "追加到 route_book_sub 的条目",
+                    description: "追加到 route_books 的条目",
                 },
                 graph_book: {
                     type: "object",
@@ -735,7 +735,7 @@ const handlers = {
     yuque_list_recycles: (a) => listRecycles(a),
     yuque_restore_recycle: (a) => restoreRecycle(a),
     yuque_destroy_recycle: (a) => destroyRecycle(a),
-    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_book_sub.length} 个索引库）`; },
+    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_books.length} 个索引库）`; },
     yuque_config_status: async () => configStatus(),
     yuque_config_update: async (a) => configUpdate(a),
 };
@@ -773,12 +773,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function configStatus() {
     const cfg = loadConfig();
     const lines = [];
-    lines.push("## 索引库 (route_book_sub)");
-    if (cfg.route_book_sub.length === 0) {
+    lines.push("## 索引库 (route_books)");
+    if (cfg.route_books.length === 0) {
         lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建索引库。");
     }
     else {
-        for (const b of cfg.route_book_sub) {
+        for (const b of cfg.route_books) {
             try {
                 const { get } = await import("./client.js");
                 const data = await get(`/repos/${b.book_id}`);
@@ -795,7 +795,7 @@ async function configStatus() {
         }
     }
     lines.push("");
-    const hasSub = cfg.route_book_sub.length > 0;
+    const hasSub = cfg.route_books.length > 0;
     lines.push("## 并发配置");
     lines.push(`🔧 index_concurrency=${cfg.index_concurrency || 1} | search_concurrency=${cfg.search_concurrency || 5}`);
     lines.push("");
@@ -826,8 +826,8 @@ async function configStatus() {
 async function configUpdate(args) {
     const lines = [];
     let changed = false;
-    if (args.route_book_sub_add?.length) {
-        for (const b of args.route_book_sub_add) {
+    if (args.route_books_add?.length) {
+        for (const b of args.route_books_add) {
             addRouteBookSub(b);
             lines.push(`✅ 索引库追加: book_id=${b.book_id} ns=${b.namespace}`);
         }
@@ -839,7 +839,7 @@ async function configUpdate(args) {
         changed = true;
     }
     if (!changed) {
-        return "⚠️ 未指定 route_book_sub_add 或 graph_book，无变更。";
+        return "⚠️ 未指定 route_books_add 或 graph_book，无变更。";
     }
     reloadConfig(true);
     return lines.join("\n");

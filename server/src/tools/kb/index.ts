@@ -78,26 +78,26 @@ export async function createIndexDoc(params: CreateIndexDocParams): Promise<stri
   }
 
   const config = loadConfig();
-  const { route_book_sub } = config;
+  const { route_books } = config;
 
   if (index_book_id) {
-    const matched = route_book_sub.some(b => String(b.book_id) === String(index_book_id));
+    const matched = route_books.some(b => String(b.book_id) === String(index_book_id));
     if (!matched) {
-      const validIds = route_book_sub.map(b => `${b.book_id}（${b.namespace}）`).join(", ");
+      const validIds = route_books.map(b => `${b.book_id}（${b.namespace}）`).join(", ");
       return JSON.stringify({
         created: false,
-        error: `index_book_id=${index_book_id} 不在配置的 route_book_sub 中`,
-        valid_book_ids: route_book_sub.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
+        error: `index_book_id=${index_book_id} 不在配置的 route_books 中`,
+        valid_book_ids: route_books.map(b => ({ book_id: b.book_id, namespace: b.namespace })),
         hint: `请使用配置中已有的索引库：${validIds || "（无）"}。`,
       });
     }
   }
 
-  const bookId = index_book_id || route_book_sub[0]?.book_id;
+  const bookId = index_book_id || route_books[0]?.book_id;
   if (!bookId) {
     return JSON.stringify({
       created: false,
-      error: "route_book_sub 未配置",
+      error: "route_books 未配置",
       hint: "索引库未配置。",
     });
   }

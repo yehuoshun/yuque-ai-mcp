@@ -5,7 +5,7 @@ export interface YuqueBook {
 export interface YuqueConfig {
     token: string;
     group: string;
-    route_book_sub: YuqueBook[];
+    route_books: YuqueBook[];
     graph_book?: YuqueBook;
     index_concurrency: number;
     search_concurrency: number;

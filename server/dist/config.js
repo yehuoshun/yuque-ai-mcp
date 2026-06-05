@@ -54,7 +54,7 @@ export function loadConfig() {
                     if (!fileUserId)
                         fileUserId = raw.user_id;
                     if (indexBooksFromEnv.length === 0)
-                        fileIndexBooks = normalizeBooks(raw.route_book_sub);
+                        fileIndexBooks = normalizeBooks(raw.route_books);
                     if (fileIndexConcurrency === undefined)
                         fileIndexConcurrency = raw.index_concurrency;
                     if (fileSearchConcurrency === undefined)
@@ -83,7 +83,7 @@ export function loadConfig() {
         cached = {
             token: process.env.YUQUE_TOKEN,
             group: process.env.YUQUE_GROUP || "",
-            route_book_sub: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
+            route_books: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
             graph_book: graphBook,
             index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
             search_concurrency: fileSearchConcurrency || parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
@@ -113,7 +113,7 @@ export function loadConfig() {
     cached = {
         token: raw.token || "",
         group: raw.group || "",
-        route_book_sub: normalizeBooks(raw.route_book_sub),
+        route_books: normalizeBooks(raw.route_books),
         graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
         index_concurrency: raw.index_concurrency || 1,
         search_concurrency: raw.search_concurrency || 5,
@@ -175,7 +175,7 @@ export function saveConfig() {
     }
     catch { /* 文件损坏则覆盖 */ }
     // 覆盖路由配置
-    raw.route_book_sub = cached.route_book_sub;
+    raw.route_books = cached.route_books;
     if (cached.graph_book)
         raw.graph_book = cached.graph_book;
     writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf-8");
@@ -189,9 +189,9 @@ export function saveConfig() {
 export function addRouteBookSub(book) {
     if (!cached)
         loadConfig();
-    const exists = cached.route_book_sub.some(b => String(b.book_id) === String(book.book_id));
+    const exists = cached.route_books.some(b => String(b.book_id) === String(book.book_id));
     if (!exists) {
-        cached.route_book_sub = [...cached.route_book_sub, book];
+        cached.route_books = [...cached.route_books, book];
         saveConfig();
     }
 }

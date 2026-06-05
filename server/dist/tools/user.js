@@ -42,11 +42,11 @@ export async function healthCheck() {
     }
     // 2. 索引库检查
     try {
-        const { route_book_sub } = await import("../config.js").then((m) => ({
-            route_book_sub: m.loadConfig().route_book_sub,
+        const { route_books } = await import("../config.js").then((m) => ({
+            route_books: m.loadConfig().route_books,
         }));
-        if (route_book_sub.length > 0) {
-            for (const sb of route_book_sub) {
+        if (route_books.length > 0) {
+            for (const sb of route_books) {
                 await get(`/repos/${sb.book_id}`);
                 results.push(`✅ 索引库: id=${sb.book_id} (${sb.namespace})`);
             }
@@ -60,18 +60,18 @@ export async function healthCheck() {
     }
     // 3. 索引库检查
     try {
-        const { route_book_sub } = await import("../config.js").then((m) => ({
-            route_book_sub: m.loadConfig().route_book_sub,
+        const { route_books } = await import("../config.js").then((m) => ({
+            route_books: m.loadConfig().route_books,
         }));
-        if (route_book_sub.length > 0) {
-            results.push(`✅ 默认索引库: ${route_book_sub.length} 个`);
-            for (const rs of route_book_sub) {
+        if (route_books.length > 0) {
+            results.push(`✅ 默认索引库: ${route_books.length} 个`);
+            for (const rs of route_books) {
                 await get(`/repos/${rs.book_id}`);
                 results.push(`   ✅ ${rs.namespace} (id=${rs.book_id})`);
             }
         }
         else {
-            results.push("⏭️ 未配置默认索引库 (route_book_sub)");
+            results.push("⏭️ 未配置默认索引库 (route_books)");
         }
     }
     catch (e) {

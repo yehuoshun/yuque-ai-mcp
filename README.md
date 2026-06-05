@@ -102,7 +102,7 @@ npm run build
 
 ```bash
 cp config/yuque-config.example.json config/yuque-config.json
-# 编辑填入 token、group、route_book_sub
+# 编辑填入 token、group、route_books
 ```
 
 配置格式：
@@ -111,7 +111,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 {
   "token": "语雀 API Token",
   "group": "yehuoshun",
-  "route_book_sub": [
+  "route_books": [
     { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" }
   ],
   "graph_book": { "book_id": 79724085, "namespace": "yehuoshun/graph-book-xxx" },
@@ -125,7 +125,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 |--------|------|------|
 | `token` | ✅ | 语雀 API Token（需 doc:read/doc:write/repo:read/repo:write） |
 | `group` | ✅ | 语雀用户名/login |
-| `route_book_sub` | ✅ | 索引库列表（创建索引文档时未指定目标则用首个，kb_search 并行搜所有索引库） |
+| `route_books` | ✅ | 索引库列表（创建索引文档时未指定目标则用首个，kb_search 并行搜所有索引库） |
 | `graph_book` | 按需 | 图谱知识库（存 graphN 分片，搜索扩展用，不配则图谱扩展静默跳过） |
 | `user_id` | 按需 | 用户 ID（文件上传必填，`yuque_get_user` 可查） |
 | `cookie` | 按需 | 浏览器 Cookie 完整字符串（文件上传/回收站管理必填） |
@@ -280,7 +280,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_config_status` | 检查配置状态（索引库是否已配、容量使用率） |
-| `yuque_config_update` | 更新配置（追加 route_book_sub 条目，自动持久化并重载） |
+| `yuque_config_update` | 更新配置（追加 route_books 条目，自动持久化并重载） |
 | `yuque_reload_config` | 热重载配置文件，修改后无需重启 MCP Server |
 
 ---

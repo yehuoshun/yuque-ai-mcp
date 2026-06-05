@@ -12,7 +12,7 @@ export interface YuqueBook {
 export interface YuqueConfig {
   token: string;
   group: string;
-  route_book_sub: YuqueBook[];    // 索引库列表（创建索引文档时未指定目标用）
+  route_books: YuqueBook[];    // 索引库列表（创建索引文档时未指定目标用）
   graph_book?: YuqueBook;    // 图谱知识库（存 graphN 分片，listAllDocs 全读合并）
   index_concurrency: number;  // 索引构建并发数（默认 1，语雀 API 限流严格建议保守）
   search_concurrency: number; // 搜索并发数（默认 5）
@@ -75,7 +75,7 @@ export function loadConfig(): YuqueConfig {
           if (!cookie) cookie = raw.cookie;
           if (!ctoken) ctoken = raw.ctoken;
           if (!fileUserId) fileUserId = raw.user_id;
-          if (indexBooksFromEnv.length === 0) fileIndexBooks = normalizeBooks(raw.route_book_sub);
+          if (indexBooksFromEnv.length === 0) fileIndexBooks = normalizeBooks(raw.route_books);
           if (fileIndexConcurrency === undefined) fileIndexConcurrency = raw.index_concurrency;
           if (fileSearchConcurrency === undefined) fileSearchConcurrency = raw.search_concurrency;
         }
@@ -100,7 +100,7 @@ export function loadConfig(): YuqueConfig {
     cached = {
       token: process.env.YUQUE_TOKEN,
       group: process.env.YUQUE_GROUP || "",
-      route_book_sub: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
+      route_books: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
       graph_book: graphBook,
       index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
       search_concurrency: fileSearchConcurrency || parseInt(process.env.YUQUE_SEARCH_CONCURRENCY || "5"),
@@ -134,7 +134,7 @@ export function loadConfig(): YuqueConfig {
   cached = {
     token: raw.token || "",
     group: raw.group || "",
-    route_book_sub: normalizeBooks(raw.route_book_sub),
+    route_books: normalizeBooks(raw.route_books),
     graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
     index_concurrency: raw.index_concurrency || 1,
     search_concurrency: raw.search_concurrency || 5,
@@ -199,7 +199,7 @@ export function saveConfig(): void {
   } catch { /* 文件损坏则覆盖 */ }
 
   // 覆盖路由配置
-  raw.route_book_sub = cached.route_book_sub;
+  raw.route_books = cached.route_books;
   if (cached.graph_book) raw.graph_book = cached.graph_book;
 
   writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf-8");
@@ -213,9 +213,9 @@ export function saveConfig(): void {
 /** 追加索引库条目 */
 export function addRouteBookSub(book: YuqueBook): void {
   if (!cached) loadConfig();
-  const exists = cached!.route_book_sub.some(b => String(b.book_id) === String(book.book_id));
+  const exists = cached!.route_books.some(b => String(b.book_id) === String(book.book_id));
   if (!exists) {
-    cached!.route_book_sub = [...cached!.route_book_sub, book];
+    cached!.route_books = [...cached!.route_books, book];
     saveConfig();
   }
 }
