@@ -117,6 +117,11 @@ Agent 层：
 要求：
 1. 提取 2-5 个最核心的技术术语，每个 ≤1 个词
 2. 覆盖不同角度：核心概念、同义表达、俗称、缩写
+   - 用户说 C# → 同时生成 CSharp、C井
+   - 用户说 .NET → 同时生成 dotnet
+   - 用户说 JS → 同时生成 JavaScript
+   - 用户说 K8s → 同时生成 Kubernetes
+   - 用户说 正则 → 同时生成 Regex、RegExp
 3. 严禁符号、emoji——token 内部必须是纯字母/数字/中文
 4. token 无空格（如 SpringBoot），代码层 cleanToken 自动清洗
 5. 禁止泛词："方法""怎么""搞""啥"等
