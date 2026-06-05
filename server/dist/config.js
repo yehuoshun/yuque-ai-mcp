@@ -83,10 +83,6 @@ export function loadConfig() {
         cached = {
             token: process.env.YUQUE_TOKEN,
             group: process.env.YUQUE_GROUP || "",
-            default_book: normalizeBook({
-                book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
-                namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
-            }),
             route_book_sub: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
             graph_book: graphBook,
             index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
@@ -117,7 +113,6 @@ export function loadConfig() {
     cached = {
         token: raw.token || "",
         group: raw.group || "",
-        default_book: normalizeBook(raw.default_book),
         route_book_sub: normalizeBooks(raw.route_book_sub),
         graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
         index_concurrency: raw.index_concurrency || 1,
@@ -183,8 +178,6 @@ export function saveConfig() {
     raw.route_book_sub = cached.route_book_sub;
     if (cached.graph_book)
         raw.graph_book = cached.graph_book;
-    if (cached.default_book.book_id)
-        raw.default_book = cached.default_book;
     writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf-8");
     // 更新 mtime 避免重读循环
     try {

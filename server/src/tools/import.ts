@@ -574,10 +574,9 @@ export async function importDoc(params: {
   }
 
   // 4. 创建文档
-  const { default_book } = config;
-  const bookId = params.book_id || default_book.book_id;
+  const bookId = params.book_id;
   if (!bookId) {
-    return JSON.stringify({ error: "NO_BOOK_ID", message: "未指定 book_id 且未配置 default_book" });
+    return JSON.stringify({ error: "NO_BOOK_ID", message: "必须指定 book_id" });
   }
 
   // 超过 500KB 截断

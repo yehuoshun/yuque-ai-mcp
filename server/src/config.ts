@@ -12,7 +12,6 @@ export interface YuqueBook {
 export interface YuqueConfig {
   token: string;
   group: string;
-  default_book: YuqueBook;
   route_book_sub: YuqueBook[];    // 索引库列表（创建索引文档时未指定目标用）
   graph_book?: YuqueBook;    // 图谱知识库（存 graphN 分片，listAllDocs 全读合并）
   index_concurrency: number;  // 索引构建并发数（默认 1，语雀 API 限流严格建议保守）
@@ -101,10 +100,6 @@ export function loadConfig(): YuqueConfig {
     cached = {
       token: process.env.YUQUE_TOKEN,
       group: process.env.YUQUE_GROUP || "",
-      default_book: normalizeBook({
-        book_id: process.env.YUQUE_DEFAULT_BOOK_ID ? parseInt(process.env.YUQUE_DEFAULT_BOOK_ID) : 0,
-        namespace: process.env.YUQUE_DEFAULT_BOOK_NS || "",
-      }),
       route_book_sub: indexBooksFromEnv.length > 0 ? indexBooksFromEnv : (fileIndexBooks || []),
       graph_book: graphBook,
       index_concurrency: fileIndexConcurrency || parseInt(process.env.YUQUE_INDEX_CONCURRENCY || "1"),
@@ -139,7 +134,6 @@ export function loadConfig(): YuqueConfig {
   cached = {
     token: raw.token || "",
     group: raw.group || "",
-    default_book: normalizeBook(raw.default_book),
     route_book_sub: normalizeBooks(raw.route_book_sub),
     graph_book: raw.graph_book ? normalizeBook(raw.graph_book) : undefined,
     index_concurrency: raw.index_concurrency || 1,
@@ -207,7 +201,6 @@ export function saveConfig(): void {
   // 覆盖路由配置
   raw.route_book_sub = cached.route_book_sub;
   if (cached.graph_book) raw.graph_book = cached.graph_book;
-  if (cached.default_book.book_id) raw.default_book = cached.default_book;
 
   writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf-8");
 

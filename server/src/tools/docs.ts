@@ -83,9 +83,8 @@ export async function createDoc(params: {
   slug?: string;
   public?: 0 | 1 | 2;
 }): Promise<string> {
-  const { default_book } = loadConfig();
-  const bookId = params.book_id || default_book.book_id;
-  if (!bookId) throw new Error("未指定 book_id 且未配置 default_book");
+  const bookId = params.book_id;
+  if (!bookId) throw new Error("必须指定 book_id");
 
   const payload: Record<string, any> = {
     title: params.title,

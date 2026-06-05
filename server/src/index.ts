@@ -213,7 +213,7 @@ const tools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace。留空使用 config default_book" },
+        book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
         title: { type: "string", description: "文档标题" },
         body: { type: "string", description: "文档正文" },
         format: { type: "string", enum: ["markdown", "html", "lake"], description: "内容格式（默认 markdown）" },
@@ -365,7 +365,7 @@ const tools: Tool[] = [
       type: "object",
       properties: {
         file_path: { type: "string", description: "本地文件路径（必填，除非提供了 body）" },
-        book_id: { type: ["number", "string"], description: "目标知识库 ID 或 namespace。留空使用 config default_book" },
+        book_id: { type: ["number", "string"], description: "目标知识库 ID 或 namespace" },
         body: { type: "string", description: "预适配好的正文（可选。提供后跳过文件读取和 regex 适配，仅做图片上传+创建文档）" },
         title: { type: "string", description: "文档标题（可选。不填则从 frontmatter/文件名/H1 提取）" },
         skip_images: { type: "boolean", description: "跳过图片上传（默认 false，无 cookie 时自动跳过）" },

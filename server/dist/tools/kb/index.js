@@ -75,7 +75,7 @@ export async function createIndexDoc(params) {
         }, null, 2);
     }
     const config = loadConfig();
-    const { route_book_sub, default_book } = config;
+    const { route_book_sub } = config;
     if (index_book_id) {
         const matched = route_book_sub.some(b => String(b.book_id) === String(index_book_id));
         if (!matched) {
@@ -88,7 +88,7 @@ export async function createIndexDoc(params) {
             });
         }
     }
-    const bookId = index_book_id || route_book_sub[0]?.book_id || default_book.book_id;
+    const bookId = index_book_id || route_book_sub[0]?.book_id;
     if (!bookId) {
         return JSON.stringify({
             created: false,

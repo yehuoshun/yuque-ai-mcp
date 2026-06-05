@@ -1,5 +1,4 @@
 import { get, post, put, del } from "../client.js";
-import { loadConfig } from "../config.js";
 /**
  * 列出知识库内的文档（返回结构化 JSON，不含 body 以节省 token）
  */
@@ -67,10 +66,9 @@ export async function getDoc(params) {
  * 创建文档（自动挂 TOC）
  */
 export async function createDoc(params) {
-    const { default_book } = loadConfig();
-    const bookId = params.book_id || default_book.book_id;
+    const bookId = params.book_id;
     if (!bookId)
-        throw new Error("未指定 book_id 且未配置 default_book");
+        throw new Error("必须指定 book_id");
     const payload = {
         title: params.title,
         body: params.body,

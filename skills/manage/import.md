@@ -18,7 +18,6 @@ config/yuque-config.json 需要 cookie + ctoken（图片上传用）：
 {
   "token": "...",
   "group": "yehuoshun",
-  "default_book": { ... },
   "cookie": "<从浏览器复制的完整 Cookie 字符串>",
   "ctoken": "<CSRF Token>"
 }

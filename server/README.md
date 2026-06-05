@@ -38,8 +38,6 @@ npx yuque-mcp
 |------|------|------|
 | `YUQUE_TOKEN` | ✅ | 语雀 API Token |
 | `YUQUE_GROUP` | ✅ | 用户名/团队名 |
-| `YUQUE_DEFAULT_BOOK_ID` | | 默认知识库 ID |
-| `YUQUE_DEFAULT_BOOK_NS` | | 默认知识库 namespace |
 | `YUQUE_ROUTE_SUB` | | 索引库列表（JSON 数组） |
 | `YUQUE_GRAPH_BOOK` | | 图谱库（JSON 对象，`{"book_id":xxx,"namespace":"xx"}`） |
 | `YUQUE_SEARCH_CONCURRENCY` | | 搜索/批量读取并发数（默认 5） |

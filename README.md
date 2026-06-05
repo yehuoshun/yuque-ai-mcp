@@ -102,7 +102,7 @@ npm run build
 
 ```bash
 cp config/yuque-config.example.json config/yuque-config.json
-# 编辑填入 token、group、default_book、route_book_sub
+# 编辑填入 token、group、route_book_sub
 ```
 
 配置格式：
@@ -111,7 +111,6 @@ cp config/yuque-config.example.json config/yuque-config.json
 {
   "token": "语雀 API Token",
   "group": "yehuoshun",
-  "default_book": { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" },
   "route_book_sub": [
     { "book_id": 78276514, "namespace": "yehuoshun/index-sub-1" }
   ],
@@ -126,7 +125,6 @@ cp config/yuque-config.example.json config/yuque-config.json
 |--------|------|------|
 | `token` | ✅ | 语雀 API Token（需 doc:read/doc:write/repo:read/repo:write） |
 | `group` | ✅ | 语雀用户名/login |
-| `default_book` | ✅ | 默认知识库（创建文档时未指定目标则用此库） |
 | `route_book_sub` | ✅ | 索引库列表（创建索引文档时未指定目标则用首个，kb_search 并行搜所有索引库） |
 | `graph_book` | 按需 | 图谱知识库（存 graphN 分片，搜索扩展用，不配则图谱扩展静默跳过） |
 | `user_id` | 按需 | 用户 ID（文件上传必填，`yuque_get_user` 可查） |

@@ -42,19 +42,21 @@ export async function healthCheck(): Promise<string> {
     }
   }
 
-  // 2. 默认知识库检查
+  // 2. 索引库检查
   try {
-    const { default_book } = await import("../config.js").then((m) => ({
-      default_book: m.loadConfig().default_book,
+    const { route_book_sub } = await import("../config.js").then((m) => ({
+      route_book_sub: m.loadConfig().route_book_sub,
     }));
-    if (default_book.book_id) {
-      await get(`/repos/${default_book.book_id}`);
-      results.push(`✅ 默认知识库: id=${default_book.book_id}`);
+    if (route_book_sub.length > 0) {
+      for (const sb of route_book_sub) {
+        await get(`/repos/${sb.book_id}`);
+        results.push(`✅ 索引库: id=${sb.book_id} (${sb.namespace})`);
+      }
     } else {
-      results.push("⏭️ 未配置默认知识库");
+      results.push("⏭️ 未配置索引库");
     }
   } catch (e: any) {
-    results.push(`❌ 默认知识库不可用: ${e.message}`);
+    results.push(`❌ 索引库不可用: ${e.message}`);
   }
 
   // 3. 索引库检查
