@@ -257,7 +257,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Tool | 说明 |
 |------|------|
 | `yuque_kb_search` | 知识库管道搜索（索引库直搜 + 图谱扩展 + 自动降级）：token 数组 → 并行搜所有索引库 → 读索引文档 body → 展开 entries → 按 weight 降序返回。默认截断 20 条，超出的低权重自然淘汰。返回 `total_entries`/`truncated` 标识截断状态 |
-| `yuque_index_create` | 创建关键词索引文档。标题为关键词，body 为 Markdown 块格式（`# 标题 / ## 关键词 / ## 搜索面 / ## 摘要 / ## doc_id / ## 链接 / ## 权重`），语雀全文索引可搜 |
+| `yuque_index_create` | 创建关键词索引文档。标题为关键词，body 为 Markdown 块格式（`# 标题 / ## 关键词 / ## 搜索面 / ## 摘要 / ## 章节树(可选) / ## doc_id / ## 链接 / ## 权重`），语雀全文索引可搜。支持同义别名策略：索引构建时 LLM 根据 5 条推导规则自动生成多叫法关键词文档 |
 | `yuque_index_update_entries` | 增量更新关键词索引文档 entries：支持 add（追加）/ remove（移除）/ update（按 doc_id 合并字段）。自动完成读-改-写原子操作。entries 清空时自动删除索引文档。200KB body 检查 |
 
 ### 搜索 & 批量获取 & 元信息
@@ -289,7 +289,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 知识库问答
 
-单层索引架构：索引库 + 图谱库。索引库存储关键词索引文档（标题=关键词，body 为 Markdown 块格式：`# 文档标题 / ## 关键词 / ## 搜索面 / ## 摘要 / ## doc_id / ## 链接 / ## 权重`）。搜索时直接并行搜所有索引库，语雀原生搜索覆盖标题+正文。图谱库存储关键词共现邻接表（graphN 分片），listAllDocs 全量读取用于搜索扩展。纯 LLM + 语雀 API，零外部向量数据库依赖。
+单层索引架构：索引库 + 图谱库。索引库存储关键词索引文档（标题=关键词，body 为 Markdown 块格式：`# 文档标题 / ## 关键词 / ## 搜索面 / ## 摘要 / ## 章节树(可选) / ## doc_id / ## 链接 / ## 权重`）。构建时 LLM 按 5 条推导规则（去符号转写/缩写↔全称/中英互译/技术名去符号/大小写变体）自动生成多叫法关键词索引，覆盖所有搜索入口。搜索时直接并行搜所有索引库，语雀原生搜索覆盖标题+正文。图谱库存储关键词共现邻接表（graphN 分片），listAllDocs 全量读取用于搜索扩展。纯 LLM + 语雀 API，零外部向量数据库依赖。
 
 搜索管线、索引构建、搜索降级 → **[SKILL.md](./SKILL.md#二知识库问答系统)**。
 
