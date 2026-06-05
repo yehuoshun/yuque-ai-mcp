@@ -39,8 +39,6 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
  *   - doc_id: {doc_id}
  *   - 链接: {url}
  *   - 权重: {weight}
- *
- *   ---
  */
 function entriesToMarkdown(entries: DocEntry[]): string {
   const blocks = entries.map(e => {
@@ -63,9 +61,6 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     lines.push(`- doc_id: ${e.doc_id}`);
     lines.push(`- 链接: ${url}`);
     lines.push(`- 权重: ${e.weight}`);
-    lines.push("");
-    lines.push("---");
-
     return lines.join("\n");
   });
 
@@ -248,7 +243,7 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
 /**
  * 解析索引文档 Markdown body → ParsedIndexDoc
  *
- * body 格式（每个 entry 一块）：
+ * body 格式（每个 entry 一个 ## 块）：
  *   ## {doc_title}
  *   {search_surface}
  *
@@ -257,14 +252,12 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
  *   - doc_id: {doc_id}
  *   - 链接: {url}
  *   - 权重: {weight}
- *
- *   ---
  */
 export function parseIndexDoc(body: string): ParsedIndexDoc {
   if (!body) return { entries: [], parse_error: "空 body" };
 
-  // 按 `\n---\n` 分割各块
-  const blocks = body.split(/\n---\n?/).filter(b => b.trim());
+  // 按 `\n## ` 分割各块
+  const blocks = body.split(/\n(?=## )/).filter(b => b.trim());
   if (blocks.length === 0) {
     return { entries: [], parse_error: "未找到有效块" };
   }

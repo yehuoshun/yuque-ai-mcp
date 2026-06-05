@@ -29,9 +29,6 @@ function entriesToMarkdown(entries: DocEntry[]): string {
     lines.push(`- doc_id: ${e.doc_id}`);
     lines.push(`- 链接: ${url}`);
     lines.push(`- 权重: ${e.weight}`);
-    lines.push("");
-    lines.push("---");
-
     return lines.join("\n");
   });
 

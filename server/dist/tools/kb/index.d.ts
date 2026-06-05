@@ -19,7 +19,7 @@ export declare function findDocByTitle(bookId: number | string, title: string): 
 /**
  * 解析索引文档 Markdown body → ParsedIndexDoc
  *
- * body 格式（每个 entry 一块）：
+ * body 格式（每个 entry 一个 ## 块）：
  *   ## {doc_title}
  *   {search_surface}
  *
@@ -28,8 +28,6 @@ export declare function findDocByTitle(bookId: number | string, title: string): 
  *   - doc_id: {doc_id}
  *   - 链接: {url}
  *   - 权重: {weight}
- *
- *   ---
  */
 export declare function parseIndexDoc(body: string): ParsedIndexDoc;
 export {};
