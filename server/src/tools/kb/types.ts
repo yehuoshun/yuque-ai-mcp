@@ -5,6 +5,8 @@ export interface SourceEntry {
   title?: string;
   url?: string;
   keywords?: string[];
+  search_surface?: string;  // 搜索面文本（用于 Agent 层重排序）
+  summary?: string;         // 摘要（用于 Agent 层重排序）
   sub_index_ns?: string;
   parse_error?: string;
   weight?: number;  // LLM 拟合度 1-10

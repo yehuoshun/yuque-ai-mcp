@@ -171,6 +171,8 @@ async function readIndexDocs(indexDocs) {
                     title: entry.doc_title,
                     url: entry.url || `https://www.yuque.com/${entry.namespace}/${entry.slug}`,
                     keywords: entry.keywords,
+                    search_surface: entry.search_surface,
+                    summary: entry.summary,
                     sub_index_ns: `${doc.book_id}/${doc.doc_id}`,
                     weight: entry.weight,
                     tree: entry.tree,
@@ -271,6 +273,7 @@ async function globalSearchFallback(tokens) {
                     url: info.slug && info.book?.namespace
                         ? `https://www.yuque.com/${info.book.namespace}/${info.slug}`
                         : "",
+                    summary: r.summary || "",
                     weight: 5,
                 });
             }

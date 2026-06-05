@@ -1,58 +1,9 @@
 import { get, put, del } from "../../client.js";
 import { DocEntry } from "./types.js";
-import { cleanToken } from "./utils.js";
+import { cleanToken, entriesToMarkdown } from "./utils.js";
 import { findDocByTitle, parseIndexDoc, createIndexDoc, titleCache } from "./index.js";
 
 const MAX_BODY_BYTES = 200 * 1024;
-
-/**
- * 将 DocEntry[] 序列化为 Markdown body
- */
-function entriesToMarkdown(entries: DocEntry[]): string {
-  const blocks = entries.map(e => {
-    const title = e.doc_title || "";
-    const surface = (e.search_surface || "").trim();
-    const summary = (e.summary || "").trim();
-    const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
-
-    const lines: string[] = [];
-    lines.push(`# ${title}`);
-    if (e.keywords && e.keywords.length > 0) {
-      lines.push("");
-      lines.push("## 关键词");
-      for (const kw of e.keywords) {
-        lines.push(kw);
-      }
-    }
-    if (surface) {
-      lines.push("");
-      lines.push("## 搜索面");
-      lines.push(surface);
-    }
-    if (summary) {
-      lines.push("");
-      lines.push("## 摘要");
-      lines.push(summary);
-    }
-    if (e.tree && e.tree.sections && e.tree.sections.length > 0) {
-      lines.push("");
-      lines.push("## 章节树");
-      for (const sec of e.tree.sections) {
-        lines.push(`- ${sec.id}: ${sec.title} — ${sec.summary}`);
-      }
-    }
-    lines.push("");
-    lines.push("## doc_id");
-    lines.push(String(e.doc_id));
-    lines.push("## 链接");
-    lines.push(url);
-    lines.push("## 权重");
-    lines.push(String(e.weight));
-    return lines.join("\n");
-  });
-
-  return blocks.join("\n\n") + "\n";
-}
 
 /**
  * 增量更新关键词索引文档的 entries
@@ -92,7 +43,8 @@ export async function updateIndexEntries(params: {
     return JSON.stringify({
       keyword: cleanKw,
       action: "noop",
-      reason: "索引文档不存在，且未提供 add",
+      reason: "索引文档不存在",
+      hint: params.add?.length ? "文档不存在且含非纯新增操作（remove/update），请先创建索引文档或仅使用 add" : "文档不存在",
     }, null, 2);
   }
 
@@ -133,6 +85,7 @@ export async function updateIndexEntries(params: {
           ...(upd.keywords !== undefined ? { keywords: upd.keywords } : {}),
           ...(upd.search_surface !== undefined ? { search_surface: upd.search_surface } : {}),
           ...(upd.summary !== undefined ? { summary: upd.summary } : {}),
+          ...(upd.tree !== undefined ? { tree: upd.tree } : {}),
         };
         stats.updated++;
       }
@@ -156,6 +109,7 @@ export async function updateIndexEntries(params: {
           keywords: e.keywords,
           search_surface: e.search_surface,
           summary: e.summary,
+          tree: e.tree,
         });
         existingIds.add(e.doc_id);
         stats.added++;

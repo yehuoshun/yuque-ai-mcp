@@ -41,6 +41,7 @@ npx yuque-mcp
 | `YUQUE_DEFAULT_BOOK_ID` | | 默认知识库 ID |
 | `YUQUE_DEFAULT_BOOK_NS` | | 默认知识库 namespace |
 | `YUQUE_ROUTE_SUB` | | 索引库列表（JSON 数组） |
+| `YUQUE_GRAPH_BOOK` | | 图谱库（JSON 对象，`{"book_id":xxx,"namespace":"xx"}`） |
 | `YUQUE_SEARCH_CONCURRENCY` | | 搜索/批量读取并发数（默认 5） |
 | `YUQUE_COOKIE` | | 登录 Cookie（上传附件/回收站管理用） |
 | `YUQUE_CTOKEN` | | CSRF Token |

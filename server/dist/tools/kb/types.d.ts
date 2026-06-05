@@ -4,6 +4,8 @@ export interface SourceEntry {
     title?: string;
     url?: string;
     keywords?: string[];
+    search_surface?: string;
+    summary?: string;
     sub_index_ns?: string;
     parse_error?: string;
     weight?: number;

@@ -1,7 +1,7 @@
 import { get, post, put } from "../../client.js";
 import { loadConfig } from "../../config.js";
 import { CreateIndexDocParams, DocEntry, ParsedIndexDoc } from "./types.js";
-import { cleanToken } from "./utils.js";
+import { cleanToken, entriesToMarkdown } from "./utils.js";
 import { listAllDocs } from "./search.js";
 
 const REPO_DOC_LIMIT = 5000;
@@ -25,68 +25,6 @@ async function checkRepoCapacity(bookId: number | string): Promise<{ count: numb
   } catch {
     return { count: 0, pct: 0, level: "ok", label: String(bookId) };
   }
-}
-
-/**
- * 将 DocEntry[] 序列化为 Markdown body
- *
- * 格式（每个 entry 一块）：
- *   # {doc_title}
- *
- *   ## 搜索面
- *   {search_surface}
- *
- *   ### 摘要
- *   {summary}
- *
- *   - doc_id: {doc_id}
- *   - 链接: {url}
- *   - 权重: {weight}
- */
-function entriesToMarkdown(entries: DocEntry[]): string {
-  const blocks = entries.map(e => {
-    const title = e.doc_title || "";
-    const surface = (e.search_surface || "").trim();
-    const summary = (e.summary || "").trim();
-    const url = e.url || `https://www.yuque.com/${e.namespace}/${e.slug}`;
-
-    const lines: string[] = [];
-    lines.push(`# ${title}`);
-    if (e.keywords && e.keywords.length > 0) {
-      lines.push("");
-      lines.push("## 关键词");
-      for (const kw of e.keywords) {
-        lines.push(kw);
-      }
-    }
-    if (surface) {
-      lines.push("");
-      lines.push("## 搜索面");
-      lines.push(surface);
-    }
-    if (summary) {
-      lines.push("");
-      lines.push("## 摘要");
-      lines.push(summary);
-    }
-    if (e.tree && e.tree.sections && e.tree.sections.length > 0) {
-      lines.push("");
-      lines.push("## 章节树");
-      for (const sec of e.tree.sections) {
-        lines.push(`- ${sec.id}: ${sec.title} — ${sec.summary}`);
-      }
-    }
-    lines.push("");
-    lines.push("## doc_id");
-    lines.push(String(e.doc_id));
-    lines.push("## 链接");
-    lines.push(url);
-    lines.push("## 权重");
-    lines.push(String(e.weight));
-    return lines.join("\n");
-  });
-
-  return blocks.join("\n\n") + "\n";
 }
 
 /**
@@ -269,11 +207,17 @@ export async function findDocByTitle(bookId: number | string, title: string): Pr
  * body 格式（每个 entry 一个 # 块）：
  *   # {doc_title}
  *
+ *   ## 关键词
+ *   {keyword}
+ *
  *   ## 搜索面
  *   {search_surface}
  *
  *   ## 摘要
  *   {summary}
+ *
+ *   ## 章节树
+ *   - {id}: {title} — {summary}
  *
  *   ## doc_id
  *   {doc_id}
@@ -316,49 +260,57 @@ function parseBlock(block: string): DocEntry | null {
   const titleLine = lines[0]?.trim();
   const docTitle = titleLine?.startsWith("# ") ? titleLine.substring(2).trim() : "";
 
-  // 提取 关键词、章节树、doc_id、链接、权重
+  // 提取 关键词、搜索面、摘要、章节树、doc_id、链接、权重
   let docId = 0;
   let url = "";
   let weight = 5;
   const keywords: string[] = [];
   const treeSections: Array<{ id: string; title: string; summary: string }> = [];
-  let inKeywords = false;
-  let inTree = false;
+  let section: "keywords" | "surface" | "summary" | "tree" | null = null;
+  const surfaceLines: string[] = [];
+  const summaryLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (trimmed === "## 关键词") {
-      inKeywords = true;
-      inTree = false;
+
+    // 遇到下一个 ## 头 → 退出当前 section
+    if (trimmed.startsWith("## ")) {
+      if (trimmed === "## 关键词") { section = "keywords"; continue; }
+      if (trimmed === "## 搜索面") { section = "surface"; continue; }
+      if (trimmed === "## 摘要") { section = "summary"; continue; }
+      if (trimmed === "## 章节树") { section = "tree"; continue; }
+      if (trimmed === "## doc_id") {
+        section = null;
+        docId = parseInt((lines[i + 1] || "").trim(), 10);
+        continue;
+      }
+      if (trimmed === "## 链接") { section = null; url = (lines[i + 1] || "").trim(); continue; }
+      if (trimmed === "## 权重") { section = null; weight = parseInt((lines[i + 1] || "").trim(), 10); continue; }
+      // 未知 ## 头 → 退出当前 section
+      section = null;
       continue;
     }
-    if (trimmed === "## 章节树") {
-      inKeywords = false;
-      inTree = true;
-      continue;
-    }
-    if ((inKeywords || inTree) && (trimmed.startsWith("## ") || trimmed === "")) {
-      inKeywords = false;
-      inTree = false;
-      continue;
-    }
-    if (inKeywords && trimmed) {
-      keywords.push(trimmed);
-      continue;
-    }
-    if (inTree && trimmed.startsWith("- ")) {
-      const m = trimmed.match(/^- (\S+): (.+?) — (.+)$/);
-      if (m) treeSections.push({ id: m[1], title: m[2], summary: m[3] });
-      continue;
-    }
-    if (trimmed === "## doc_id") {
-      docId = parseInt((lines[i + 1] || "").trim(), 10);
-      inKeywords = false;
-      inTree = false;
-    } else if (trimmed === "## 链接") {
-      url = (lines[i + 1] || "").trim();
-    } else if (trimmed === "## 权重") {
-      weight = parseInt((lines[i + 1] || "").trim(), 10);
+
+    // 空行 → 跳过（不参与任何 section 的内容收集）
+    if (!trimmed) continue;
+
+    // 收集当前 section 内容
+    switch (section) {
+      case "keywords":
+        keywords.push(trimmed);
+        break;
+      case "surface":
+        surfaceLines.push(trimmed);
+        break;
+      case "summary":
+        summaryLines.push(trimmed);
+        break;
+      case "tree":
+        if (trimmed.startsWith("- ")) {
+          const m = trimmed.match(/^- (\S+): (.+) — (.+)$/);
+          if (m) treeSections.push({ id: m[1], title: m[2], summary: m[3] });
+        }
+        break;
     }
   }
 
@@ -369,16 +321,6 @@ function parseBlock(block: string): DocEntry | null {
   const namespace = urlMatch ? `${urlMatch[1]}/${urlMatch[2]}` : "";
   const slug = urlMatch ? urlMatch[3] : "";
 
-  // 搜索面和摘要 = 标题行之后、## doc_id 之前的文本
-  const contentLines: string[] = [];
-  let inContent = false;
-  for (let i = 1; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    if (trimmed === "## doc_id") break;
-    if (trimmed && !inContent) inContent = true;
-    if (inContent) contentLines.push(trimmed);
-  }
-
   return {
     doc_id: docId,
     namespace,
@@ -387,6 +329,8 @@ function parseBlock(block: string): DocEntry | null {
     url,
     weight,
     keywords: keywords.length > 0 ? keywords : undefined,
+    search_surface: surfaceLines.length > 0 ? surfaceLines.join("\n") : undefined,
+    summary: summaryLines.length > 0 ? summaryLines.join("\n") : undefined,
     tree: treeSections.length > 0 ? { sections: treeSections } : undefined,
   };
 }
