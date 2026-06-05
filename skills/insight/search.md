@@ -20,7 +20,7 @@
   "Spring事务怎么配" → ["Spring", "事务", "Transactional"]
   ↓
 ② 调 yuque_kb_search(tokens)  ← 工具内部自动完成以下步骤
-  ├─ 索引库直搜：N 路并行搜所有索引库 → 标题匹配索引文档
+  ├─ 索引库直搜：N 路并行搜所有索引库 → 匹配索引文档
   │   └─ 索引库 0 命中 → 自动降级语雀全库搜索（fallback_used="global_search"）
   ├─ 读索引文档：读 body → parseIndexDoc → 展开 entries
   ├─ 图谱扩展：命中 < 3 篇 → listAllDocs + 筛选分片 → 找邻居 → 补搜

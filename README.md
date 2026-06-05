@@ -45,7 +45,7 @@
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
 | Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **24 个** |
-| 知识库问答 | `smart-search` | `smart-search` | **两层索引 + 多路并发 + 降级** |
+| 知识库问答 | `smart-search` | `smart-search` | **单层索引 + 多路并发 + 降级** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
 | 碎片收集 | `daily-capture` | — | `inbox`（三种模式 + 可配置清理） |
