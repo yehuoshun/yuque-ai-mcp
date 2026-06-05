@@ -116,12 +116,40 @@ Agent 层：
 
 要求：
 1. 提取 2-5 个最核心的技术术语，每个 ≤1 个词
-2. 覆盖不同角度：核心概念、同义表达、俗称、缩写
+2. 覆盖不同角度：核心概念、同义表达、俗称、缩写、符号转文字
    - 用户说 C# → 同时生成 CSharp、C井
    - 用户说 .NET → 同时生成 dotnet
    - 用户说 JS → 同时生成 JavaScript
    - 用户说 K8s → 同时生成 Kubernetes
    - 用户说 正则 → 同时生成 Regex、RegExp
+   - 用户说 = → 同时生成 等于、等于号
+   - 用户说 == → 同时生成 等于、双等于、相等比较
+   - 用户说 != → 同时生成 不等于
+   - 用户说 => → 同时生成 箭头函数、Lambda
+   - 用户说 @ → 同时生成 注解、装饰器
+   - 用户说 <> → 同时生成 泛型、尖括号
+   - 用户说 [] → 同时生成 数组、中括号、下标
+   - 用户说 {} → 同时生成 花括号、对象、代码块
+   - 用户说 && → 同时生成 逻辑与、AND
+   - 用户说 || → 同时生成 逻辑或、OR
+   - 用户说 % → 同时生成 取模、取余
+   - 用户说 缓存 → 同时生成 Cache
+   - 用户说 消息队列 → 同时生成 MQ、MessageQueue
+   - 用户说 分布式 → 同时生成 Distributed
+   - 用户说 微服务 → 同时生成 MicroService
+   - 用户说 设计模式 → 同时生成 DesignPattern
+   - 用户说 算法 → 同时生成 Algorithm
+   - 用户说 动态规划 → 同时生成 DP、DynamicProgramming
+   - 用户说 负载均衡 → 同时生成 LoadBalance
+   - 用户说 认证 → 同时生成 Authentication、Auth
+   - 用户说 授权 → 同时生成 Authorization、RBAC
+   - 用户说 序列化 → 同时生成 Serialization
+   - 用户说 反射 → 同时生成 Reflection
+   - 用户说 代理 → 同时生成 Proxy
+   - 用户说 泛型 → 同时生成 Generics
+   - 用户说 闭包 → 同时生成 Closure
+   - 用户说 节流 → 同时生成 Throttle、防抖、Debounce
+   - 用户说 深拷贝 → 同时生成 DeepClone、浅拷贝、ShallowCopy
 3. 严禁符号、emoji——token 内部必须是纯字母/数字/中文
 4. token 无空格（如 SpringBoot），代码层 cleanToken 自动清洗
 5. 禁止泛词："方法""怎么""搞""啥"等
