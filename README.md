@@ -1,10 +1,13 @@
 # 语雀 AI Skill
 
-> 语雀全功能 AI Agent 技能 —— 49 MCP Tools + 24 业务 Skills（批量运维/写作辅助/知识分析/翻译/同步/导入/备份），全面超越官方 yuque-ecosystem。纯 LLM + 语雀 API，零外部依赖。
+> ⚠️ **DEPRECATED — 已停止维护 (2026-06-06)**
+>
+> 关键词索引架构过于复杂，已废弃。基础 CRUD 工具（list_repos / list_toc / get_doc / create_doc 等）仍可用，但索引构建、知识库搜索、图谱等高级功能不再维护。
+>
+> 替代方案：TOC 树导航（无向量 RAG），详见 [tree-search](https://github.com/yehuoshun/yuque-ai-mcp/tree/main/tree-search)（待建）。
 
 [![License](https://img.shields.io/github/license/yehuoshun/yuque-ai-mcp)](./LICENSE)
-[![SKILL.md](https://img.shields.io/badge/SKILL.md-执行规范-green)](./SKILL.md)
-[![MCP](https://img.shields.io/badge/MCP-Server-blue)](./server)
+[![Status](https://img.shields.io/badge/status-deprecated-red)](./DEPRECATED.md)
 
 ---
 
