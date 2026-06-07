@@ -65,7 +65,7 @@ npx yuque-mcp
 
 ### 目录
 - `yuque_list_toc` · `yuque_update_toc` · `yuque_remove_toc_node`
-- `yuque_mount_doc_to_toc` · `yuque_get_toc_flat`
+- `yuque_clone_doc_to_toc` · `yuque_get_toc_flat`
 
 ### 小记
 - `yuque_list_notes` · `yuque_get_note` · `yuque_create_note` · `yuque_update_note` · `yuque_delete_note` · `yuque_restore_note`

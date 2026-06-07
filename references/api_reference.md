@@ -904,22 +904,13 @@ Content-Type: application/json
 - DOC 已在 TOC 中时不能直接 `appendNode child`，必须先 `removeNode` 再 `appendNode child`
 - 删除 TITLE 分组时 `action_mode=sibling` 仅删分组，`action_mode=child` 会尝试级联删子节点
 
-### 多目录挂载
+### 多目录复制
 
-```http
-PUT /api/v2/repos/{book_id}/toc
-Content-Type: application/json
+语雀 TOC 是 1:1 的（一个文档只能在一个节点），多目录通过物理复制实现。
 
-{
-  "action": "appendNode",
-  "action_mode": "child",
-  "type": "DOC",
-  "doc_ids": [文档ID],
-  "target_uuid": "目标节点UUID"
-}
-```
+MCP 工具 `yuque_clone_doc_to_toc`：读取源文档 content → 在每个目标分类下 `create_doc` → 各自 `appendNode child` 挂载。
 
-> ⚠️ 语雀 API 可能限制同一文档只有一个 TOC 节点。MCP 工具 `yuque_mount_doc_to_toc` 封装了批量尝试逻辑，失败则降级为首个。
+返回每个副本的 `new_doc_id` 和挂载结果。
 
 ### 目录扁平化缓存
 

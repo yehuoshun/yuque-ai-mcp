@@ -8,7 +8,8 @@ import { addRouteBooks, addGraphBook, loadConfig, reloadConfig } from "./config.
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
-import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, mountDocToToc, getTocFlat, listDocVersions, getDocVersion } from "./tools/docs.js";
+import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
+import { cloneDocToToc, getTocFlat } from "./tools/toc/index.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { batchGetDocsBody } from "./tools/export.js";
@@ -174,14 +175,14 @@ const tools = [
     },
     // --- 目录增强 ---
     {
-        name: "yuque_mount_doc_to_toc",
-        description: "将文档挂载到多个目录位置（多目录支持）。⚠️ 语雀 API 可能限制同一文档只有一个 TOC 节点，此工具尝试创建额外引用，失败则降级为首个",
+        name: "yuque_clone_doc_to_toc",
+        description: "将文档内容复制到多个目录位置（多目录支持）。语雀 TOC 是 1:1 的，多目录通过物理复制实现：读取源文档 → 在每个目标分类下创建独立副本，各自挂载。返回每个副本的 doc_id",
         inputSchema: {
             type: "object",
             properties: {
                 book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
-                doc_id: { type: "number", description: "文档 ID" },
-                target_uuids: { type: "array", items: { type: "string" }, description: "TOC 父节点 UUID 列表，文档将挂载到每个节点下" },
+                doc_id: { type: "number", description: "源文档 ID（要复制的文档）" },
+                target_uuids: { type: "array", items: { type: "string" }, description: "TOC 父节点 UUID 列表，每个位置创建一个副本" },
                 action_mode: { type: "string", enum: ["sibling", "child"], description: "挂载模式：child=子节点（默认），sibling=同级" },
             },
             required: ["book_id", "doc_id", "target_uuids"],
@@ -747,7 +748,7 @@ const handlers = {
     yuque_list_toc: (a) => listToc(a),
     yuque_update_toc: (a) => updateToc(a),
     yuque_remove_toc_node: (a) => removeTocNode(a),
-    yuque_mount_doc_to_toc: (a) => mountDocToToc(a),
+    yuque_clone_doc_to_toc: (a) => cloneDocToToc(a),
     yuque_get_toc_flat: (a) => getTocFlat(a),
     yuque_list_docs: (a) => listDocs(a),
     yuque_get_doc: (a) => getDoc(a),
