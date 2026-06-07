@@ -51,7 +51,7 @@ npx yuque-mcp
 
 > 也可用配置文件：创建 `yuque-config.json`，通过 `YUQUE_CONFIG_PATH` 指定路径。
 
-## Tools (51)
+## Tools (53)
 
 ### 知识库
 - `yuque_list_repos` · `yuque_get_repo` · `yuque_create_repo` · `yuque_update_repo` · `yuque_delete_repo`
@@ -65,6 +65,7 @@ npx yuque-mcp
 
 ### 目录
 - `yuque_list_toc` · `yuque_update_toc` · `yuque_remove_toc_node`
+- `yuque_mount_doc_to_toc` · `yuque_get_toc_flat`
 
 ### 小记
 - `yuque_list_notes` · `yuque_get_note` · `yuque_create_note` · `yuque_update_note` · `yuque_delete_note` · `yuque_restore_note`

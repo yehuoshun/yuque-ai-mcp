@@ -15,7 +15,10 @@ export declare function getDoc(params: {
     doc_id: number;
 }): Promise<string>;
 /**
- * 创建文档（自动挂 TOC）
+ * 创建文档（自动挂 TOC，支持指定挂载位置）
+ *
+ * @param target_uuid - TOC 父节点 UUID，空字符串 = 根级（默认），指定即挂到对应节点下
+ * @param action_mode - 挂载模式，默认 "child"（子节点），可选 "sibling"（同级）
  */
 export declare function createDoc(params: {
     book_id: number | string;
@@ -24,6 +27,8 @@ export declare function createDoc(params: {
     format?: "markdown" | "html" | "lake";
     slug?: string;
     public?: 0 | 1 | 2;
+    target_uuid?: string;
+    action_mode?: "sibling" | "child";
 }): Promise<string>;
 /**
  * 更新文档
@@ -84,4 +89,28 @@ export declare function removeTocNode(params: {
     book_id: number | string;
     target_uuid: string;
     action_mode?: "sibling" | "child";
+}): Promise<string>;
+/**
+ * 将文档挂载到多个目录位置（多目录支持）
+ *
+ * ⚠️ 语雀 API 限制：同一文档默认只能有一个 TOC 节点。
+ * 此工具尝试通过 appendNode + doc_ids 创建额外引用，语雀允许则成，不允许则降级为首个。
+ *
+ * @param target_uuids - TOC 父节点 UUID 列表，文档将挂载到每个节点下
+ * @param action_mode - 挂载模式，默认 "child"
+ */
+export declare function mountDocToToc(params: {
+    book_id: number | string;
+    doc_id: number;
+    target_uuids: string[];
+    action_mode?: "sibling" | "child";
+}): Promise<string>;
+/**
+ * 获取知识库目录的扁平化缓存结构
+ *
+ * 将嵌套 TOC 展平为 {nodes, roots, doc_map}，方便批量操作时快速查找节点，
+ * 避免反复调用 yuque_list_toc。
+ */
+export declare function getTocFlat(params: {
+    book_id: number | string;
 }): Promise<string>;

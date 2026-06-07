@@ -904,6 +904,41 @@ Content-Type: application/json
 - DOC 已在 TOC 中时不能直接 `appendNode child`，必须先 `removeNode` 再 `appendNode child`
 - 删除 TITLE 分组时 `action_mode=sibling` 仅删分组，`action_mode=child` 会尝试级联删子节点
 
+### 多目录挂载
+
+```http
+PUT /api/v2/repos/{book_id}/toc
+Content-Type: application/json
+
+{
+  "action": "appendNode",
+  "action_mode": "child",
+  "type": "DOC",
+  "doc_ids": [文档ID],
+  "target_uuid": "目标节点UUID"
+}
+```
+
+> ⚠️ 语雀 API 可能限制同一文档只有一个 TOC 节点。MCP 工具 `yuque_mount_doc_to_toc` 封装了批量尝试逻辑，失败则降级为首个。
+
+### 目录扁平化缓存
+
+MCP 工具 `yuque_get_toc_flat` 将嵌套 TOC 展平为：
+
+```json
+{
+  "nodes": {
+    "uuid1": { "uuid": "uuid1", "title": "分类A", "type": "TITLE", "parent_uuid": null, "children_uuids": ["uuid2"], "doc_id": null },
+    "uuid2": { "uuid": "uuid2", "title": "文档标题", "type": "DOC", "parent_uuid": "uuid1", "children_uuids": [], "doc_id": 123 }
+  },
+  "roots": ["uuid1"],
+  "doc_map": { "uuid2": 123 },
+  "total_nodes": 2
+}
+```
+
+批量操作时用此缓存避免反复调 `yuque_list_toc`，大幅节省 API 调用。
+
 ## 文档导出
 
 ### 单篇导出

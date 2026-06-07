@@ -1,15 +1,24 @@
 import { get, post, put, del } from "../client.js";
 import { loadConfig } from "../config.js";
 /**
- * 列出用户的所有知识库
+ * 列出用户的所有知识库（自动翻页，确保不漏）
  */
 export async function listRepos() {
     const { group } = loadConfig();
-    const data = await get(`/users/${group}/repos`);
-    const repos = data.data || data;
-    if (!Array.isArray(repos) || repos.length === 0)
+    const allRepos = [];
+    const PAGE_SIZE = 100;
+    for (let offset = 0;; offset += PAGE_SIZE) {
+        const data = await get(`/users/${group}/repos?offset=${offset}&limit=${PAGE_SIZE}`);
+        const repos = data.data || data;
+        if (!Array.isArray(repos) || repos.length === 0)
+            break;
+        allRepos.push(...repos);
+        if (repos.length < PAGE_SIZE)
+            break;
+    }
+    if (allRepos.length === 0)
         return JSON.stringify([]);
-    return JSON.stringify(repos.map((r) => ({
+    return JSON.stringify(allRepos.map((r) => ({
         id: r.id, name: r.name, slug: r.slug, items_count: r.items_count,
     })), null, 2);
 }

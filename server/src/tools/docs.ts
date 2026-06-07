@@ -23,8 +23,11 @@ export async function listDocs(params: {
     id: d.id,
     slug: d.slug,
     title: d.title,
+    type: d.type,
+    format: d.format,
     public: d.public,
     word_count: d.word_count,
+    created_at: d.created_at,
     updated_at: d.updated_at,
     ...(d.content_updated_at ? { content_updated_at: d.content_updated_at } : {}),
   })), null, 2);
@@ -73,7 +76,10 @@ export async function getDoc(params: { book_id: number | string; doc_id: number 
 }
 
 /**
- * 创建文档（自动挂 TOC）
+ * 创建文档（自动挂 TOC，支持指定挂载位置）
+ *
+ * @param target_uuid - TOC 父节点 UUID，空字符串 = 根级（默认），指定即挂到对应节点下
+ * @param action_mode - 挂载模式，默认 "child"（子节点），可选 "sibling"（同级）
  */
 export async function createDoc(params: {
   book_id: number | string;
@@ -82,6 +88,8 @@ export async function createDoc(params: {
   format?: "markdown" | "html" | "lake";
   slug?: string;
   public?: 0 | 1 | 2;
+  target_uuid?: string;
+  action_mode?: "sibling" | "child";
 }): Promise<string> {
   const bookId = params.book_id;
   if (!bookId) throw new Error("必须指定 book_id");
@@ -97,13 +105,15 @@ export async function createDoc(params: {
   const data = await post(`/repos/${bookId}/docs`, payload);
   const doc = (data as any).data || data;
   const docId = doc.id;
+  const targetUuid = params.target_uuid !== undefined ? params.target_uuid : "";
+  const mode = params.action_mode || "child";
 
-  // 自动挂载到目录（对齐官方：child + 空 target_uuid = 根级子节点）
+  // 挂载到指定目录位置
   try {
     await put(`/repos/${bookId}/toc`, {
       action: "appendNode",
-      action_mode: "child",
-      target_uuid: "",
+      action_mode: mode,
+      target_uuid: targetUuid,
       type: "DOC",
       doc_ids: [docId],
     });
@@ -111,7 +121,10 @@ export async function createDoc(params: {
     return JSON.stringify({ error: "TOC_FAILED", message: e.message, doc: { id: docId, title: params.title } });
   }
 
-  return JSON.stringify(doc, null, 2);
+  return JSON.stringify({
+    ...doc,
+    _toc: { target_uuid: targetUuid, action_mode: mode },
+  }, null, 2);
 }
 
 /**
@@ -235,4 +248,103 @@ export async function removeTocNode(params: {
     node_uuid: params.target_uuid,
   });
   return JSON.stringify({ success: true, removed_uuid: params.target_uuid });
+}
+
+// ---------- 目录挂载增强 ----------
+
+/**
+ * 将文档挂载到多个目录位置（多目录支持）
+ *
+ * ⚠️ 语雀 API 限制：同一文档默认只能有一个 TOC 节点。
+ * 此工具尝试通过 appendNode + doc_ids 创建额外引用，语雀允许则成，不允许则降级为首个。
+ *
+ * @param target_uuids - TOC 父节点 UUID 列表，文档将挂载到每个节点下
+ * @param action_mode - 挂载模式，默认 "child"
+ */
+export async function mountDocToToc(params: {
+  book_id: number | string;
+  doc_id: number;
+  target_uuids: string[];
+  action_mode?: "sibling" | "child";
+}): Promise<string> {
+  const mode = params.action_mode || "child";
+  const results: Array<{ target_uuid: string; success: boolean; error?: string }> = [];
+
+  for (const targetUuid of params.target_uuids) {
+    try {
+      await put(`/repos/${params.book_id}/toc`, {
+        action: "appendNode",
+        action_mode: mode,
+        target_uuid: targetUuid,
+        type: "DOC",
+        doc_ids: [params.doc_id],
+      });
+      results.push({ target_uuid: targetUuid, success: true });
+    } catch (e: any) {
+      results.push({ target_uuid: targetUuid, success: false, error: e.message });
+    }
+  }
+
+  return JSON.stringify({
+    doc_id: params.doc_id,
+    total: params.target_uuids.length,
+    succeeded: results.filter(r => r.success).length,
+    failed: results.filter(r => !r.success).length,
+    results,
+  }, null, 2);
+}
+
+/**
+ * 获取知识库目录的扁平化缓存结构
+ *
+ * 将嵌套 TOC 展平为 {nodes, roots, doc_map}，方便批量操作时快速查找节点，
+ * 避免反复调用 yuque_list_toc。
+ */
+export async function getTocFlat(params: { book_id: number | string }): Promise<string> {
+  const data = await get(`/repos/${params.book_id}/toc`);
+  const toc = (data as any).data || data;
+  if (!Array.isArray(toc) || toc.length === 0) {
+    return JSON.stringify({ nodes: {}, roots: [], doc_map: {} });
+  }
+
+  interface TocNode {
+    uuid: string;
+    title: string;
+    type: "TITLE" | "DOC" | "LINK";
+    parent_uuid: string | null;
+    children_uuids: string[];
+    doc_id?: number;
+  }
+
+  const nodes: Record<string, TocNode> = {};
+  const docMap: Record<string, number> = {};
+  const roots: string[] = [];
+
+  function walk(items: any[], parentUuid: string | null) {
+    for (const item of items) {
+      const node: TocNode = {
+        uuid: item.uuid,
+        title: item.title || "",
+        type: item.type || "DOC",
+        parent_uuid: parentUuid,
+        children_uuids: [],
+      };
+      if (item.doc_id) {
+        node.doc_id = item.doc_id;
+        docMap[item.uuid] = item.doc_id;
+      }
+
+      if (parentUuid === null) roots.push(item.uuid);
+      if (Array.isArray(item.children)) {
+        node.children_uuids = item.children.map((c: any) => c.uuid);
+        walk(item.children, item.uuid);
+      }
+
+      nodes[item.uuid] = node;
+    }
+  }
+
+  walk(toc, null);
+
+  return JSON.stringify({ nodes, roots, doc_map: docMap, total_nodes: Object.keys(nodes).length }, null, 2);
 }

@@ -1,5 +1,5 @@
 /**
- * 列出用户的所有知识库
+ * 列出用户的所有知识库（自动翻页，确保不漏）
  */
 export declare function listRepos(): Promise<string>;
 /**

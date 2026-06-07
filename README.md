@@ -306,6 +306,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 |-------|------|
 | [archive](skills/manage/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
 | [backup](skills/manage/backup.md) | 知识库完整下载到本地（全量导出，含TOC结构+图片+附件） |
+| [purify](skills/manage/purify.md) | 知识库净化（清洗标题/内容/结构 → 去广告去HTML垃圾 → 重建新库） |
 | [classify](skills/manage/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
 | [format](skills/manage/format.md) | 批量格式标准化（预设风格 / 参考文档 / 自定义规则三种来源） |
 | [import](skills/manage/import.md) | 外部文档导入（本地/Obsidian/Notion，格式适配 + 图片上传） |

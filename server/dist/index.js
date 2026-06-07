@@ -8,7 +8,7 @@ import { addRouteBooks, addGraphBook, loadConfig, reloadConfig } from "./config.
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
-import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
+import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, mountDocToToc, getTocFlat, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { batchGetDocsBody } from "./tools/export.js";
@@ -172,6 +172,32 @@ const tools = [
             required: ["book_id", "target_uuid"],
         },
     },
+    // --- 目录增强 ---
+    {
+        name: "yuque_mount_doc_to_toc",
+        description: "将文档挂载到多个目录位置（多目录支持）。⚠️ 语雀 API 可能限制同一文档只有一个 TOC 节点，此工具尝试创建额外引用，失败则降级为首个",
+        inputSchema: {
+            type: "object",
+            properties: {
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
+                doc_id: { type: "number", description: "文档 ID" },
+                target_uuids: { type: "array", items: { type: "string" }, description: "TOC 父节点 UUID 列表，文档将挂载到每个节点下" },
+                action_mode: { type: "string", enum: ["sibling", "child"], description: "挂载模式：child=子节点（默认），sibling=同级" },
+            },
+            required: ["book_id", "doc_id", "target_uuids"],
+        },
+    },
+    {
+        name: "yuque_get_toc_flat",
+        description: "获取知识库目录的扁平化缓存结构，返回 {nodes, roots, doc_map}。批量操作时用此缓存避免反复调 yuque_list_toc，大幅节省 API 调用",
+        inputSchema: {
+            type: "object",
+            properties: {
+                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
+            },
+            required: ["book_id"],
+        },
+    },
     // --- 文档 ---
     {
         name: "yuque_list_docs",
@@ -201,7 +227,7 @@ const tools = [
     },
     {
         name: "yuque_create_doc",
-        description: "在知识库中创建文档，自动挂载到目录",
+        description: "在知识库中创建文档，自动挂载到目录。支持指定 target_uuid 精准挂到某个目录节点下，省去先创建再移动的二次调用",
         inputSchema: {
             type: "object",
             properties: {
@@ -211,6 +237,8 @@ const tools = [
                 format: { type: "string", enum: ["markdown", "html", "lake"], description: "内容格式（默认 markdown）" },
                 slug: { type: "string", description: "文档路径（可选）" },
                 public: { type: "number", enum: [0, 1, 2], description: "0=私密 1=公开 2=企业内公开（不填继承知识库）" },
+                target_uuid: { type: "string", description: "挂载到的 TOC 父节点 UUID（空字符串=根级，默认）。指定即精准挂到对应节点下" },
+                action_mode: { type: "string", enum: ["sibling", "child"], description: "挂载模式：child=子节点（默认），sibling=同级" },
             },
             required: ["title", "body"],
         },
@@ -719,6 +747,8 @@ const handlers = {
     yuque_list_toc: (a) => listToc(a),
     yuque_update_toc: (a) => updateToc(a),
     yuque_remove_toc_node: (a) => removeTocNode(a),
+    yuque_mount_doc_to_toc: (a) => mountDocToToc(a),
+    yuque_get_toc_flat: (a) => getTocFlat(a),
     yuque_list_docs: (a) => listDocs(a),
     yuque_get_doc: (a) => getDoc(a),
     yuque_create_doc: (a) => createDoc(a),
