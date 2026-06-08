@@ -81,19 +81,29 @@ yuque_list_repos → 获取所有知识库
 
 ### 阶段三：执行
 
+**方案 A：一步到位（推荐）**
+
 ```
-MCP 工具：yuque_copy_docs_cross_book(
-  source_book_id = 源库ID,
-  target_book_id = 目标库ID,
-  concurrency = 3
+MCP 工具：yuque_batch_mount_toc(
+  book_id = 目标库ID,
+  categories = {分类名: [doc_id, ...]},
+  parent_uuid = 可选父节点UUID,
+  batch_size = 100
 )
 ```
 
-参数：
-- `source_book_id`：源知识库 ID
-- `target_book_id`：目标知识库 ID
-- `doc_ids`：可选，指定文档列表；不传则复制全部
-- `concurrency`：并行数，默认 3
+自动完成：创建 TITLE 节点 → 批量挂载文档到分类下。
+
+**方案 B：目录已建好，只挂文档**
+
+```
+MCP 工具：yuque_batch_mount_to_existing_toc(
+  book_id = 目标库ID,
+  mapping = {分类名: {uuid: TITLE_UUID, doc_ids: [doc_id, ...]}}
+)
+```
+
+**方案 C：手动控制（旧方式）**
 
 如果源库有目录结构需要复制到目标库，分两步：
 1. `yuque_get_toc_flat` 读取源库目录结构
