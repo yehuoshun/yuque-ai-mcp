@@ -1,13 +1,11 @@
 import { get } from "../client.js";
-import { loadConfig } from "../config.js";
 /**
  * 批量获取多篇文档的 Markdown body
  * 底层走 get_doc API（export 端点已不存在于语雀 v2 API）
  */
 export async function batchGetDocsBody(params) {
     const results = [];
-    const config = loadConfig();
-    const concurrency = config.search_concurrency || 5;
+    const concurrency = 5;
     for (let i = 0; i < params.docs.length; i += concurrency) {
         const batch = params.docs.slice(i, i + concurrency);
         const batchResults = await Promise.all(batch.map(async ({ book_id, doc_id }) => {

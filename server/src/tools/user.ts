@@ -42,39 +42,16 @@ export async function healthCheck(): Promise<string> {
     }
   }
 
-  // 2. 索引库检查
+  // 2. 知识库连通性
   try {
-    const { route_books } = await import("../config.js").then((m) => ({
-      route_books: m.loadConfig().route_books,
-    }));
-    if (route_books.length > 0) {
-      for (const sb of route_books) {
-        await get(`/repos/${sb.book_id}`);
-        results.push(`✅ 索引库: id=${sb.book_id} (${sb.namespace})`);
-      }
-    } else {
-      results.push("⏭️ 未配置索引库");
+    const config = loadConfig();
+    const data = await get(`/users/${config.group}/repos?limit=1`);
+    const repos = (data as any).data || data;
+    if (Array.isArray(repos)) {
+      results.push(`✅ 知识库连通正常 — 用户: ${config.group}`);
     }
   } catch (e: any) {
-    results.push(`❌ 索引库不可用: ${e.message}`);
-  }
-
-  // 3. 索引库检查
-  try {
-    const { route_books } = await import("../config.js").then((m) => ({
-      route_books: m.loadConfig().route_books,
-    }));
-    if (route_books.length > 0) {
-      results.push(`✅ 默认索引库: ${route_books.length} 个`);
-      for (const rs of route_books) {
-        await get(`/repos/${rs.book_id}`);
-        results.push(`   ✅ ${rs.namespace} (id=${rs.book_id})`);
-      }
-    } else {
-      results.push("⏭️ 未配置默认索引库 (route_books)");
-    }
-  } catch (e: any) {
-    results.push(`❌ 索引库不可用: ${e.message}`);
+    results.push(`⚠️ 知识库连通性检查异常: ${e.message}`);
   }
 
   return results.join("\n");

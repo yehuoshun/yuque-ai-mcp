@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { YuqueAPIError } from "./shared/types.js";
 import { loadDarkArts } from "./tools/dark-arts-loader.js";
-import { addRouteBooks, addGraphBook, loadConfig, reloadConfig } from "./config.js";
+import { reloadConfig } from "./config.js";
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
@@ -18,7 +18,6 @@ import { listGroupUsers, updateGroupUser, removeGroupUser } from "./tools/groups
 import { getGroupStats, getMemberStats, getBookStats, getDocStats } from "./tools/statistic.js";
 import { uploadAttachment } from "./tools/upload.js";
 import { importDoc } from "./tools/import.js";
-import { kbSearch, createIndexDoc, updateIndexEntries, reverseLookup, diffIndex } from "./tools/kb.js";
 import { listRecycles, restoreRecycle, destroyRecycle } from "./tools/recycles.js";
 // ---- tool definitions ----
 const tools = [
@@ -425,7 +424,7 @@ const tools = [
     },
     {
         name: "yuque_batch_get_docs_body",
-        description: "批量获取多篇文档的 Markdown 正文（并发数由 config.search_concurrency 控制，默认 5。底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
+        description: "批量获取多篇文档的 Markdown 正文（并发数 5，底层走 get_doc。语雀 v2 无 /export 端点，get_doc 的 body 字段即 Markdown 原文）",
         inputSchema: {
             type: "object",
             properties: {
@@ -504,119 +503,6 @@ const tools = [
             required: ["login", "id"],
         },
     },
-    // ═══════════ 知识库搜索 & 索引构建 ═══════════
-    {
-        name: "yuque_kb_search",
-        description: "知识库管道搜索（索引库直搜 + 图谱扩展 + 自动降级）。输入搜索 token 数组，自动完成：1) 搜所有索引库找匹配的索引文档 2) 读索引文档展开 entries 3) 命中<3篇时图谱1跳邻居扩展 4) 索引库0命中时自动降级语雀全库搜索。返回结构化 JSON（KbSearchResult），字段：tokens/index_hits/source_entries(含tree)/graph_expanded/graph_neighbors/fallback_used/dirty_blocks/errors/hint。",
-        inputSchema: {
-            type: "object",
-            properties: {
-                tokens: { type: "array", items: { type: "string" }, description: "搜索 token 数组（由 Agent LLM 生成，每个 token 独立并行搜）" },
-                max_entries: { type: "number", description: "返回源文档最大条数（默认 20）。超出的按 weight 降序截断，低权重自然淘汰" },
-            },
-            required: ["tokens"],
-        },
-    },
-    {
-        name: "yuque_index_create",
-        description: "创建关键词索引文档。一个关键词 = 一篇索引文档，标题为关键词。body 为 Markdown 格式：每个源文档一个块（## 标题 + 搜索面 + 摘要 + 元数据），语雀全文索引可搜。自动挂 TOC。",
-        inputSchema: {
-            type: "object",
-            properties: {
-                keyword: { type: "string", description: "索引关键词（直接用作文档标题，不含符号）" },
-                entries: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            doc_id: { type: "number", description: "源文档 ID" },
-                            namespace: { type: "string", description: "源知识库 namespace（如 yehuoshun/dil9w3）" },
-                            doc_title: { type: "string", description: "源文档标题" },
-                            slug: { type: "string", description: "源文档 slug" },
-                            url: { type: "string", description: "源文档完整链接" },
-                            weight: { type: "number", description: "权重 1-10，拟合度" },
-                            keywords: { type: "array", items: { type: "string" }, description: "关键词数组（可选），该文档的技术术语" },
-                            search_surface: { type: "string", description: "搜索面文本（可选），自然语言描述该文档涉及的内容、问法、同义词，供语雀全文索引" },
-                            summary: { type: "string", description: "摘要（可选），100-200 字概括该文档核心内容" },
-                            tree: { type: "object", description: "章节树（可选，文档 > 5000 字时），格式 {sections: [{id, title, summary}]}" },
-                        },
-                        required: ["doc_id", "namespace", "doc_title", "slug", "url", "weight"],
-                    },
-                    description: "源文档指针列表，每项含 doc_id/namespace/doc_title/slug/url/weight 必填，可选 search_surface/summary/tree",
-                },
-            },
-            required: ["keyword", "entries"],
-        },
-    },
-    {
-        name: "yuque_index_update_entries",
-        description: "增量更新关键词索引文档的 entries。支持 add（追加）、remove（移除）、update（按 doc_id 合并字段）。自动完成读-改-写的原子操作。",
-        inputSchema: {
-            type: "object",
-            properties: {
-                keyword: { type: "string", description: "关键词（索引文档标题）" },
-                add: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            doc_id: { type: "number" },
-                            namespace: { type: "string" },
-                            doc_title: { type: "string" },
-                            slug: { type: "string" },
-                            url: { type: "string" },
-                            weight: { type: "number" },
-                            keywords: { type: "array", items: { type: "string" } },
-                            search_surface: { type: "string" },
-                            summary: { type: "string" },
-                        },
-                        required: ["doc_id", "namespace", "doc_title", "slug", "weight"],
-                    },
-                    description: "要新增的 entries（按 doc_id 去重）",
-                },
-                remove: { type: "array", items: { type: "number" }, description: "要移除的源文档 doc_id 列表" },
-                update: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            doc_id: { type: "number" },
-                            weight: { type: "number" },
-                            doc_title: { type: "string" },
-                            slug: { type: "string" },
-                            url: { type: "string" },
-                            keywords: { type: "array", items: { type: "string" } },
-                            search_surface: { type: "string" },
-                            summary: { type: "string" },
-                        },
-                        required: ["doc_id"],
-                    },
-                    description: "要更新的 entries（按 doc_id 匹配，只更新提供的字段）",
-                },
-            },
-            required: ["keyword"],
-        },
-    },
-    {
-        name: "yuque_index_reverse_lookup",
-        description: "反向查找：给定源文档 doc_id，用语雀搜索 API 反查索引库 body，找出所有包含它的关键词索引文档。返回 found_in 数组（含 keyword/index_doc_id/entry）。",
-        inputSchema: {
-            type: "object",
-            properties: {
-                doc_id: { type: "number", description: "源文档 ID" },
-            },
-            required: ["doc_id"],
-        },
-    },
-    {
-        name: "yuque_index_diff",
-        description: "增量对比：读 doc-map 文档，对比每个源库的 updated_at 和文档 updated_at，找出上次构建后变更的文档。返回 changed_docs 数组（含 doc_id/title/slug/updated_at/source_book_id/source_namespace）。",
-        inputSchema: {
-            type: "object",
-            properties: {},
-            required: [],
-        },
-    },
     // --- 统计（需 statistic:read 权限）---
     {
         name: "yuque_get_group_stats",
@@ -679,41 +565,11 @@ const tools = [
             required: ["login"],
         },
     },
-    // --- 配置管理 & 状态检查 ---
+    // --- 配置管理 ---
     {
         name: "yuque_reload_config",
         description: "重新加载 config/yuque-config.json 配置文件（修改配置后无需重启 MCP Server）",
         inputSchema: { type: "object", properties: {}, required: [] },
-    },
-    {
-        name: "yuque_config_status",
-        description: "检查索引配置状态：索引库是否已配、索引库容量使用率、缺失或满的 actionable 提示。索引构建前必调此工具做前置检查。",
-        inputSchema: {
-            type: "object",
-            properties: {},
-            required: [],
-        },
-    },
-    {
-        name: "yuque_config_update",
-        description: "更新索引配置（追加 route_books/graph_book 条目，自动持久化到配置文件并重载）。创建新索引库/图库后调此工具写入配置。",
-        inputSchema: {
-            type: "object",
-            properties: {
-                route_books_add: {
-                    type: "array",
-                    items: { type: "object", properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } }, required: ["book_id", "namespace"] },
-                    description: "追加到 route_books 的条目",
-                },
-                graph_book: {
-                    type: "object",
-                    properties: { book_id: { type: ["number", "string"] }, namespace: { type: "string" } },
-                    required: ["book_id", "namespace"],
-                    description: "设置 graph_book（图谱库），覆盖已有配置",
-                },
-            },
-            required: [],
-        },
     },
     {
         name: "yuque_list_recycles",
@@ -792,12 +648,6 @@ const handlers = {
     yuque_list_group_users: (a) => listGroupUsers(a),
     yuque_update_group_user: (a) => updateGroupUser(a),
     yuque_remove_group_user: (a) => removeGroupUser(a),
-    // 知识库搜索 & 索引构建
-    yuque_kb_search: (a) => kbSearch(a),
-    yuque_index_create: (a) => createIndexDoc(a),
-    yuque_index_update_entries: (a) => updateIndexEntries(a),
-    yuque_index_reverse_lookup: (a) => reverseLookup(a),
-    yuque_index_diff: (a) => diffIndex(),
     yuque_get_group_stats: (a) => getGroupStats(a),
     yuque_get_member_stats: (a) => getMemberStats(a),
     yuque_get_book_stats: (a) => getBookStats(a),
@@ -805,9 +655,7 @@ const handlers = {
     yuque_list_recycles: (a) => listRecycles(a),
     yuque_restore_recycle: (a) => restoreRecycle(a),
     yuque_destroy_recycle: (a) => destroyRecycle(a),
-    yuque_reload_config: async () => { const c = reloadConfig(); return `✅ 配置已重新加载（${c.route_books.length} 个索引库）`; },
-    yuque_config_status: async () => configStatus(),
-    yuque_config_update: async (a) => configUpdate(a),
+    yuque_reload_config: async () => { reloadConfig(); return `✅ 配置已重新加载`; },
 };
 // ---- server ----
 const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
@@ -839,81 +687,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
     }
 });
-// ─── 配置管理 handler ──────────────────────────────────
-async function configStatus() {
-    const cfg = loadConfig();
-    const lines = [];
-    lines.push("## 索引库 (route_books)");
-    if (cfg.route_books.length === 0) {
-        lines.push("❌ 未配置。需 yuque_config_update 追加，或通知 Agent 创建索引库。");
-    }
-    else {
-        for (const b of cfg.route_books) {
-            try {
-                const { get } = await import("./client.js");
-                const data = await get(`/repos/${b.book_id}`);
-                const repo = data.data || data;
-                const count = repo.items_count || 0;
-                const limit = 5000;
-                const pct = Math.round((count / limit) * 1000) / 10;
-                const icon = count >= limit * 0.97 ? "🛑" : count >= limit * 0.9 ? "⚠️" : "✅";
-                lines.push(`${icon} book_id=${b.book_id} ns=${b.namespace} | 文档: ${count}/${limit} (${pct}%) | 名称: ${repo.name || "—"}`);
-            }
-            catch {
-                lines.push(`❓ book_id=${b.book_id} ns=${b.namespace} | 无法获取详情`);
-            }
-        }
-    }
-    lines.push("");
-    const hasSub = cfg.route_books.length > 0;
-    lines.push("## 并发配置");
-    lines.push(`🔧 index_concurrency=${cfg.index_concurrency || 1} | search_concurrency=${cfg.search_concurrency || 5}`);
-    lines.push("");
-    lines.push("## 图谱库 (graph_book)");
-    if (cfg.graph_book?.book_id) {
-        try {
-            const { get } = await import("./client.js");
-            const data = await get(`/repos/${cfg.graph_book.book_id}`);
-            const repo = data.data || data;
-            lines.push(`✅ book_id=${cfg.graph_book.book_id} ns=${cfg.graph_book.namespace} | 文档: ${repo.items_count || 0} | 名称: ${repo.name || "—"}`);
-        }
-        catch {
-            lines.push(`❓ book_id=${cfg.graph_book.book_id} ns=${cfg.graph_book.namespace} | 无法获取详情`);
-        }
-    }
-    else {
-        lines.push("⚠️ 未配置。图谱扩展功能不可用。需 yuque_create_repo 创建图库后写入 config。");
-    }
-    lines.push("");
-    if (hasSub) {
-        lines.push("💡 索引配置完整，可直接构建索引。");
-    }
-    else {
-        lines.push("⚠️ 索引配置不完整：缺索引库。构建前需补齐。");
-    }
-    return lines.join("\n");
-}
-async function configUpdate(args) {
-    const lines = [];
-    let changed = false;
-    if (args.route_books_add?.length) {
-        for (const b of args.route_books_add) {
-            addRouteBooks(b);
-            lines.push(`✅ 索引库追加: book_id=${b.book_id} ns=${b.namespace}`);
-        }
-        changed = true;
-    }
-    if (args.graph_book) {
-        addGraphBook(args.graph_book);
-        lines.push(`✅ 图库设置: book_id=${args.graph_book.book_id} ns=${args.graph_book.namespace}`);
-        changed = true;
-    }
-    if (!changed) {
-        return "⚠️ 未指定 route_books_add 或 graph_book，无变更。";
-    }
-    reloadConfig(true);
-    return lines.join("\n");
-}
 async function main() {
     // 🕶️ 动态加载邪修玩法（子模块不存在则跳过）
     const darkArts = await loadDarkArts();
