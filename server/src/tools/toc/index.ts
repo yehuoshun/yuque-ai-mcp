@@ -122,6 +122,208 @@ export async function copyDocsCrossBook(params: {
 }
 
 /**
+ * 批量挂载文档到目录分类（一步到位的 TOC 构建工具）
+ *
+ * 场景：知识库整理后，将所有文档按分类挂载到目录节点下。
+ * 1. 先创建 TITLE 节点（如果指定了 parent_uuid，创建为子节点）
+ * 2. 再将文档按分类批量挂载到对应 TITLE 下
+ *
+ * @param book_id - 目标知识库
+ * @param categories - 分类映射 {分类名: [doc_id, ...]}
+ * @param parent_uuid - 可选，父 TITLE 的 UUID（用于创建子 TITLE）
+ * @param batch_size - 每批挂载的文档数，默认 100
+ * @returns 每个分类的挂载结果
+ */
+export async function batchMountToc(params: {
+  book_id: number | string;
+  categories: Record<string, number[]>;
+  parent_uuid?: string;
+  batch_size?: number;
+}): Promise<string> {
+  const bookId = params.book_id;
+  const batchSize = params.batch_size || 100;
+  const entries = Object.entries(params.categories);
+
+  if (entries.length === 0) {
+    return JSON.stringify({ error: "NO_CATEGORIES", message: "分类映射为空" });
+  }
+
+  // 1. 按文挡数降序排列
+  entries.sort((a, b) => b[1].length - a[1].length);
+
+  const results: Array<{
+    category: string;
+    title_uuid: string;
+    doc_count: number;
+    mounted: number;
+    failed: number;
+    batches: number;
+    error?: string;
+  }> = [];
+
+  // 2. 逐个分类处理
+  for (const [catName, docIds] of entries) {
+    try {
+      // 创建 TITLE 节点
+      const tocPayload: Record<string, any> = {
+        action: "appendNode",
+        type: "TITLE",
+        title: catName,
+      };
+      if (params.parent_uuid) {
+        tocPayload.action_mode = "child";
+        tocPayload.target_uuid = params.parent_uuid;
+      } else {
+        tocPayload.action_mode = "sibling";
+      }
+
+      await put(`/repos/${bookId}/toc`, tocPayload);
+
+      // 获取新建 TITLE 节点的 UUID
+      const tocData = await get(`/repos/${bookId}/toc`);
+      const toc = (tocData as any).data || tocData;
+      let titleUuid = "";
+      for (const item of toc) {
+        if (item.type === "TITLE" && item.title === catName) {
+          titleUuid = item.uuid;
+          break;
+        }
+      }
+
+      if (!titleUuid) {
+        results.push({
+          category: catName, title_uuid: "", doc_count: docIds.length,
+          mounted: 0, failed: docIds.length, batches: 0,
+          error: "TITLE_UUID_NOT_FOUND",
+        });
+        continue;
+      }
+
+      // 批量挂载文档
+      let mountedTotal = 0;
+      let failedTotal = 0;
+      let batchCount = 0;
+
+      for (let i = 0; i < docIds.length; i += batchSize) {
+        const batch = docIds.slice(i, i + batchSize);
+        try {
+          await put(`/repos/${bookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            type: "DOC",
+            doc_ids: batch,
+            target_uuid: titleUuid,
+          });
+          mountedTotal += batch.length;
+          batchCount++;
+        } catch (e: any) {
+          failedTotal += batch.length;
+        }
+      }
+
+      results.push({
+        category: catName,
+        title_uuid: titleUuid,
+        doc_count: docIds.length,
+        mounted: mountedTotal,
+        failed: failedTotal,
+        batches: batchCount,
+      });
+    } catch (e: any) {
+      results.push({
+        category: catName, title_uuid: "", doc_count: docIds.length,
+        mounted: 0, failed: docIds.length, batches: 0,
+        error: e.message,
+      });
+    }
+  }
+
+  const totalMounted = results.reduce((s, r) => s + r.mounted, 0);
+  const totalFailed = results.reduce((s, r) => s + r.failed, 0);
+
+  return JSON.stringify({
+    book_id: bookId,
+    total_categories: entries.length,
+    total_docs: totalMounted + totalFailed,
+    mounted: totalMounted,
+    failed: totalFailed,
+    results,
+  }, null, 2);
+}
+
+/**
+ * 批量挂载文档到多个目录分类（支持已有的 TITLE UUID 映射）
+ *
+ * 与 batchMountToc 不同，此函数使用已有的 TITLE UUID，不创建新节点。
+ * 适用于已经创建了目录结构，只需要挂载文档的场景。
+ *
+ * @param book_id - 目标知识库
+ * @param mapping - UUID 映射 {分类名: {uuid: TITLE_UUID, doc_ids: [doc_id, ...]}}
+ * @param batch_size - 每批挂载的文档数，默认 100
+ * @returns 每个分类的挂载结果
+ */
+export async function batchMountToExistingToc(params: {
+  book_id: number | string;
+  mapping: Record<string, { uuid: string; doc_ids: number[] }>;
+  batch_size?: number;
+}): Promise<string> {
+  const bookId = params.book_id;
+  const batchSize = params.batch_size || 100;
+  const entries = Object.entries(params.mapping);
+
+  const results: Array<{
+    category: string;
+    title_uuid: string;
+    doc_count: number;
+    mounted: number;
+    failed: number;
+    batches: number;
+    error?: string;
+  }> = [];
+
+  for (const [catName, { uuid, doc_ids }] of entries) {
+    let mountedTotal = 0;
+    let failedTotal = 0;
+    let batchCount = 0;
+
+    for (let i = 0; i < doc_ids.length; i += batchSize) {
+      const batch = doc_ids.slice(i, i + batchSize);
+      try {
+        await put(`/repos/${bookId}/toc`, {
+          action: "appendNode",
+          action_mode: "child",
+          type: "DOC",
+          doc_ids: batch,
+          target_uuid: uuid,
+        });
+        mountedTotal += batch.length;
+        batchCount++;
+      } catch (e: any) {
+        failedTotal += batch.length;
+      }
+    }
+
+    results.push({
+      category: catName, title_uuid: uuid,
+      doc_count: doc_ids.length, mounted: mountedTotal,
+      failed: failedTotal, batches: batchCount,
+    });
+  }
+
+  const totalMounted = results.reduce((s, r) => s + r.mounted, 0);
+  const totalFailed = results.reduce((s, r) => s + r.failed, 0);
+
+  return JSON.stringify({
+    book_id: bookId,
+    total_categories: entries.length,
+    total_docs: totalMounted + totalFailed,
+    mounted: totalMounted,
+    failed: totalFailed,
+    results,
+  }, null, 2);
+}
+
+/**
  * 将文档内容复制到多个目录位置（多目录支持）
  *
  * 语雀 TOC 是 1:1 的（一个文档只能在一个节点），所以"多目录"通过物理复制实现：

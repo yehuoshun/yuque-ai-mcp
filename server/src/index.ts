@@ -15,7 +15,7 @@ import { addRouteBooks, addGraphBook, loadConfig, reloadConfig, getConfigPath, s
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
-import { cloneDocToToc, getTocFlat, copyDocsCrossBook } from "./tools/toc/index.js";
+import { cloneDocToToc, getTocFlat, copyDocsCrossBook, batchMountToc, batchMountToExistingToc } from "./tools/toc/index.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { batchGetDocsBody } from "./tools/export.js";
@@ -221,6 +221,35 @@ const tools: Tool[] = [
         concurrency: { type: "number", description: "并发数，默认 3" },
       },
       required: ["source_book_id", "target_book_id"],
+    },
+  },
+
+  // --- 批量挂载（TOC 构建）---
+  {
+    name: "yuque_batch_mount_toc",
+    description: "批量创建 TITLE 节点并将文档挂载到目录分类下（一步到位）。1) 先按分类创建 TITLE 节点，2) 再将文档批量 appendNode child 挂到对应 TITLE 下。支持 parent_uuid 创建子级目录",
+    inputSchema: {
+      type: "object",
+      properties: {
+        book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
+        categories: { type: "object", description: "分类映射 JSON：{分类名: [doc_id, ...]}，按文档数降序自动排列" },
+        parent_uuid: { type: "string", description: "可选，父 TITLE 的 UUID。传了则创建的 TITLE 作为子节点（child）；不传则作为根级节点（sibling）" },
+        batch_size: { type: "number", description: "每批挂载的文档数，默认 100" },
+      },
+      required: ["book_id", "categories"],
+    },
+  },
+  {
+    name: "yuque_batch_mount_to_existing_toc",
+    description: "将文档批量挂载到已有的 TITLE 节点下（不创建新节点）。适用场景：目录结构已建好，只需分配文档",
+    inputSchema: {
+      type: "object",
+      properties: {
+        book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
+        mapping: { type: "object", description: "UUID 映射 JSON：{分类名: {uuid: TITLE_UUID, doc_ids: [doc_id, ...]}}" },
+        batch_size: { type: "number", description: "每批挂载的文档数，默认 100" },
+      },
+      required: ["book_id", "mapping"],
     },
   },
 
@@ -787,6 +816,8 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_clone_doc_to_toc: (a) => cloneDocToToc(a),
   yuque_get_toc_flat: (a) => getTocFlat(a),
   yuque_copy_docs_cross_book: (a) => copyDocsCrossBook(a),
+  yuque_batch_mount_toc: (a) => batchMountToc(a),
+  yuque_batch_mount_to_existing_toc: (a) => batchMountToExistingToc(a),
 
   yuque_list_docs: (a) => listDocs(a),
   yuque_get_doc: (a) => getDoc(a),
