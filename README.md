@@ -39,7 +39,7 @@
 
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
-| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **24 个** |
+| Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **25 个** |
 | 知识库问答 | `smart-search` | `smart-search` | **关键词 + 同义词搜全库** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
@@ -68,7 +68,7 @@
 ```
 yuque-mcp (MCP Server)     ← 47 个 MCP Tools（CRUD/搜索/导入/统计/群组/回收站/仪表盘/健康检查/配置管理/分组管理）
     ↓
-业务 Skills                ← 24 个 Skill Markdown（manage/transform/insight/collect/write 五分类）
+业务 Skills                ← 25 个 Skill Markdown（manage/transform/insight/collect/write 五分类）
     ↓
 LLM Agent                  ← 问答编排 & 业务流转
 ```
@@ -76,7 +76,7 @@ LLM Agent                  ← 问答编排 & 业务流转
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
 | `server/` | TypeScript + `@modelcontextprotocol/sdk` | MCP Server，提供 47 个 tools |
-| `skills/` | Markdown | 业务 Skills（manage/transform/insight/collect/write 五分类，24 个技能） |
+| `skills/` | Markdown | 业务 Skills（manage/transform/insight/collect/write 五分类，25 个技能） |
 | `SKILL.md` | Markdown | AI Agent 执行指南（问答 pipeline + 业务 skill 路由） |
 
 ---
@@ -279,6 +279,7 @@ cp config/yuque-config.example.json config/yuque-config.json
 | Skill | 说明 |
 |-------|------|
 | [archive](skills/manage/archive.md) | 批量归档/备份旧文档（归档移动 / 备份复制两种模式） |
+| [reorganize](skills/manage/reorganize.md) | 整理/复制文档到其他知识库（源库不动，仅复制） |
 | [backup](skills/manage/backup.md) | 知识库完整下载到本地（全量导出，含TOC结构+图片+附件） |
 | [purify](skills/manage/purify.md) | 知识库净化（清洗标题/内容/结构 → 去广告去HTML垃圾 → 重建新库） |
 | [classify](skills/manage/classify.md) | 智能分类打标（AI 分析主题 → 自动设计目录树 → 重建结构） |
@@ -306,7 +307,6 @@ cp config/yuque-config.example.json config/yuque-config.json
 | [digest](skills/insight/digest.md) | 阅读摘录（核心观点/金句/行动项/疑思五维 + 知识卡片） |
 | [knowledge](skills/insight/knowledge.md) | 知识图谱（共现图/Louvain社区检测/索引质量检查/章节树） |
 | [search](skills/insight/search.md) | 知识库搜索（N 路并行 + 去重 + 降级） |
-| [index](skills/insight/index.md) | 索引构建（文档中心 v4 + 单文档粒度原子同步） |
 
 ### 碎片收集（collect/）
 
@@ -337,10 +337,10 @@ yuque-ai-mcp/
 │   └── yuque-config.json     # 不入库
 ├── references/
 │   └── api_reference.md      # 语雀 OpenAPI 完整参考
-├── skills/                   # 业务 Skills（24 个）
-│   ├── manage/               # 知识管理（10 个）
+├── skills/                   # 业务 Skills（25 个）
+│   ├── manage/               # 知识管理（11 个）
 │   ├── transform/            # 内容加工（3 个）
-│   ├── insight/              # 洞察分析（6 个）
+│   ├── insight/              # 洞察分析（5 个）
 │   ├── collect/              # 碎片收集（1 个）
 │   └── write/                # 写作辅助（5 个）
 ├── server/                   # MCP Server (TypeScript)
