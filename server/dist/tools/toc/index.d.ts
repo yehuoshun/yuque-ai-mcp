@@ -1,4 +1,22 @@
 /**
+ * 跨知识库批量复制文档（源库不动，只复制到目标库）
+ *
+ * 场景：A 库整理到 B 库，A 库保留不动。
+ * 逐个 GET 源文档 → CREATE 到目标库，不删除源库。
+ *
+ * @param source_book_id - 源知识库 ID
+ * @param target_book_id - 目标知识库 ID
+ * @param doc_ids - 可选，指定要复制的文档 ID 列表；不传则复制全部
+ * @param concurrency - 并发数，默认 3
+ * @returns 迁移结果摘要
+ */
+export declare function copyDocsCrossBook(params: {
+    source_book_id: number | string;
+    target_book_id: number | string;
+    doc_ids?: number[];
+    concurrency?: number;
+}): Promise<string>;
+/**
  * 将文档内容复制到多个目录位置（多目录支持）
  *
  * 语雀 TOC 是 1:1 的（一个文档只能在一个节点），所以"多目录"通过物理复制实现：

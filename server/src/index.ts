@@ -15,7 +15,7 @@ import { addRouteBooks, addGraphBook, loadConfig, reloadConfig, getConfigPath, s
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
 import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
-import { cloneDocToToc, getTocFlat } from "./tools/toc/index.js";
+import { cloneDocToToc, getTocFlat, copyDocsCrossBook } from "./tools/toc/index.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
 import { batchGetDocsBody } from "./tools/export.js";
@@ -205,6 +205,22 @@ const tools: Tool[] = [
         book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace" },
       },
       required: ["book_id"],
+    },
+  },
+
+  // --- 跨库复制 ---
+  {
+    name: "yuque_copy_docs_cross_book",
+    description: "跨知识库批量复制文档（源库不动，只复制到目标库）。场景：A 库整理到 B 库，A 库保留。逐个 GET 源文档 → CREATE 到目标库，不删除源库。未指定 doc_ids 时复制全部文档",
+    inputSchema: {
+      type: "object",
+      properties: {
+        source_book_id: { type: ["number", "string"], description: "源知识库 ID 或 namespace" },
+        target_book_id: { type: ["number", "string"], description: "目标知识库 ID 或 namespace" },
+        doc_ids: { type: "array", items: { type: "number" }, description: "可选，指定要复制的文档 ID 列表；不传则复制全部" },
+        concurrency: { type: "number", description: "并发数，默认 3" },
+      },
+      required: ["source_book_id", "target_book_id"],
     },
   },
 
@@ -770,6 +786,7 @@ const handlers: Record<string, (args: any) => Promise<string>> = {
   yuque_remove_toc_node: (a) => removeTocNode(a),
   yuque_clone_doc_to_toc: (a) => cloneDocToToc(a),
   yuque_get_toc_flat: (a) => getTocFlat(a),
+  yuque_copy_docs_cross_book: (a) => copyDocsCrossBook(a),
 
   yuque_list_docs: (a) => listDocs(a),
   yuque_get_doc: (a) => getDoc(a),

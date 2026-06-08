@@ -6,6 +6,122 @@ import { get, post, put } from "../../client.js";
 // ============================================================
 
 /**
+ * 跨知识库批量复制文档（源库不动，只复制到目标库）
+ *
+ * 场景：A 库整理到 B 库，A 库保留不动。
+ * 逐个 GET 源文档 → CREATE 到目标库，不删除源库。
+ *
+ * @param source_book_id - 源知识库 ID
+ * @param target_book_id - 目标知识库 ID
+ * @param doc_ids - 可选，指定要复制的文档 ID 列表；不传则复制全部
+ * @param concurrency - 并发数，默认 3
+ * @returns 迁移结果摘要
+ */
+export async function copyDocsCrossBook(params: {
+  source_book_id: number | string;
+  target_book_id: number | string;
+  doc_ids?: number[];
+  concurrency?: number;
+}): Promise<string> {
+  const sourceId = params.source_book_id;
+  const targetId = params.target_book_id;
+  const concurrency = params.concurrency || 3;
+
+  // 1. 获取源库文档列表
+  let docList: Array<{ id: number; title: string }> = [];
+
+  if (params.doc_ids && params.doc_ids.length > 0) {
+    // 指定了 doc_ids，逐个读取标题
+    for (const docId of params.doc_ids) {
+      try {
+        const data = await get(`/repos/${sourceId}/docs/${docId}`);
+        const doc = (data as any).data || data;
+        docList.push({ id: docId, title: doc.title || "" });
+      } catch (e: any) {
+        docList.push({ id: docId, title: `(读取失败: ${e.message})` });
+      }
+    }
+  } else {
+    // 未指定，获取全部文档
+    let offset = 0;
+    const limit = 100;
+    while (true) {
+      const data = await get(`/repos/${sourceId}/docs?offset=${offset}&limit=${limit}&optional_properties=0`);
+      const items = (data as any).data || data;
+      if (!Array.isArray(items) || items.length === 0) break;
+      for (const item of items) {
+        docList.push({ id: item.id, title: item.title || "" });
+      }
+      if (items.length < limit) break;
+      offset += limit;
+    }
+  }
+
+  if (docList.length === 0) {
+    return JSON.stringify({ error: "NO_DOCS", message: "源库没有文档" });
+  }
+
+  // 2. 逐篇复制（并发控制）
+  const results: Array<{
+    doc_id: number;
+    title: string;
+    success: boolean;
+    new_doc_id?: number;
+    error?: string;
+  }> = [];
+
+  let succeeded = 0;
+  let failed = 0;
+  let index = 0;
+
+  async function processOne(doc: { id: number; title: string }) {
+    try {
+      // GET 源文档
+      const getData = await get(`/repos/${sourceId}/docs/${doc.id}?raw=1`);
+      const sourceDoc = (getData as any).data || getData;
+      const body = sourceDoc.body || "";
+
+      if (!body) {
+        results.push({ doc_id: doc.id, title: doc.title, success: false, error: "EMPTY_BODY" });
+        failed++;
+        return;
+      }
+
+      // CREATE 到目标库
+      const createData = await post(`/repos/${targetId}/docs`, {
+        title: doc.title,
+        body,
+        format: "markdown",
+      });
+      const newDoc = (createData as any).data || createData;
+      const newDocId = newDoc.id;
+
+      results.push({ doc_id: doc.id, title: doc.title, success: true, new_doc_id: newDocId });
+      succeeded++;
+    } catch (e: any) {
+      results.push({ doc_id: doc.id, title: doc.title, success: false, error: e.message });
+      failed++;
+    }
+  }
+
+  // 简易并发：每次取 concurrency 个
+  while (index < docList.length) {
+    const batch = docList.slice(index, index + concurrency);
+    await Promise.all(batch.map(processOne));
+    index += concurrency;
+  }
+
+  return JSON.stringify({
+    source_book_id: sourceId,
+    target_book_id: targetId,
+    total: docList.length,
+    succeeded,
+    failed,
+    results,
+  }, null, 2);
+}
+
+/**
  * 将文档内容复制到多个目录位置（多目录支持）
  *
  * 语雀 TOC 是 1:1 的（一个文档只能在一个节点），所以"多目录"通过物理复制实现：
