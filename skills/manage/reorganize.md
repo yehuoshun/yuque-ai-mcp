@@ -146,6 +146,26 @@ yuque_update_toc({
 })
 ```
 
+### 3.4 多目录归属（交叉分类）
+
+当一篇文档同时属于多个分类（如 "Spring Boot + AI"），语雀 TOC 只支持单归属，
+通过 **物理复制** 实现多目录：
+
+```json
+// 将 doc_id=123 同时挂到 Java/Spring 和 AI/LLM 两个节点下
+yuque_clone_doc_to_toc({
+  book_id: 目标库ID,
+  doc_id: 123,
+  target_uuids: ["Java_Spring_UUID", "AI_LLM_UUID"],
+  action_mode: "child"
+})
+```
+
+内部逻辑：读取源文档内容 → 在每个目标节点下创建独立副本 → 各自挂载。
+
+> ⚠️ 物理复制后两份文档独立，修改不同步。仅对明确需要交叉归类的文档使用，
+> 不建议全量复制（浪费空间且维护困难）。
+
 ---
 
 ## 阶段四：出报告
@@ -181,6 +201,7 @@ yuque_update_toc({
 | 分类分析 | `yuque_list_docs` | 拉取文档列表 |
 | 建目录 | `yuque_batch_mount_toc` | 创建 TITLE 节点 + 挂载文档 |
 | 追加挂载 | `yuque_update_toc` (appendNode child) | 追加文档到已有目录 |
+| 多目录归属 | `yuque_clone_doc_to_toc` | 物理复制到多个分类节点 |
 | 目录查询 | `yuque_get_toc_flat` | 扁平化 TOC 缓存 |
 
 ## 铁律
