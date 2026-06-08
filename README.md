@@ -40,7 +40,7 @@
 | 维度 | 🏛 yuque-ecosystem | 🏛 yuque-plugin | 🦞 本项目 |
 |------|-------------------|----------------|--------|
 | Skills 总数 | 8 个 | 4（个人）/ 6（团队） | **24 个** |
-| 知识库问答 | `smart-search` | `smart-search` | **TOC 树导航（零索引）** |
+| 知识库问答 | `smart-search` | `smart-search` | **关键词 + 同义词搜全库** |
 | 智能摘要 | `smart-summary`（两档） | `smart-summary`（两档） | `summarize`（L1-L4 四级） |
 | 阅读摘录 | `reading-digest` | — | `digest`（五维提取 + 知识卡片） |
 | 碎片收集 | `daily-capture` | — | `inbox`（三种模式 + 可配置清理） |
@@ -264,17 +264,9 @@ cp config/yuque-config.example.json config/yuque-config.json
 
 ## 知识库问答
 
-**TOC 树导航（零索引）**：无需预处理、无需索引维护、无需向量库。
+**关键词 + 同义词搜全库**：零索引、零预处理。LLM 提取关键词 → 生成同义变体 → `yuque_search` 并行搜全库 → `yuque_batch_get_docs_body` 批量读正文 → LLM 生成答案。
 
-```
-yuque_list_repos → LLM 选知识库
-       ↓
-yuque_list_toc  → LLM 导航选文档
-       ↓
-yuque_get_doc   → LLM 生成答案
-```
-
-标题质量好的知识库即开即用。标题泛化不够时，LLM 可先用 `yuque_search` 在全库范围搜索，再用 `yuque_get_doc` 读具体内容。
+搜索管线 → **[SKILL.md](./SKILL.md#二知识库问答系统)**。
 
 ---
 
