@@ -209,60 +209,6 @@ export async function batchMountToc(params) {
     }, null, 2);
 }
 /**
- * 批量挂载文档到多个目录分类（支持已有的 TITLE UUID 映射）
- *
- * 与 batchMountToc 不同，此函数使用已有的 TITLE UUID，不创建新节点。
- * 适用于已经创建了目录结构，只需要挂载文档的场景。
- *
- * @param book_id - 目标知识库
- * @param mapping - UUID 映射 {分类名: {uuid: TITLE_UUID, doc_ids: [doc_id, ...]}}
- * @param batch_size - 每批挂载的文档数，默认 100
- * @returns 每个分类的挂载结果
- */
-export async function batchMountToExistingToc(params) {
-    const bookId = params.book_id;
-    const batchSize = params.batch_size || 100;
-    const entries = Object.entries(params.mapping);
-    const results = [];
-    for (const [catName, { uuid, doc_ids }] of entries) {
-        let mountedTotal = 0;
-        let failedTotal = 0;
-        let batchCount = 0;
-        for (let i = 0; i < doc_ids.length; i += batchSize) {
-            const batch = doc_ids.slice(i, i + batchSize);
-            try {
-                await put(`/repos/${bookId}/toc`, {
-                    action: "appendNode",
-                    action_mode: "child",
-                    type: "DOC",
-                    doc_ids: batch,
-                    target_uuid: uuid,
-                });
-                mountedTotal += batch.length;
-                batchCount++;
-            }
-            catch (e) {
-                failedTotal += batch.length;
-            }
-        }
-        results.push({
-            category: catName, title_uuid: uuid,
-            doc_count: doc_ids.length, mounted: mountedTotal,
-            failed: failedTotal, batches: batchCount,
-        });
-    }
-    const totalMounted = results.reduce((s, r) => s + r.mounted, 0);
-    const totalFailed = results.reduce((s, r) => s + r.failed, 0);
-    return JSON.stringify({
-        book_id: bookId,
-        total_categories: entries.length,
-        total_docs: totalMounted + totalFailed,
-        mounted: totalMounted,
-        failed: totalFailed,
-        results,
-    }, null, 2);
-}
-/**
  * 将文档内容复制到多个目录位置（多目录支持）
  *
  * 语雀 TOC 是 1:1 的（一个文档只能在一个节点），所以"多目录"通过物理复制实现：

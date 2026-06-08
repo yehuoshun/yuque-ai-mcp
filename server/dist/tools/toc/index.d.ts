@@ -36,25 +36,6 @@ export declare function batchMountToc(params: {
     batch_size?: number;
 }): Promise<string>;
 /**
- * 批量挂载文档到多个目录分类（支持已有的 TITLE UUID 映射）
- *
- * 与 batchMountToc 不同，此函数使用已有的 TITLE UUID，不创建新节点。
- * 适用于已经创建了目录结构，只需要挂载文档的场景。
- *
- * @param book_id - 目标知识库
- * @param mapping - UUID 映射 {分类名: {uuid: TITLE_UUID, doc_ids: [doc_id, ...]}}
- * @param batch_size - 每批挂载的文档数，默认 100
- * @returns 每个分类的挂载结果
- */
-export declare function batchMountToExistingToc(params: {
-    book_id: number | string;
-    mapping: Record<string, {
-        uuid: string;
-        doc_ids: number[];
-    }>;
-    batch_size?: number;
-}): Promise<string>;
-/**
  * 将文档内容复制到多个目录位置（多目录支持）
  *
  * 语雀 TOC 是 1:1 的（一个文档只能在一个节点），所以"多目录"通过物理复制实现：

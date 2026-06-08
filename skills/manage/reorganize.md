@@ -135,12 +135,14 @@ yuque_batch_mount_toc({
 })
 ```
 
-**已有目录节点的追加挂载：**
+**已有目录节点的追加挂载（使用 yuque_update_toc）：**
 
 ```json
-yuque_batch_mount_to_existing_toc({
+yuque_update_toc({
   book_id: 目标库ID,
-  mapping: { "分类名": { uuid: "TITLE_UUID", doc_ids: [...] }, ... }
+  action: "appendNode", action_mode: "child", type: "DOC",
+  doc_ids: [doc_ids],
+  target_uuid: "TITLE_UUID"
 })
 ```
 
@@ -178,7 +180,7 @@ yuque_batch_mount_to_existing_toc({
 | 跨库复制 | `yuque_copy_docs_cross_book` | 批量复制文档（源库不动） |
 | 分类分析 | `yuque_list_docs` | 拉取文档列表 |
 | 建目录 | `yuque_batch_mount_toc` | 创建 TITLE 节点 + 挂载文档 |
-| 追加挂载 | `yuque_batch_mount_to_existing_toc` | 挂载文档到已有目录 |
+| 追加挂载 | `yuque_update_toc` (appendNode child) | 追加文档到已有目录 |
 | 目录查询 | `yuque_get_toc_flat` | 扁平化 TOC 缓存 |
 
 ## 铁律

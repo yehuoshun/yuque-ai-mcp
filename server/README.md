@@ -51,7 +51,7 @@ npx yuque-mcp
 
 > 也可用配置文件：创建 `yuque-config.json`，通过 `YUQUE_CONFIG_PATH` 指定路径。
 
-## Tools (56)
+## Tools (55)
 
 ### 知识库
 - `yuque_list_repos` · `yuque_get_repo` · `yuque_create_repo` · `yuque_update_repo` · `yuque_delete_repo`
@@ -70,7 +70,6 @@ npx yuque-mcp
 ### 跨库复制
 ### 批量挂载
 - `yuque_batch_mount_toc` — 一步到位：创建 TITLE 节点 + 挂载文档到分类下
-- `yuque_batch_mount_to_existing_toc` — 将文档挂到已有目录节点下（不创建新节点）
 - `yuque_copy_docs_cross_book` — A 库整理到 B 库，A 库不动
 
 ### 小记
