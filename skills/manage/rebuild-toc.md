@@ -144,7 +144,7 @@ LLM 全局分析：
 ```
 原地重建：
   1. yuque_list_toc → 备份原结构到报告
-  2. yuque_remove_toc_node 逐节点清空（不删文档）
+  2. yuque_update_toc (removeNode) 逐节点清空（不删文档）
   3. 按新目录树逐层创建节点 + 挂载：
      一级 → yuque_update_toc(action: "appendNode", action_mode: "sibling", target_uuid: "")
      二级 → yuque_update_toc(action: "appendNode", action_mode: "child", target_uuid: 父节点uuid)
@@ -191,4 +191,4 @@ LLM 全局分析：
 
 ## 依赖工具
 
-`yuque_list_repos` / `yuque_list_toc` / `yuque_list_docs` / `yuque_get_doc` / `yuque_remove_toc_node` / `yuque_update_toc` / `yuque_create_repo` / `yuque_create_doc`
+`yuque_list_repos` / `yuque_list_toc` / `yuque_list_docs` / `yuque_get_doc` / `yuque_update_toc` (removeNode) / `yuque_update_toc` / `yuque_create_repo` / `yuque_create_doc`

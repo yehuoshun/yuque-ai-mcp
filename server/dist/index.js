@@ -8,7 +8,7 @@ import { addRouteBooks, addGraphBook, loadConfig, reloadConfig } from "./config.
 // ---- tools ----
 import { listRepos, getRepo, createRepo, updateRepo, deleteRepo } from "./tools/repos.js";
 import { listBookStacks, createBookStack, updateBookStack, sortBookStacks, moveBooks } from "./tools/book-stacks/index.js";
-import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, removeTocNode, listDocVersions, getDocVersion } from "./tools/docs.js";
+import { listDocs, getDoc, createDoc, updateDoc, deleteDoc, listToc, updateToc, listDocVersions, getDocVersion } from "./tools/docs.js";
 import { cloneDocToToc, getTocFlat, copyDocsCrossBook, batchMountToc } from "./tools/toc/index.js";
 import { listNotes, getNote, createNote, updateNote, deleteNote, restoreNote } from "./tools/notes.js";
 import { search } from "./tools/search.js";
@@ -145,7 +145,7 @@ const tools = [
     },
     {
         name: "yuque_update_toc",
-        description: "更新知识库目录（创建 TITLE/DOC 分组、移动/编辑/删除节点）。创建根级 TITLE 用 appendNode+sibling+type:TITLE+title+target_uuid；创建子 TITLE 用 appendNode+child+target_uuid；移动 DOC 到分组下需先 removeNode 再 appendNode child+doc_ids+target_uuid；编辑用 editNode+sibling+node_uuid+title；删除用 removeNode+sibling+node_uuid",
+        description: "更新知识库目录（创建 TITLE/DOC 分组、移动/编辑/删除节点（removeNode+sibling+node_uuid））。创建根级 TITLE 用 appendNode+sibling+type:TITLE+title+target_uuid；创建子 TITLE 用 appendNode+child+target_uuid；移动 DOC 到分组下需先 removeNode 再 appendNode child+doc_ids+target_uuid；编辑用 editNode+sibling+node_uuid+title；删除用 removeNode+sibling+node_uuid",
         inputSchema: {
             type: "object",
             properties: {
@@ -159,18 +159,6 @@ const tools = [
                 title: { type: "string", description: "节点名称（创建 TITLE 或 editNode 改名时必填）" },
             },
             required: ["book_id"],
-        },
-    },
-    {
-        name: "yuque_remove_toc_node",
-        description: "从目录中移除节点（不删除文档本身）",
-        inputSchema: {
-            type: "object",
-            properties: {
-                book_id: { type: ["number", "string"], description: "知识库 ID 或 namespace（如 group/book_slug）" },
-                target_uuid: { type: "string", description: "要移除的节点 UUID" },
-            },
-            required: ["book_id", "target_uuid"],
         },
     },
     // --- 目录增强 ---
@@ -777,7 +765,6 @@ const handlers = {
     yuque_move_books: (a) => moveBooks(a),
     yuque_list_toc: (a) => listToc(a),
     yuque_update_toc: (a) => updateToc(a),
-    yuque_remove_toc_node: (a) => removeTocNode(a),
     yuque_clone_doc_to_toc: (a) => cloneDocToToc(a),
     yuque_get_toc_flat: (a) => getTocFlat(a),
     yuque_copy_docs_cross_book: (a) => copyDocsCrossBook(a),

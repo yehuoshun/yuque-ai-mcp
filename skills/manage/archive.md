@@ -221,7 +221,7 @@ yuque_list_docs(book_id=目标库id) → 确认新文档已在目标库
 
 源库（仅归档模式，删了文档的情况）→
   遍历被删除文档对应的目录节点
-  yuque_remove_toc_node → 清理源库空节点
+  yuque_update_toc (removeNode) → 清理源库空节点
 ```
 
 ---
@@ -282,4 +282,4 @@ yuque_list_docs(book_id=目标库id) → 确认新文档已在目标库
 | 写入 | `yuque_create_doc` |
 | 删除 | `yuque_delete_doc` |
 | 目标库目录 | `yuque_update_toc` |
-| 源库目录清理 | `yuque_remove_toc_node` |
+| 源库目录清理 | `yuque_update_toc` (removeNode) |
