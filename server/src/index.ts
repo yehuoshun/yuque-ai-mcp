@@ -25,8 +25,9 @@ import { tocUpdate } from "./toc/update-toc.js";
 import { repoList } from "./repo/list-repos.js";
 import { repoCreate } from "./repo/create-repo.js";
 import { repoGet } from "./repo/get-repo.js";
+import { repoUpdate } from "./repo/update-repo.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate];
 
 async function main() {
   const server = new McpServer({

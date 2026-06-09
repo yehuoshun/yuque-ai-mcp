@@ -32,6 +32,7 @@
 | `yuque_list_repos` | repo | 获取知识库列表 |
 | `yuque_create_repo` | repo | 创建知识库 |
 | `yuque_get_repo` | repo | 获取知识库详情 |
+| `yuque_update_repo` | repo | 更新知识库 |
 
 ## 错误码
 

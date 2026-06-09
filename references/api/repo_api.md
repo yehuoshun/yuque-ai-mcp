@@ -119,3 +119,31 @@ GET /api/v2/repos/{book_id}
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `toc_yml` | string | 目录结构（YAML 格式） |
+
+## 更新知识库
+
+```http
+PUT /api/v2/repos/{book_id}
+Content-Type: application/json
+
+{"name": "新名称", "public": 0}
+```
+
+等价于 `PUT /api/v2/repos/{group_login}/{book_slug}`。
+
+**用途**：更新知识库信息，支持通过 `toc` 字段批量更新目录（Markdown 格式）。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| `book_id` | path | string | 知识库 ID 或 namespace（必填） |
+| `name` | body | string | 名称 |
+| `slug` | body | string | 路径 |
+| `description` | body | string | 简介 |
+| `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `toc` | body | string | 目录（Markdown 格式，全量替换，示例：`- [分组]()\n - [文档](slug)`） |
+
+### 返回结构
+
+返回 V2Book（字段同获取列表）。
