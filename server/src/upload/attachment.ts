@@ -13,7 +13,7 @@ import { loadConfig } from "../common/config.js";
 
 export const uploadAttachment: McpTool = {
   name: "yuque_upload_attachment",
-  description: "上传文件到语雀 CDN（支持 image/attachment/video 三种类型，上限 10MB，需要 config.json 中配置 cookie + ctoken）",
+  description: "上传文件到语雀 CDN（图片上限 20MB，附件/视频上限 500MB，需要 config.json 中配置 cookie + ctoken）",
 
   inputSchema: {
     type: "object",
@@ -52,29 +52,29 @@ export const uploadAttachment: McpTool = {
       };
     }
 
-    // 检查文件
+    // 检查文件（上限按专业会员：图片20M/附件500M/视频500M）
     let fileBuffer: Buffer;
     let fileName: string;
     try {
       fileBuffer = readFileSync(filePath);
       fileName = filePath.split("/").pop() || "file";
       const sizeMB = statSync(filePath).size / 1024 / 1024;
-      if (sizeMB > 10) {
+      const limits: Record<string, { max: number; label: string }> = {
+        image: { max: 20, label: "20MB" },
+        attachment: { max: 500, label: "500MB" },
+        video: { max: 500, label: "500MB" },
+      };
+      const limit = limits[type] || limits.attachment;
+      if (sizeMB > limit.max) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  error: "FILE_TOO_LARGE",
-                  message: `文件过大 (${sizeMB.toFixed(1)}MB)，上限 10MB`,
-                  path: filePath,
-                },
-                null,
-                2,
-              ),
-            },
-          ],
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              error: "FILE_TOO_LARGE",
+              message: `${type} 文件过大 (${sizeMB.toFixed(1)}MB)，${type} 上限 ${limit.label}`,
+              path: filePath,
+            }, null, 2),
+          }],
           isError: true,
         };
       }

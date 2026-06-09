@@ -15,7 +15,7 @@ Content-Type: multipart/form-data
 
 **用途**：上传图片/附件/视频到语雀 CDN，返回 CDN URL。
 
-> ⚠️ 上限 10MB。
+> 单文件上限（专业会员）：图片 20MB / 附件 500MB / 视频 500MB。超级会员：图片 50MB / 附件 2GB / 视频 2GB。
 
 ### 参数
 
