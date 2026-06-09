@@ -199,23 +199,3 @@ GET /api/v2/doc_versions/{version_id}
 
 **返回字段**：与版本列表中的单个版本对象结构相同。
 
-## 连通性测试 API
-
-### Hello
-
-```http
-GET /api/v2/hello
-```
-
-**用途**：测试 API Token 是否有效，可用于验证连通性。
-
-**返回示例**：
-
-```json
-{
-  "data": {
-    "message": "Hello, {user_name}!"
-  }
-}
-```
-

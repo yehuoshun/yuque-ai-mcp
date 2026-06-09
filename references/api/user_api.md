@@ -47,3 +47,27 @@ GET /api/v2/user
 | `description` | string | 介绍 |
 | `created_at` | string | 创建时间 (ISO 8601) |
 | `updated_at` | string | 更新时间 (ISO 8601) |
+
+### 心跳检测
+
+```http
+GET /api/v2/hello
+```
+
+**用途**：测试 API Token 是否有效，可用于验证连通性。
+
+**返回结构**：
+
+```json
+{
+  "data": {
+    "message": "string"
+  }
+}
+```
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `message` | string | 欢迎消息 |
