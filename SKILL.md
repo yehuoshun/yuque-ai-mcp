@@ -21,6 +21,7 @@
 | `yuque_get_group_users` | group | 获取团队成员列表 |
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
+| `yuque_list_docs` | doc | 获取知识库文档列表 |
 
 ## 错误码
 
