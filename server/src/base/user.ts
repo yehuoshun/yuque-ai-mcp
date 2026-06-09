@@ -1,8 +1,8 @@
 /**
- * base/user — 获取当前用户信息
+ * base/user — 获取当前 Token 的用户详情
  *
  * 端点：GET /api/v2/user
- * 职责：返回当前 Token 对应的用户基本信息
+ * 职责：返回当前 Token 对应的用户完整信息
  */
 
 import type { McpTool } from "../types.js";
@@ -20,7 +20,7 @@ interface YuqueUser {
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
-  description: "获取当前语雀用户信息（id、login、name、avatar_url、description）",
+  description: "获取当前 Token 的用户详情（id、login、name、avatar_url、books_count、description 等）",
 
   async handler() {
     const res = await fetch(`${YUQUE_API_BASE}/user`, {

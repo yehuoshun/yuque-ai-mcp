@@ -2,7 +2,7 @@
 
 > 基地址：`https://www.yuque.com/api/v2`
 
-### 获取当前用户
+### 获取当前 Token 的用户详情
 
 ```http
 GET /api/v2/user
