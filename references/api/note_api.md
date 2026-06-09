@@ -130,7 +130,8 @@ Content-Type: application/json
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
 | `id` | path | int | 小记 ID（必填） |
-| `body` | body | string | 新内容（必填） |
+| `body` | body | string | 新内容（纯文本或 Markdown，不填则保持不变） |
+| `status` | body | int | 状态：0=正常 / 9=删除 |
 
 ### 返回结构
 
