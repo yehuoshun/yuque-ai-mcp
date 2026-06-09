@@ -118,13 +118,92 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | int | ID |
+| `id` | int | 搜索结果 ID |
 | `type` | string | `doc` / `repo` |
-| `title` | string | 标题（含 `<em>` 高亮关键词） |
-| `summary` | string | 摘要（含 `<em>` 高亮关键词） |
+| `title` | string | 标题（含 `<em>` 高亮） |
+| `summary` | string | 摘要（含 `<em>` 高亮） |
 | `url` | string | 访问路径 |
 | `info` | string | 归属信息 |
-| `target` | object | V2Doc 或 V2Book 详情 |
-| `target.book_id` | int | 所属知识库 ID |
-| `target.book.namespace` | string | 知识库 namespace |
-| `target.slug` | string | 文档 slug |
+| `target` | object | V2Doc（type=doc 时）或 V2Book（type=repo 时） |
+
+#### target（V2Doc）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 文档 ID |
+| `type` | string | Doc / Sheet / Thread / Board / Table |
+| `slug` | string | 路径 |
+| `title` | string | 标题 |
+| `description` | string | 摘要 |
+| `cover` | string | 封面 |
+| `user_id` | int | 归属用户/团队 ID |
+| `book_id` | int | 归属知识库 ID |
+| `last_editor_id` | int | 最后编辑者 ID |
+| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `status` | string | 0=草稿 / 1=发布 |
+| `likes_count` | int | 点赞数 |
+| `read_count` | int | 阅读数（需 optional_properties=hits） |
+| `hits` | int | Deprecated，阅读数 |
+| `comments_count` | int | 评论数 |
+| `word_count` | int | 内容字数 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+| `content_updated_at` | string | 内容更新时间 (ISO 8601) |
+| `published_at` | string | 发布时间 (ISO 8601) |
+| `first_published_at` | string | 首次发布时间 (ISO 8601) |
+| `book` | object | V2Book，所属知识库 |
+| `user` | object | V2User，创建者 |
+| `last_editor` | object | V2User，最后编辑者 |
+| `latest_version_id` | int | 最新已发版本 ID（需 optional_properties=latest_version_id） |
+| `tags` | object | V2Tag，标签信息 |
+
+#### target.book (V2Book)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 知识库 ID |
+| `type` | string | Book / Design / Sheet / Resource |
+| `slug` | string | 路径 |
+| `name` | string | 名称 |
+| `user_id` | int | 归属用户/团队 ID |
+| `description` | string | 简介 |
+| `creator_id` | int | 创建者 ID |
+| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `items_count` | int | 文档数量 |
+| `likes_count` | int | 点赞数量 |
+| `watches_count` | int | 订阅数量 |
+| `content_updated_at` | string | 知识库 META 更新时间 (ISO 8601) |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+| `user` | object | V2User，创建者 |
+| `namespace` | string | 完整路径 |
+
+#### target.user / target.last_editor / target.book.user (V2User)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 用户 ID |
+| `type` | string | Deprecated，始终为 `User` |
+| `login` | string | 登录名 |
+| `name` | string | 昵称 |
+| `avatar_url` | string | 头像 |
+| `books_count` | int | 知识库数量 |
+| `public_books_count` | int | 公开知识库数量 |
+| `followers_count` | int | 被关注人数 |
+| `following_count` | int | 关注的人数 |
+| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `description` | string | 介绍 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+
+#### target.tags (V2Tag)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | TAG ID |
+| `title` | string | TAG NAME |
+| `doc_id` | int | 文档 ID |
+| `book_id` | int | 知识库 ID |
+| `user_id` | int | 创建者 ID |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
