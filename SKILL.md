@@ -52,3 +52,14 @@
 所有工具共用统一错误处理。API 失败时返回结构化错误信息（含状态码、中文描述、响应摘要）。
 
 完整错误码及处理策略见 `references/api/errors.md`。
+
+## 配置
+
+| 环境变量 | 必填 | 说明 |
+|----------|------|------|
+| `YUQUE_TOKEN` | ✅ | v2 OpenAPI Token |
+| `YUQUE_API_BASE` | — | API 基地址，默认 `https://www.yuque.com/api/v2` |
+| `YUQUE_COOKIE` | 回收站 | 浏览器登录后的 Cookie 字符串 |
+| `YUQUE_CTOKEN` | 回收站 | Cookie 中的 `yuque_ctoken` 值 |
+
+详见 `server/.env.example`。
