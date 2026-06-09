@@ -124,9 +124,9 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 | `summary` | string | 摘要（含 `<em>` 高亮） |
 | `url` | string | 访问路径 |
 | `info` | string | 归属信息 |
-| `target` | object | V2Doc（type=doc 时）或 V2Book（type=repo 时） |
+| `target` | object | type=doc 时为 V2Doc；type=repo 时为 V2Book |
 
-#### target（V2Doc）
+#### target 为 V2Doc 时（type=doc）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -207,3 +207,24 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 | `user_id` | int | 创建者 ID |
 | `created_at` | string | 创建时间 (ISO 8601) |
 | `updated_at` | string | 更新时间 (ISO 8601) |
+
+#### target 为 V2Book 时（type=repo）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 知识库 ID |
+| `type` | string | Book / Design / Sheet / Resource |
+| `slug` | string | 路径 |
+| `name` | string | 名称 |
+| `user_id` | int | 归属用户/团队 ID |
+| `description` | string | 简介 |
+| `creator_id` | int | 创建者 ID |
+| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `items_count` | int | 文档数量 |
+| `likes_count` | int | 点赞数量 |
+| `watches_count` | int | 订阅数量 |
+| `content_updated_at` | string | 知识库 META 更新时间 (ISO 8601) |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+| `user` | object | V2User，创建者 |
+| `namespace` | string | 完整路径 |
