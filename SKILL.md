@@ -18,7 +18,6 @@
 | `yuque_hello` | user | 心跳检测，验证 Token 有效性 |
 | `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
 | `yuque_search` | search | 通用搜索文档/知识库 |
-| `yuque_get_group_users` | group | 获取团队成员列表 |
 
 ## 错误码
 
