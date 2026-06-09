@@ -39,6 +39,10 @@
 | `yuque_get_member_statistics` | statistic | 获取团队成员统计数据 |
 | `yuque_get_book_statistics` | statistic | 获取团队知识库统计数据 |
 | `yuque_get_doc_statistics` | statistic | 获取团队文档统计数据 |
+| `yuque_list_notes` | note | 获取小记列表 |
+| `yuque_get_note` | note | 获取小记详情 |
+| `yuque_create_note` | note | 创建小记 |
+| `yuque_update_note` | note | 更新小记 |
 
 ## 错误码
 
