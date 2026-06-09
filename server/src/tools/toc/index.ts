@@ -177,16 +177,20 @@ export async function batchMountToc(params: {
         tocPayload.action_mode = "sibling";
       }
 
-      await put(`/repos/${bookId}/toc`, tocPayload);
+      // 从 PUT 响应直接取新建节点的 UUID，省一次 GET 调用
+      const putResult = await put(`/repos/${bookId}/toc`, tocPayload);
+      const created = ((putResult as any).data || [])[0];
+      let titleUuid = created?.uuid || "";
 
-      // 获取新建 TITLE 节点的 UUID
-      const tocData = await get(`/repos/${bookId}/toc`);
-      const toc = (tocData as any).data || tocData;
-      let titleUuid = "";
-      for (const item of toc) {
-        if (item.type === "TITLE" && item.title === catName) {
-          titleUuid = item.uuid;
-          break;
+      // 降级：响应体不包含 uuid 时，回退到暴力搜索
+      if (!titleUuid) {
+        const tocData = await get(`/repos/${bookId}/toc`);
+        const toc = (tocData as any).data || tocData;
+        for (const item of toc) {
+          if (item.type === "TITLE" && item.title === catName) {
+            titleUuid = item.uuid;
+            break;
+          }
         }
       }
 

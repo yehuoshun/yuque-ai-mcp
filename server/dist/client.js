@@ -3,7 +3,7 @@ import { YuqueAPIError } from "./shared/types.js";
 const BASE_URL = "https://www.yuque.com/api/v2";
 const TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
-export let lastRateLimit = { limit: 0, remaining: 0 };
+let lastRateLimit = { limit: 0, remaining: 0 };
 /** 等待 ms 毫秒 */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 /** 主动等限流：remaining < threshold 时 sleep 直到配额恢复 */
@@ -71,10 +71,7 @@ export async function request(path, opts = {}) {
         }
         catch (err) {
             lastError = err;
-            // 超时或网络错误也重试
-            if (attempt < MAX_RETRIES - 1 && err instanceof YuqueAPIError && err.statusCode === 429) {
-                continue; // 上面已经 sleep 过了，继续下一次
-            }
+            // 超时或网络错误也重试（429 已在响应路径处理，不会到 catch）
             if (attempt < MAX_RETRIES - 1 && (err.name === "AbortError" || err.cause?.name === "AbortError")) {
                 await sleep((attempt + 1) * 1000);
                 continue;

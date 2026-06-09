@@ -1,5 +1,6 @@
-import { readFileSync, statSync } from "fs";
+import { statSync } from "fs";
 import { loadConfig } from "../config.js";
+import { uploadToCdn } from "../shared/multipart.js";
 
 /**
  * 上传文件到语雀 CDN（支持图片、附件、视频）
@@ -23,46 +24,27 @@ export async function uploadAttachment(params: {
     });
   }
 
-  // 检查文件
-  let fileBuffer: Buffer;
-  let fileName: string;
   try {
-    fileBuffer = readFileSync(params.file_path);
-    fileName = params.file_path.split("/").pop() || "file";
-    const sizeMB = statSync(params.file_path).size / 1024 / 1024;
-  // 按类型的上限（专业会员最低权限）
-  const LIMITS: Record<string, number> = { image: 20, attachment: 500, video: 500 };
-  const limitMB = LIMITS[type] || 10;
-  if (sizeMB > limitMB) {
+    // 检查文件大小
+    try {
+      const sizeMB = statSync(params.file_path).size / 1024 / 1024;
+      const LIMITS: Record<string, number> = { image: 20, attachment: 500, video: 500 };
+      const limitMB = LIMITS[type] || 10;
+      if (sizeMB > limitMB) {
+        return JSON.stringify({
+          error: "FILE_TOO_LARGE",
+          message: `文件过大 (${sizeMB.toFixed(1)}MB)，${type} 上限 ${limitMB}MB`,
+          path: params.file_path,
+        });
+      }
+    } catch (e: any) {
       return JSON.stringify({
-        error: "FILE_TOO_LARGE",
-        message: `文件过大 (${sizeMB.toFixed(1)}MB)，${type} 上限 ${limitMB}MB`,
-        path: params.file_path,
+        error: "FILE_NOT_FOUND",
+        message: `文件不存在或无法读取: ${params.file_path}`,
+        detail: e.message,
       });
     }
-  } catch (e: any) {
-    return JSON.stringify({
-      error: "FILE_NOT_FOUND",
-      message: `文件不存在或无法读取: ${params.file_path}`,
-      detail: e.message,
-    });
-  }
 
-  // 构建 FormData
-  const boundary = "----YuqueUpload" + Date.now();
-  const parts: Buffer[] = [];
-  const add = (s: string) => parts.push(Buffer.from(s, "utf-8"));
-
-  add(`--${boundary}\r\n`);
-  add(`Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`);
-  add("Content-Type: application/octet-stream\r\n\r\n");
-  parts.push(fileBuffer);
-  add("\r\n");
-  add(`--${boundary}--\r\n`);
-
-  const body = Buffer.concat(parts);
-
-  try {
     const userId = config.user_id;
     if (!userId) {
       return JSON.stringify({
@@ -70,46 +52,20 @@ export async function uploadAttachment(params: {
         message: "请在 config/yuque-config.json 中配置 user_id 字段。获取方式：调用 yuque_get_user 查看 id 字段，或从浏览器 Cookie 中解析。",
       });
     }
-    const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Cookie": cookie,
-        "x-csrf-token": ctoken,
-        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-        "Referer": "https://www.yuque.com/",
-        "Origin": "https://www.yuque.com",
-        "User-Agent": "Mozilla/5.0",
-      },
-      body,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
-
-    const text = await res.text();
-    if (!res.ok) {
+    const result = await uploadToCdn(params.file_path, cookie, ctoken, userId, type);
+    if (!result.success) {
       return JSON.stringify({
         error: "UPLOAD_FAILED",
-        status: res.status,
-        message: text.slice(0, 200),
+        message: result.error || "上传失败",
       });
     }
 
-    const data = JSON.parse(text);
-    const filekey = data?.data?.filekey || data?.filekey || "";
-    const extname = data?.data?.extname || "";
-    const url_result = filekey ? `https://cdn.nlark.com/${filekey}` : "";
-
     return JSON.stringify({
       success: true,
-      url: url_result,
-      filekey,
-      extname,
+      url: result.url,
+      filekey: result.filekey,
+      extname: result.extname,
       type,
     });
   } catch (e: any) {

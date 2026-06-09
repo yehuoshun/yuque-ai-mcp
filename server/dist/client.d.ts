@@ -1,8 +1,3 @@
-export interface RateLimitState {
-    limit: number;
-    remaining: number;
-}
-export declare let lastRateLimit: RateLimitState;
 interface RequestOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;

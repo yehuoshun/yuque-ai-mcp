@@ -123,7 +123,7 @@ export async function createDoc(params: {
 
   return JSON.stringify({
     ...doc,
-    _toc: { target_uuid: targetUuid, action_mode: mode },
+    toc_mount: { target_uuid: targetUuid, action_mode: mode },
   }, null, 2);
 }
 

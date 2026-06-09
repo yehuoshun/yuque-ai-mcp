@@ -5,13 +5,14 @@ const BASE_URL = "https://www.yuque.com/api/v2";
 const TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
 
-// 限流状态（模块级，供调用方决策）
-export interface RateLimitState {
+// 限流状态（模块级内部，仅 waitForRateLimit 使用）
+// ⚠️ stdio 单线程安全。若切 HTTP 多请求模式需重构为请求级作用域
+interface RateLimitState {
   limit: number;
   remaining: number;
 }
 
-export let lastRateLimit: RateLimitState = { limit: 0, remaining: 0 };
+let lastRateLimit: RateLimitState = { limit: 0, remaining: 0 };
 
 /** 等待 ms 毫秒 */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -99,10 +100,7 @@ export async function request<T = any>(
       }
     } catch (err: any) {
       lastError = err;
-      // 超时或网络错误也重试
-      if (attempt < MAX_RETRIES - 1 && err instanceof YuqueAPIError && err.statusCode === 429) {
-        continue; // 上面已经 sleep 过了，继续下一次
-      }
+      // 超时或网络错误也重试（429 已在响应路径处理，不会到 catch）
       if (attempt < MAX_RETRIES - 1 && (err.name === "AbortError" || err.cause?.name === "AbortError")) {
         await sleep((attempt + 1) * 1000);
         continue;

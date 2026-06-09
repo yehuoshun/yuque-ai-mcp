@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, basename, extname } from "path";
 import { post, put } from "../client.js";
 import { loadConfig } from "../config.js";
+import { uploadToCdn } from "../shared/multipart.js";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 import { execSync } from "child_process";
@@ -293,58 +294,8 @@ function adaptMarkdown(md: string): AdaptResult {
 }
 
 // ===================== 文件上传到 CDN =====================
-
-async function uploadFile(
-  filePath: string,
-  cookie: string,
-  ctoken: string,
-  userId: string,
-  type: "image" | "attachment" = "image",
-): Promise<{ success: boolean; url?: string; error?: string }> {
-  try {
-    const fileBuffer = readFileSync(filePath);
-    const fileName = basename(filePath);
-    const boundary = "----YuqueImport" + Date.now();
-    const parts: Buffer[] = [];
-    const add = (s: string) => parts.push(Buffer.from(s, "utf-8"));
-
-    add(`--${boundary}\r\n`);
-    add(`Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`);
-    add("Content-Type: application/octet-stream\r\n\r\n");
-    parts.push(fileBuffer);
-    add("\r\n");
-    add(`--${boundary}--\r\n`);
-
-    const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Cookie: cookie,
-        "x-csrf-token": ctoken,
-        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-        Referer: "https://www.yuque.com/",
-        Origin: "https://www.yuque.com",
-        "User-Agent": "Mozilla/5.0",
-      },
-      body: Buffer.concat(parts),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
-    if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
-
-    const data: any = await res.json();
-    const filekey = data?.data?.filekey || data?.filekey || "";
-    const cdnUrl = filekey ? `https://cdn.nlark.com/${filekey}` : "";
-
-    return cdnUrl ? { success: true, url: cdnUrl } : { success: false, error: "No filekey in response" };
-  } catch (e: any) {
-    return { success: false, error: e.message || String(e) };
-  }
-}
+// ⚠️ 已迁移到 shared/multipart.ts 的 uploadToCdn，此处保留函数引用以兼容原有调用点
+const uploadFile = uploadToCdn;
 
 // ===================== 主入口 =====================
 
@@ -360,13 +311,13 @@ export async function importDoc(params: {
   const filePath = params.file_path;
   const skipImages = params.skip_images || !config.cookie || !config.ctoken || !config.user_id;
 
-  // 1. 检查文件
-  if (!existsSync(filePath)) {
+  // 文件读取/检查移到模式判断中（mode B 用预适配 body，不需要文件存在）
+  if (!params.body && !existsSync(filePath)) {
     throw new Error(`文件不存在: ${filePath}`);
   }
 
-  const ext = extname(filePath).toLowerCase();
-  const fileName = basename(filePath);
+  const ext = params.body ? "" : extname(filePath).toLowerCase();
+  const fileName = params.body ? "" : basename(filePath);
 
   let title = params.title || "";
   let body = params.body || "";

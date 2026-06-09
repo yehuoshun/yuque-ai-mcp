@@ -3,10 +3,21 @@ import { loadConfig } from "../config.js";
 /**
  * 列出用户的所有知识库（自动翻页，确保不漏）
  */
-export async function listRepos() {
+export async function listRepos(params) {
     const { group } = loadConfig();
-    const allRepos = [];
     const PAGE_SIZE = 100;
+    if (params?.offset !== undefined) {
+        // 指定 offset → 只拿一页
+        const data = await get(`/users/${group}/repos?offset=${params.offset}&limit=${PAGE_SIZE}`);
+        const repos = data.data || data;
+        if (!Array.isArray(repos) || repos.length === 0)
+            return JSON.stringify([]);
+        return JSON.stringify(repos.map((r) => ({
+            id: r.id, name: r.name, slug: r.slug, items_count: r.items_count,
+        })), null, 2);
+    }
+    // 不指定 → 自动翻页全量
+    const allRepos = [];
     for (let offset = 0;; offset += PAGE_SIZE) {
         const data = await get(`/users/${group}/repos?offset=${offset}&limit=${PAGE_SIZE}`);
         const repos = data.data || data;

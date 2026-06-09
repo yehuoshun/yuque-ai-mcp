@@ -24,8 +24,14 @@ const tools = [
     // --- 知识库 ---
     {
         name: "yuque_list_repos",
-        description: "列出当前用户的所有语雀知识库",
-        inputSchema: { type: "object", properties: {}, required: [] },
+        description: "列出当前用户的所有语雀知识库（不传 offset 则自动翻页全量获取）",
+        inputSchema: {
+            type: "object",
+            properties: {
+                offset: { type: "number", description: "分页偏移（可选，传了只拿一页；不传自动翻页全量）" },
+            },
+            required: [],
+        },
     },
     {
         name: "yuque_get_repo",
@@ -405,7 +411,7 @@ const tools = [
                 skip_images: { type: "boolean", description: "跳过图片上传（默认 false，无 cookie 时自动跳过）" },
                 upload_original: { type: "boolean", description: "上传原始文件作为附件引用（默认 false）" },
             },
-            required: ["file_path"],
+            required: [],
         },
     },
     {
@@ -657,15 +663,24 @@ const handlers = {
     yuque_destroy_recycle: (a) => destroyRecycle(a),
     yuque_reload_config: async () => { reloadConfig(); return `✅ 配置已重新加载`; },
 };
-// ---- server ----
-const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+// ---- 统一错误格式化 & handler 工厂（stdio + HTTP 共用）----
+function formatToolError(error) {
+    if (error instanceof YuqueAPIError) {
+        return JSON.stringify({
+            error: `API_${error.statusCode}`,
+            message: error.message,
+            status_code: error.statusCode,
+        }, null, 2);
+    }
+    const msg = error instanceof Error ? error.message : String(error);
+    return JSON.stringify({ error: "EXECUTION_ERROR", message: msg }, null, 2);
+}
+async function handleCallTool(request) {
     const { name, arguments: args } = request.params;
     const handler = handlers[name];
     if (!handler) {
         return {
-            content: [{ type: "text", text: `未知工具: ${name}` }],
+            content: [{ type: "text", text: JSON.stringify({ error: "UNKNOWN_TOOL", message: `未知工具: ${name}` }, null, 2) }],
             isError: true,
         };
     }
@@ -675,18 +690,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
     catch (error) {
         return {
-            content: [
-                {
-                    type: "text",
-                    text: error instanceof YuqueAPIError
-                        ? `❌ 语雀 API 错误 [${error.statusCode}]: ${error.message}`
-                        : `❌ 执行失败: ${error.message}`,
-                },
-            ],
+            content: [{ type: "text", text: formatToolError(error) }],
             isError: true,
         };
     }
-});
+}
+// ---- server ----
+const server = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+server.setRequestHandler(CallToolRequestSchema, handleCallTool);
 async function main() {
     // 🕶️ 动态加载邪修玩法（子模块不存在则跳过）
     const darkArts = await loadDarkArts();
@@ -712,27 +724,9 @@ async function main() {
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: undefined,
                 });
-                // 连接到全局 server（含 dark-arts），用完即弃
                 const tempServer = new Server({ name: "yuque-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
                 tempServer.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
-                tempServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-                    const { name, arguments: args } = request.params;
-                    const handler = handlers[name];
-                    if (!handler)
-                        return { content: [{ type: "text", text: `未知工具: ${name}` }], isError: true };
-                    try {
-                        const result = await handler(args || {});
-                        return { content: [{ type: "text", text: result }] };
-                    }
-                    catch (error) {
-                        return {
-                            content: [{ type: "text", text: error instanceof YuqueAPIError
-                                        ? `❌ 语雀 API 错误 [${error.statusCode}]: ${error.message}`
-                                        : `❌ 执行失败: ${error.message}` }],
-                            isError: true,
-                        };
-                    }
-                });
+                tempServer.setRequestHandler(CallToolRequestSchema, handleCallTool);
                 await tempServer.connect(transport);
                 await transport.handleRequest(req, res, req.body);
                 await transport.close();

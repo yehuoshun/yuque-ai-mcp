@@ -1,7 +1,9 @@
 /**
  * 列出用户的所有知识库（自动翻页，确保不漏）
  */
-export declare function listRepos(): Promise<string>;
+export declare function listRepos(params?: {
+    offset?: number;
+}): Promise<string>;
 /**
  * 获取知识库详情
  */
