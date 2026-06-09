@@ -25,6 +25,7 @@
 | `yuque_create_doc` | doc | 创建文档 |
 | `yuque_get_doc` | doc | 获取文档详情 |
 | `yuque_update_doc` | doc | 更新文档 |
+| `yuque_delete_doc` | doc | 删除文档 |
 
 ## 错误码
 
