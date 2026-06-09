@@ -22,6 +22,7 @@
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
 | `yuque_list_docs` | doc | 获取知识库文档列表 |
+| `yuque_create_doc` | doc | 创建文档 |
 
 ## 错误码
 
