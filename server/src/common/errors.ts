@@ -33,9 +33,22 @@ export async function handleApiError(
   const label = STATUS_MAP[status] ?? `未知错误 (${status})`;
 
   let detail = "";
+
+  // 429 限流：提取 X-RateLimit-* 头
+  if (status === 429) {
+    const limit = res.headers.get("X-RateLimit-Limit");
+    const remaining = res.headers.get("X-RateLimit-Remaining");
+    const retryAfter = res.headers.get("Retry-After");
+    const parts: string[] = [];
+    if (limit) parts.push(`总量: ${limit}/小时`);
+    if (remaining !== null) parts.push(`剩余: ${remaining}`);
+    if (retryAfter) parts.push(`建议等待: ${retryAfter}s`);
+    if (parts.length) detail = `\n限流信息: ${parts.join("，")}`;
+  }
+
   try {
     const body = await res.text();
-    if (body) detail = `\n响应: ${body.slice(0, 500)}`;
+    if (body) detail += `\n响应: ${body.slice(0, 500)}`;
   } catch {
     // 读 body 失败，忽略
   }
