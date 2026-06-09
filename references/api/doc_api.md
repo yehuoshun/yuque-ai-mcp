@@ -12,7 +12,7 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 
 **用途**：获取指定知识库下的文档列表，支持分页和额外字段。
 
-> ⚠️ `limit` 超过 100 时 `optional_properties` 会失效。
+> ⚠️ `limit` 超过 100 时返回 422 参数校验失败。
 
 ### 参数
 
