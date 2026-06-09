@@ -31,6 +31,7 @@
 | `yuque_get_toc` | toc | 获取知识库目录 |
 | `yuque_list_repos` | repo | 获取知识库列表 |
 | `yuque_create_repo` | repo | 创建知识库 |
+| `yuque_get_repo` | repo | 获取知识库详情 |
 
 ## 错误码
 

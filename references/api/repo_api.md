@@ -95,3 +95,27 @@ Content-Type: application/json
 ### 返回结构
 
 返回 V2Book（字段同获取列表）。
+
+## 获取知识库详情
+
+```http
+GET /api/v2/repos/{book_id}
+```
+
+等价于 `GET /api/v2/repos/{group_login}/{book_slug}`。
+
+**用途**：获取知识库完整信息，包括 `toc_yml` 目录。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| `book_id` | path | string | 知识库 ID 或 namespace（必填） |
+
+### 返回结构 (V2BookDetail)
+
+同 V2Book，外加以下字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `toc_yml` | string | 目录结构（YAML 格式） |
