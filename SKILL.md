@@ -19,6 +19,7 @@
 | `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
 | `yuque_search` | search | 通用搜索文档/知识库 |
 | `yuque_get_group_users` | group | 获取团队成员列表 |
+| `yuque_update_group_user` | group | 变更团队成员角色 |
 
 ## 错误码
 
