@@ -188,3 +188,44 @@ GET /api/v2/groups/{login}/statistics/members?range={range}&sortField={sortField
 | `members.like_count_30` | string | 点赞量（30天） |
 | `members.like_count_365` | string | 点赞量（一年） |
 | `total` | int | 总数量 |
+
+## 团队知识库统计数据
+
+```http
+GET /api/v2/groups/{login}/statistics/books?range={range}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
+```
+
+**用途**：获取团队知识库维度的统计数据，支持名称过滤、时间范围和排序。
+
+> ⚠️ Token 需要 `statistic:read` 权限。limit ≤ 20。
+
+### 参数
+
+同成员统计，`sortField` 支持的值为：content_updated_at_ms / word_count / post_count / read_count / like_count / watch_count / comment_count。
+
+### 返回字段 (V2BookStatistics)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `books.book_id` | string | 知识库 ID |
+| `books.name` | string | 知识库名称 |
+| `books.slug` | string | 知识库路径 |
+| `books.type` | string | 知识库类型 |
+| `books.is_public` | string | 是否公开 |
+| `books.post_count` | string | 文档数 |
+| `books.word_count` | string | 字数 |
+| `books.read_count` | string | 阅读量 |
+| `books.read_count_30` | string | 阅读量（30天） |
+| `books.read_count_365` | string | 阅读量（一年） |
+| `books.like_count` | string | 点赞量 |
+| `books.like_count_7` | string | 点赞量（7天） |
+| `books.like_count_30` | string | 点赞量（30天） |
+| `books.like_count_365` | string | 点赞量（一年） |
+| `books.watch_count` | string | 关注量 |
+| `books.watch_count_7` | string | 关注量（7天） |
+| `books.watch_count_30` | string | 关注量（30天） |
+| `books.watch_count_365` | string | 关注量（一年） |
+| `books.comment_count` | string | 评论量 |
+| `books.popularity_30` | string | 30天热度 |
+| `books.like_rank_rate` | string | 点赞数排名 |
+| `total` | int | 总数量 |
