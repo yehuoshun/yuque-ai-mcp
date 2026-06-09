@@ -10,7 +10,7 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleDestroy: McpTool = {
   name: "yuque_destroy_recycle",
-  description: "彻底删除回收站项目（⚠️ 不可恢复，需要 YUQUE_COOKIE + YUQUE_CTOKEN 环境变量）",
+  description: "彻底删除回收站项目（⚠️ 不可恢复，需要 config.json 中配置 cookie + ctoken）",
 
   inputSchema: {
     type: "object",

@@ -9,7 +9,7 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleRestore: McpTool = {
   name: "yuque_restore_recycle",
-  description: "恢复回收站项目（需要 YUQUE_COOKIE + YUQUE_CTOKEN 环境变量）",
+  description: "恢复回收站项目（需要 config.json 中配置 cookie + ctoken）",
 
   inputSchema: {
     type: "object",

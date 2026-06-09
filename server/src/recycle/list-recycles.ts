@@ -10,7 +10,7 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleList: McpTool = {
   name: "yuque_list_recycles",
-  description: "列出回收站项目（需要 YUQUE_COOKIE + YUQUE_CTOKEN 环境变量，支持分页和 target_type 筛选）",
+  description: "列出回收站项目（需要 config.json 中配置 cookie + ctoken，支持分页和 target_type 筛选）",
 
   inputSchema: {
     type: "object",
