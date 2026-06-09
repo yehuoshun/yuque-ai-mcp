@@ -147,3 +147,23 @@ Content-Type: application/json
 ### 返回结构
 
 返回 V2Book（字段同获取列表）。
+
+## 删除知识库
+
+```http
+DELETE /api/v2/repos/{book_id}
+```
+
+等价于 `DELETE /api/v2/repos/{group_login}/{book_slug}`。
+
+**用途**：删除指定知识库。⚠️ 不可恢复。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| `book_id` | path | string | 知识库 ID 或 namespace（必填） |
+
+### 返回结构
+
+返回被删除的 V2Book。
