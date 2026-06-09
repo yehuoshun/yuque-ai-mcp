@@ -35,8 +35,11 @@ import { noteList } from "./note/list-notes.js";
 import { noteGet } from "./note/get-note.js";
 import { noteCreate } from "./note/create-note.js";
 import { noteUpdate } from "./note/update-note.js";
+import { recycleList } from "./recycle/list-recycles.js";
+import { recycleRestore } from "./recycle/restore-recycle.js";
+import { recycleDestroy } from "./recycle/destroy-recycle.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics, memberStatistics, bookStatistics, docStatistics, noteList, noteGet, noteCreate, noteUpdate];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics, memberStatistics, bookStatistics, docStatistics, noteList, noteGet, noteCreate, noteUpdate, recycleList, recycleRestore, recycleDestroy];
 
 async function main() {
   const server = new McpServer({

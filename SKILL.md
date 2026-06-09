@@ -43,6 +43,9 @@
 | `yuque_get_note` | note | 获取小记详情 |
 | `yuque_create_note` | note | 创建小记 |
 | `yuque_update_note` | note | 更新小记 |
+| `yuque_list_recycles` | recycle | 列出回收站项目 |
+| `yuque_restore_recycle` | recycle | 恢复回收站项目 |
+| `yuque_destroy_recycle` | recycle | 彻底删除回收站项目 |
 
 ## 错误码
 
