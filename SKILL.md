@@ -23,6 +23,7 @@
 | `yuque_delete_group_user` | group | 删除团队成员 |
 | `yuque_list_docs` | doc | 获取知识库文档列表 |
 | `yuque_create_doc` | doc | 创建文档 |
+| `yuque_get_doc` | doc | 获取文档详情 |
 
 ## 错误码
 
