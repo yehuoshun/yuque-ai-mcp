@@ -1,9 +1,0 @@
-.env
-*config.json
-!config.example.json
-!yuque-config.example.json
-.DS_Store
-*.db
-
-# MCP server
-server/node_modules/
