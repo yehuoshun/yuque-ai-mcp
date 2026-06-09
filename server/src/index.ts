@@ -8,8 +8,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { userGet } from "./base/user.js";
 import { helloCheck } from "./base/hello.js";
+import { userGroups } from "./base/groups.js";
 
-const tools = [userGet, helloCheck];
+const tools = [userGet, helloCheck, userGroups];
 
 async function main() {
   const server = new McpServer({

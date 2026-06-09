@@ -71,3 +71,59 @@ GET /api/v2/hello
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `message` | string | 欢迎消息 |
+
+### 获取用户的团队
+
+```http
+GET /api/v2/users/{id}/groups?offset={offset}&limit={limit}
+```
+
+**用途**：获取指定用户所属的团队列表。
+
+**参数**：
+
+| 参数 | 说明 | 默认 |
+|------|------|------|
+| `id` | 用户 ID（路径参数，必填） | - |
+| `offset` | 分页偏移 | 0 |
+| `limit` | 每页条数，上限 100 | 100 |
+
+**返回结构**：
+
+```json
+{
+  "data": [
+    {
+      "id": 26366796,
+      "type": "Group",
+      "login": "uuctgr",
+      "name": "知识小组",
+      "avatar_url": "https://...",
+      "books_count": 0,
+      "public_books_count": 0,
+      "members_count": 1,
+      "public": 1,
+      "description": "在线知识分享与交流",
+      "created_at": "2022-03-04T02:02:00.000Z",
+      "updated_at": "2022-03-04T02:02:00.000Z"
+    }
+  ]
+}
+```
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 团队 ID |
+| `type` | string | 始终为 `Group` |
+| `login` | string | 团队 login |
+| `name` | string | 团队名称 |
+| `avatar_url` | string | 头像 URL |
+| `books_count` | int | 知识库数量 |
+| `public_books_count` | int | 公开知识库数量 |
+| `members_count` | int | 成员数量 |
+| `public` | int | 公开性：0=私密 / 1=公开 / 2=企业内公开 |
+| `description` | string | 介绍 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
