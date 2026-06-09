@@ -5,8 +5,8 @@
  * 职责：测试 Token 有效性和 API 连通性
  */
 
-import type { McpTool } from "../types.js";
-import { handleApiError } from "../errors.js";
+import type { McpTool } from "../common/types.js";
+import { handleApiError } from "../common/errors.js";
 
 const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
 const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";

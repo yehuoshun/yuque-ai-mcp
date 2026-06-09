@@ -5,8 +5,8 @@
  * 职责：获取指定用户加入的所有团队
  */
 
-import type { McpTool } from "../types.js";
-import { handleApiError } from "../errors.js";
+import type { McpTool } from "../common/types.js";
+import { handleApiError } from "../common/errors.js";
 
 const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
 const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
