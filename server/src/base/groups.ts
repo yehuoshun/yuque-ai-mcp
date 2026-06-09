@@ -27,24 +27,28 @@ interface Group {
 
 export const userGroups: McpTool = {
   name: "yuque_get_user_groups",
-  description: "获取用户所属的团队列表（支持 offset/limit 分页，limit 上限 100）",
+  description: "获取用户所属的团队列表（id 支持 login 或 ID，role 可过滤管理员/成员，PageSize 固定 100）",
 
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "number", description: "用户 ID（必填）" },
-      offset: { type: "number", description: "分页偏移" },
-      limit: { type: "number", description: "每页条数，上限 100" },
+      id: { type: "string", description: "用户 login 或 ID（必填）" },
+      role: { type: "number", description: "角色过滤：0=管理员 / 1=成员" },
+      offset: { type: "number", description: "分页偏移，默认 0" },
     },
     required: ["id"],
   },
 
   async handler(args) {
-    const id = args?.id as number;
+    const id = args?.id as string;
+    const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
-    const limit = (args?.limit as number) ?? 100;
 
-    const url = `${YUQUE_API_BASE}/users/${id}/groups?offset=${offset}&limit=${limit}`;
+    const params = new URLSearchParams();
+    params.set("offset", String(offset));
+    if (role !== undefined) params.set("role", String(role));
+
+    const url = `${YUQUE_API_BASE}/users/${id}/groups?${params}`;
     const res = await fetch(url, {
       headers: { "X-Auth-Token": YUQUE_TOKEN },
     });
