@@ -9,8 +9,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { userGet } from "./user/user.js";
 import { helloCheck } from "./user/hello.js";
 import { userGroups } from "./user/groups.js";
+import { search } from "./search/search.js";
 
-const tools = [userGet, helloCheck, userGroups];
+const tools = [userGet, helloCheck, userGroups, search];
 
 async function main() {
   const server = new McpServer({

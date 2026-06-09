@@ -2,91 +2,129 @@
 
 > 基地址：`https://www.yuque.com/api/v2`
 
-> ⚠️ 搜索只能用 `/api/v2/search`，`list_docs` 端点无搜索参数。
->
-> ⚠️ **符号匹配极差**：语雀搜索对符号（`[]`、`-`、`_` 等）的分词/匹配能力很弱。
-> 文档标题中避免使用括号、连字符等符号前缀，直接用纯文本关键词。
-> 例如：用 `SpringBoot` 而非 `[索引] SpringBoot`，用 `路由 Java` 而非 `[路由] Java`。
+## 通用搜索
 
 ```http
-GET /api/v2/search?q={query}&type={type}&scope={scope}&page={page}
+GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 ```
 
-**PageSize 固定为 20**，不支持自定义分页大小。
+> ⚠️ `list_docs` 端点无搜索参数，搜索只能用此接口。
+> ⚠️ **符号匹配极差**：对 `[]`、`-`、`_` 等符号分词能力很弱，标题避免符号前缀。
 
-**参数**：
+**PageSize 固定为 20**。
 
-| 参数 | 说明 | 约束 |
-|------|------|------|
-| `q` | 搜索关键词（必填） | ≤ 200 字符 |
-| `type` | `doc`（文档）/ `repo`（知识库）| 必填 |
-| `scope` | 搜索范围，不填默认搜索当前用户/团队 | ≤ 400 字符 |
-| `page` | 页码 | 1-100 |
-| `creator` | 仅搜索指定作者 login（可选） | - |
-| `offset` | ⚠️ 已废弃，同 `page`，勿用 | - |
+### 参数
 
-**scope 说明**：
-- 不填：搜索当前用户/团队全部
-- 搜索团队全部文档：`scope={group}`（如 `yehuoshun`）
-- 搜索指定知识库文档：`scope={group}/{book_slug}`（如 `yehuoshun/gi49zs`）
-- 只支持 namespace 格式，**不支持 book_id**
+| 参数 | 位置 | 类型 | 说明 | 约束 |
+|------|------|------|------|------|
+| `q` | query | string | 搜索关键词（必填） | ≤ 200 字符 |
+| `type` | query | string | 搜索类型（必填） | `doc` / `repo` |
+| `scope` | query | string | 搜索范围 | ≤ 400 字符 |
+| `page` | query | int | 页码 | 1-100 |
+| `creator` | query | string | 仅搜索指定作者 login（筛选） | - |
+| `creatorId` | query | int | Deprecated，仅搜索指定作者 ID | - |
+| `offset` | query | int | Deprecated，同 `page`，勿用 | 1-100 |
 
-**返回结构**：
+### scope 说明
+
+不填默认搜索当前用户/团队全部。
+
+| 场景 | scope 值 |
+|------|---------|
+| 搜索团队里文档 | `scope={group}`，如 `yehuoshun` |
+| 搜索团队里知识库 | `type=repo&scope={group}` |
+| 搜索知识库里文档 | `scope={group}/{book_slug}`，如 `yehuoshun/gi49zs` |
+
+> 只支持 namespace 格式，**不支持 book_id**。
+
+### 返回结构
 
 ```json
 {
   "meta": {
-    "total": 32,
-    "pageNo": 1,
+    "total": 0,
+    "pageNo": 0,
     "pageSize": 20
   },
   "data": [
     {
-      "id": 123456,
+      "id": 0,
       "type": "doc",
-      "title": "文档标题",
-      "summary": "摘要（含高亮标记 <em>关键词</em>）",
-      "url": "/yehuoshun/xxx/slug",
+      "title": "string <em>高亮</em>",
+      "summary": "string <em>高亮</em>",
+      "url": "string",
+      "info": "string",
       "target": {
-        "id": 123456,
+        "id": 0,
         "type": "Doc",
-        "slug": "abc123",
-        "title": "文档标题",
-        "book_id": 789,
+        "slug": "string",
+        "title": "string",
+        "description": "string",
+        "cover": "string",
+        "user_id": 0,
+        "book_id": 0,
+        "last_editor_id": 0,
+        "public": 0,
+        "status": "string",
+        "likes_count": 0,
+        "read_count": 0,
+        "hits": 0,
+        "comments_count": 0,
+        "word_count": 0,
+        "created_at": "2019-08-24T14:15:22Z",
+        "updated_at": "2019-08-24T14:15:22Z",
+        "content_updated_at": "2019-08-24T14:15:22Z",
+        "published_at": "2019-08-24T14:15:22Z",
+        "first_published_at": "2019-08-24T14:15:22Z",
         "book": {
-          "id": 789,
-          "name": "知识库名称",
-          "namespace": "yehuoshun/xxx"
-        }
-      },
-      "created_at": "2024-01-01T00:00:00.000Z",
-      "updated_at": "2024-01-01T00:00:00.000Z"
+          "id": 0,
+          "type": "string",
+          "slug": "string",
+          "name": "string",
+          "user_id": 0,
+          "description": "string",
+          "creator_id": 0,
+          "public": 0,
+          "items_count": 0,
+          "likes_count": 0,
+          "watches_count": 0,
+          "content_updated_at": "2019-08-24T14:15:22Z",
+          "created_at": "2019-08-24T14:15:22Z",
+          "updated_at": "2019-08-24T14:15:22Z",
+          "user": {},
+          "namespace": "string"
+        },
+        "user": {},
+        "last_editor": {},
+        "latest_version_id": 0,
+        "tags": {}
+      }
     }
   ]
 }
 ```
 
-**分页**：
-- 总数：`.meta.total`
-- 当前页：`.meta.pageNo`
-- 每页条数：`.meta.pageSize`
-- 结果列表：`.data[]`
+### 返回字段
 
-**返回字段说明**：
+#### meta
 
-| 字段 | 说明 |
-|------|------|
-| `.meta.total` | 搜索结果总数 |
-| `.meta.pageNo` | 当前页码 |
-| `.meta.pageSize` | 每页条数 |
-| `.data[].id` | 搜索结果 ID |
-| `.data[].type` | 类型：`doc`（文档）/ `repo`（知识库）|
-| `.data[].title` | 文档标题 |
-| `.data[].summary` | 摘要（含高亮标记 `<em>`） |
-| `.data[].url` | 文档相对路径 |
-| `.data[].info` | 归属信息 |
-| `.data[].target.book_id` | 知识库 ID |
-| `.data[].target.book.namespace` | 知识库 namespace |
-| `.data[].target.id` | 文档 ID |
-| `.data[].target.slug` | 文档 slug |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `total` | int | 结果总量 |
+| `pageNo` | int | 页码 |
+| `pageSize` | int | 每页数量（固定 20） |
 
+#### data[]
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | ID |
+| `type` | string | `doc` / `repo` |
+| `title` | string | 标题（含 `<em>` 高亮关键词） |
+| `summary` | string | 摘要（含 `<em>` 高亮关键词） |
+| `url` | string | 访问路径 |
+| `info` | string | 归属信息 |
+| `target` | object | V2Doc 或 V2Book 详情 |
+| `target.book_id` | int | 所属知识库 ID |
+| `target.book.namespace` | string | 知识库 namespace |
+| `target.slug` | string | 文档 slug |
