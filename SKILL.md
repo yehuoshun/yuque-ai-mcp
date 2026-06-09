@@ -30,6 +30,7 @@
 | `yuque_get_doc_version_detail` | doc | 获取文档历史版本详情 |
 | `yuque_get_toc` | toc | 获取知识库目录 |
 | `yuque_list_repos` | repo | 获取知识库列表 |
+| `yuque_create_repo` | repo | 创建知识库 |
 
 ## 错误码
 

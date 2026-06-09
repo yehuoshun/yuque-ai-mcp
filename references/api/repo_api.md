@@ -68,3 +68,30 @@ GET /api/v2/groups/{login}/repos?type={type}&offset={offset}&limit={limit}
 | `updated_at` | string | 更新时间 (ISO 8601) |
 | `user` | object | V2User，创建者 |
 | `namespace` | string | 完整路径 |
+
+## 创建知识库
+
+```http
+POST /api/v2/users/{login}/repos
+POST /api/v2/groups/{login}/repos
+Content-Type: application/json
+
+{"name": "名称", "slug": "路径", "public": 0}
+```
+
+**用途**：在用户或团队下创建新知识库。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 | 默认 |
+|------|------|------|------|------|
+| `login` | path | string | 用户/团队的 Login 或 ID（必填） | - |
+| `name` | body | string | 知识库名称（必填） | - |
+| `slug` | body | string | 知识库路径（必填） | - |
+| `description` | body | string | 简介 | - |
+| `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 | 0 |
+| `enhancedPrivacy` | body | bool | 增强私密性：非管理员成员也设为无权限 | - |
+
+### 返回结构
+
+返回 V2Book（字段同获取列表）。
