@@ -228,4 +228,44 @@ GET /api/v2/groups/{login}/statistics/books?range={range}&sortField={sortField}&
 | `books.comment_count` | string | 评论量 |
 | `books.popularity_30` | string | 30天热度 |
 | `books.like_rank_rate` | string | 点赞数排名 |
+| `books.popularity_30` | string | 30天热度 |
+| `total` | int | 总数量 |
+
+## 团队文档统计数据
+
+```http
+GET /api/v2/groups/{login}/statistics/docs?range={range}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
+```
+
+**用途**：获取团队文档维度的统计数据，支持按知识库/文档名过滤、时间范围和排序。
+
+> ⚠️ Token 需要 `statistic:read` 权限。limit ≤ 20。
+
+### 参数
+
+同知识库统计，额外支持 `bookId`（指定知识库 ID）过滤。`sortField` 支持的值为：content_updated_at / word_count / read_count / like_count / comment_count / created_at。
+
+### 返回字段 (V2DocStatistics)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `docs.doc_id` | string | 文档 ID |
+| `docs.title` | string | 文档标题 |
+| `docs.slug` | string | 文档路径 |
+| `docs.book_id` | string | 所属知识库 ID |
+| `docs.type` | string | 文档类型 |
+| `docs.is_public` | string | 是否公开 |
+| `docs.created_at` | string | 创建时间 |
+| `docs.content_updated_at` | string | 最近更新时间 |
+| `docs.word_count` | string | 字数 |
+| `docs.read_count` | string | 阅读量 |
+| `docs.read_count_7` | string | 阅读量（7天） |
+| `docs.read_count_30` | string | 阅读量（30天） |
+| `docs.read_count_365` | string | 阅读量（一年） |
+| `docs.like_count` | string | 点赞量 |
+| `docs.like_count_7` | string | 点赞量（7天） |
+| `docs.like_count_30` | string | 点赞量（30天） |
+| `docs.like_count_365` | string | 点赞量（一年） |
+| `docs.comment_count` | string | 评论量 |
+| `docs.popularity_30` | string | 30天热度 |
 | `total` | int | 总数量 |

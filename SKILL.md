@@ -37,6 +37,7 @@
 | `yuque_get_group_statistics` | statistic | 获取团队统计数据 |
 | `yuque_get_member_statistics` | statistic | 获取团队成员统计数据 |
 | `yuque_get_book_statistics` | statistic | 获取团队知识库统计数据 |
+| `yuque_get_doc_statistics` | statistic | 获取团队文档统计数据 |
 
 ## 错误码
 
