@@ -2,8 +2,10 @@
  * recycle/common — 回收站 Web API 请求
  *
  * 回收站 API 走 Web API（非 v2 OpenAPI），需要 Cookie 登录态认证。
- * 环境变量：YUQUE_COOKIE（登录 Cookie）、YUQUE_CTOKEN（CSRF Token）
+ * 配置：config/config.json 中的 cookie 和 ctoken 字段
  */
+
+import { loadConfig } from "../common/config.js";
 
 const MINE_BASE = "https://www.yuque.com/api/mine/recycles";
 
@@ -11,12 +13,13 @@ export async function webRequest(
   url: string,
   opts: { method?: "GET" | "PUT" | "DELETE"; body?: unknown } = {},
 ): Promise<unknown> {
-  const cookie = process.env.YUQUE_COOKIE || "";
-  const ctoken = process.env.YUQUE_CTOKEN || "";
+  const cfg = loadConfig();
+  const cookie = cfg.cookie || "";
+  const ctoken = cfg.ctoken || "";
 
   if (!cookie || !ctoken) {
     throw new Error(
-      "回收站 API 需要 Cookie 登录态。请设置环境变量 YUQUE_COOKIE 和 YUQUE_CTOKEN。" +
+      "回收站 API 需要 Cookie 登录态。请在 config/config.json 中配置 cookie 和 ctoken 字段。" +
       "获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
     );
   }

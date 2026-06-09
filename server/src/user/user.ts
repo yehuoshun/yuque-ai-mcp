@@ -7,9 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
-
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
+import { loadConfig } from "../common/config.js";
 
 interface YuqueUser {
   id: number;
@@ -24,8 +22,9 @@ export const userGet: McpTool = {
   description: "获取当前 Token 的用户详情（id、login、name、avatar_url、books_count、description 等）",
 
   async handler() {
-    const res = await fetch(`${YUQUE_API_BASE}/user`, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+    const cfg = loadConfig();
+    const res = await fetch(`${cfg.api_base}/user`, {
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取用户信息");

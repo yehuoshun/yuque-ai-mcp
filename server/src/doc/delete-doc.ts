@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const docDelete: McpTool = {
   name: "yuque_delete_doc",
@@ -25,13 +24,14 @@ export const docDelete: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const bookId = args?.book_id as string;
     const id = args?.id as string;
 
-    const url = `${YUQUE_API_BASE}/repos/${bookId}/docs/${id}`;
+    const url = `${cfg.api_base}/repos/${bookId}/docs/${id}`;
     const res = await fetch(url, {
       method: "DELETE",
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "删除文档");

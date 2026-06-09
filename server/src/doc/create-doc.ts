@@ -9,9 +9,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
@@ -31,6 +30,7 @@ export const docCreate: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const bookId = args?.book_id as string;
     const title = (args?.title as string) ?? "无标题";
     const slug = args?.slug as string | undefined;
@@ -42,11 +42,11 @@ export const docCreate: McpTool = {
     if (slug) payload.slug = slug;
     if (isPublic !== undefined) payload.public = isPublic;
 
-    const url = `${YUQUE_API_BASE}/repos/${bookId}/docs`;
+    const url = `${cfg.api_base}/repos/${bookId}/docs`;
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "X-Auth-Token": YUQUE_TOKEN,
+        "X-Auth-Token": cfg.token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),

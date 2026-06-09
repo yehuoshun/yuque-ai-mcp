@@ -55,11 +55,13 @@
 
 ## 配置
 
-| 环境变量 | 必填 | 说明 |
-|----------|------|------|
-| `YUQUE_TOKEN` | ✅ | v2 OpenAPI Token |
-| `YUQUE_API_BASE` | — | API 基地址，默认 `https://www.yuque.com/api/v2` |
-| `YUQUE_COOKIE` | 回收站 | 浏览器登录后的 Cookie 字符串 |
-| `YUQUE_CTOKEN` | 回收站 | Cookie 中的 `yuque_ctoken` 值 |
+复制 `config/config.example.json` 为 `config/config.json` 并填入 Token：
 
-详见 `server/.env.example`。
+```json
+{
+  "token": "语雀 API Token",
+  "api_base": "https://www.yuque.com/api/v2",
+  "cookie": "可选，回收站功能需要",
+  "ctoken": "可选，回收站功能需要"
+}
+```

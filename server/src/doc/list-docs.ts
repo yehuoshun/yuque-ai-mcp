@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const docList: McpTool = {
   name: "yuque_list_docs",
@@ -27,6 +26,7 @@ export const docList: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const bookId = args?.book_id as string;
     const offset = (args?.offset as number) ?? 0;
     const limit = (args?.limit as number) ?? 100;
@@ -37,9 +37,9 @@ export const docList: McpTool = {
     params.set("limit", String(Math.min(limit, 100)));
     if (opt) params.set("optional_properties", opt);
 
-    const url = `${YUQUE_API_BASE}/repos/${bookId}/docs?${params}`;
+    const url = `${cfg.api_base}/repos/${bookId}/docs?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取文档列表");

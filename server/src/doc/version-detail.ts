@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const docVersionDetail: McpTool = {
   name: "yuque_get_doc_version_detail",
@@ -24,11 +23,12 @@ export const docVersionDetail: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const id = args?.id as number;
 
-    const url = `${YUQUE_API_BASE}/doc_versions/${id}`;
+    const url = `${cfg.api_base}/doc_versions/${id}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取版本详情");

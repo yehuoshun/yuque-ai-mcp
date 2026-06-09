@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const groupStatistics: McpTool = {
   name: "yuque_get_group_statistics",
@@ -24,11 +23,12 @@ export const groupStatistics: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const login = args?.login as string;
 
-    const url = `${YUQUE_API_BASE}/groups/${login}/statistics`;
+    const url = `${cfg.api_base}/groups/${login}/statistics`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取团队统计");

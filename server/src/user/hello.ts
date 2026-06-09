@@ -7,17 +7,17 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const helloCheck: McpTool = {
   name: "yuque_hello",
   description: "心跳检测：测试语雀 API Token 是否有效，返回欢迎消息",
 
   async handler() {
-    const res = await fetch(`${YUQUE_API_BASE}/hello`, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+    const cfg = loadConfig();
+    const res = await fetch(`${cfg.api_base}/hello`, {
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "心跳检测");

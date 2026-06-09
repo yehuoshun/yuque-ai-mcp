@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const search: McpTool = {
   name: "yuque_search",
@@ -28,6 +27,7 @@ export const search: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const q = args?.q as string;
     const type = args?.type as string;
     const scope = args?.scope as string | undefined;
@@ -41,9 +41,9 @@ export const search: McpTool = {
     if (scope) params.set("scope", scope);
     if (creator) params.set("creator", creator);
 
-    const url = `${YUQUE_API_BASE}/search?${params}`;
+    const url = `${cfg.api_base}/search?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "搜索");

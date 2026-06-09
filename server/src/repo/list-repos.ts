@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const repoList: McpTool = {
   name: "yuque_list_repos",
@@ -28,6 +27,7 @@ export const repoList: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const login = args?.login as string;
     const type = args?.type as string | undefined;
     const offset = (args?.offset as number) ?? 0;
@@ -41,12 +41,12 @@ export const repoList: McpTool = {
     if (filterByAbility) params.set("filterByAbility", filterByAbility);
 
     // 先尝试用户端点，404 再试团队端点
-    let url = `${YUQUE_API_BASE}/users/${login}/repos?${params}`;
-    let res = await fetch(url, { headers: { "X-Auth-Token": YUQUE_TOKEN } });
+    let url = `${cfg.api_base}/users/${login}/repos?${params}`;
+    let res = await fetch(url, { headers: { "X-Auth-Token": cfg.token } });
 
     if (res.status === 404) {
-      url = `${YUQUE_API_BASE}/groups/${login}/repos?${params}`;
-      res = await fetch(url, { headers: { "X-Auth-Token": YUQUE_TOKEN } });
+      url = `${cfg.api_base}/groups/${login}/repos?${params}`;
+      res = await fetch(url, { headers: { "X-Auth-Token": cfg.token } });
     }
 
     if (!res.ok) return handleApiError(res, "获取知识库列表");

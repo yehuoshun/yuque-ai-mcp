@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const docStatistics: McpTool = {
   name: "yuque_get_doc_statistics",
@@ -31,6 +30,7 @@ export const docStatistics: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const login = args?.login as string;
     const bookId = args?.bookId as number | undefined;
     const name = args?.name as string | undefined;
@@ -49,9 +49,9 @@ export const docStatistics: McpTool = {
     if (name) params.set("name", name);
     if (sortField) params.set("sortField", sortField);
 
-    const url = `${YUQUE_API_BASE}/groups/${login}/statistics/docs?${params}`;
+    const url = `${cfg.api_base}/groups/${login}/statistics/docs?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取文档统计");

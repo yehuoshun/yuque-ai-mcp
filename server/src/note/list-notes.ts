@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const noteList: McpTool = {
   name: "yuque_list_notes",
@@ -25,6 +24,7 @@ export const noteList: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const status = args?.status as number | undefined;
     const page = (args?.page as number) ?? 1;
     const limit = (args?.limit as number) ?? 20;
@@ -34,9 +34,9 @@ export const noteList: McpTool = {
     params.set("limit", String(limit));
     if (status !== undefined) params.set("status", String(status));
 
-    const url = `${YUQUE_API_BASE}/notes?${params}`;
+    const url = `${cfg.api_base}/notes?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取小记列表");

@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const noteCreate: McpTool = {
   name: "yuque_create_note",
@@ -24,13 +23,14 @@ export const noteCreate: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const body = args?.body as string;
 
-    const url = `${YUQUE_API_BASE}/notes`;
+    const url = `${cfg.api_base}/notes`;
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "X-Auth-Token": YUQUE_TOKEN,
+        "X-Auth-Token": cfg.token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ body }),

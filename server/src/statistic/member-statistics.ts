@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 export const memberStatistics: McpTool = {
   name: "yuque_get_member_statistics",
@@ -30,6 +29,7 @@ export const memberStatistics: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const login = args?.login as string;
     const name = args?.name as string | undefined;
     const range = (args?.range as number) ?? 0;
@@ -46,9 +46,9 @@ export const memberStatistics: McpTool = {
     if (name) params.set("name", name);
     if (sortField) params.set("sortField", sortField);
 
-    const url = `${YUQUE_API_BASE}/groups/${login}/statistics/members?${params}`;
+    const url = `${cfg.api_base}/groups/${login}/statistics/members?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取成员统计");

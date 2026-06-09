@@ -7,9 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { loadConfig } from "../common/config.js";
 
-const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
-const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
 
 interface GroupUser {
   id: number;
@@ -64,6 +63,7 @@ export const groupListUsers: McpTool = {
   },
 
   async handler(args) {
+    const cfg = loadConfig();
     const login = args?.login as string;
     const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
@@ -72,9 +72,9 @@ export const groupListUsers: McpTool = {
     params.set("offset", String(offset));
     if (role !== undefined) params.set("role", String(role));
 
-    const url = `${YUQUE_API_BASE}/groups/${login}/users?${params}`;
+    const url = `${cfg.api_base}/groups/${login}/users?${params}`;
     const res = await fetch(url, {
-      headers: { "X-Auth-Token": YUQUE_TOKEN },
+      headers: { "X-Auth-Token": cfg.token },
     });
 
     if (!res.ok) return handleApiError(res, "获取团队成员");
