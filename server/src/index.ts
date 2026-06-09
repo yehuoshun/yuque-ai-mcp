@@ -20,8 +20,9 @@ import { docUpdate } from "./doc/update-doc.js";
 import { docDelete } from "./doc/delete-doc.js";
 import { docVersions } from "./doc/versions.js";
 import { docVersionDetail } from "./doc/version-detail.js";
+import { tocGet } from "./toc/get-toc.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet];
 
 async function main() {
   const server = new McpServer({

@@ -28,6 +28,7 @@
 | `yuque_delete_doc` | doc | 删除文档 |
 | `yuque_get_doc_versions` | doc | 获取文档历史版本 |
 | `yuque_get_doc_version_detail` | doc | 获取文档历史版本详情 |
+| `yuque_get_toc` | toc | 获取知识库目录 |
 
 ## 错误码
 
