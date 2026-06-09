@@ -19,8 +19,9 @@ import { docGet } from "./doc/get-doc.js";
 import { docUpdate } from "./doc/update-doc.js";
 import { docDelete } from "./doc/delete-doc.js";
 import { docVersions } from "./doc/versions.js";
+import { docVersionDetail } from "./doc/version-detail.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail];
 
 async function main() {
   const server = new McpServer({

@@ -392,3 +392,57 @@ GET /api/v2/doc_versions?doc_id={doc_id}
 | `created_at` | string | 创建时间 (ISO 8601) |
 | `updated_at` | string | 更新时间 (ISO 8601) |
 | `user` | object | V2User，发版人 |
+
+## 获取文档历史版本详情
+
+```http
+GET /api/v2/doc_versions/{id}
+```
+
+**用途**：获取指定版本的完整内容，包括正文和 diff。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| `id` | path | int | 版本 ID（必填） |
+
+### 返回结构
+
+```json
+{
+  "data": {
+    "id": 0,
+    "doc_id": 0,
+    "slug": "string",
+    "title": "string",
+    "user_id": 0,
+    "format": "markdown",
+    "body": "string",
+    "body_html": "string",
+    "body_asl": "string",
+    "diff": "string",
+    "created_at": "2019-08-24T14:15:22Z",
+    "updated_at": "2019-08-24T14:15:22Z",
+    "user": {}
+  }
+}
+```
+
+### 返回字段 (V2DocVersionDetail)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 版本 ID |
+| `doc_id` | int | 文档 ID |
+| `slug` | string | 该版本时的路径 |
+| `title` | string | 该版本时的标题 |
+| `user_id` | int | 发版人 ID |
+| `format` | string | 内容格式 |
+| `body` | string | Markdown 正文 |
+| `body_html` | string | HTML 正文 |
+| `body_asl` | string | Lake 格式正文 |
+| `diff` | string | 版本差异 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+| `user` | object | V2User，发版人 |
