@@ -6,6 +6,7 @@
  */
 
 import type { McpTool } from "../types.js";
+import { handleApiError } from "../errors.js";
 
 const YUQUE_API_BASE = process.env.YUQUE_API_BASE || "https://www.yuque.com/api/v2";
 const YUQUE_TOKEN = process.env.YUQUE_TOKEN || "";
@@ -45,10 +46,7 @@ export const search: McpTool = {
       headers: { "X-Auth-Token": YUQUE_TOKEN },
     });
 
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`搜索失败 (${res.status}): ${body}`);
-    }
+    if (!res.ok) return handleApiError(res, "搜索");
 
     const data = await res.json();
     return {
