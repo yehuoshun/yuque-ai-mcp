@@ -207,4 +207,3 @@ Referer: https://www.yuque.com/settings/stats
 | 小记 | `notes_count` / `_30` / `_365` | 小记数 |
 | 账号 | `days` | 注册天数 |
 
-## 知识库 API

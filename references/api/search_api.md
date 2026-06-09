@@ -90,4 +90,3 @@ GET /api/v2/search?q={query}&type={type}&scope={scope}&page={page}
 | `.data[].target.id` | 文档 ID |
 | `.data[].target.slug` | 文档 slug |
 
-## 小记 API

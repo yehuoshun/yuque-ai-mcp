@@ -70,4 +70,3 @@ GET /api/v2/groups/{login}/statistics/docs?bookId={bookId}&name={name}&range={ra
 
 **返回 JSON**：`data.docs` 为 `V2DocStatistics` 数组，`data.total` 为总数。
 
-## API 限制

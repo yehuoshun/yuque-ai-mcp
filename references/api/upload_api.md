@@ -71,4 +71,3 @@ Content-Type: application/octet-stream
 | 附件 | `attachment` | 500 MB | 1 GB |
 | 视频 | `video` | 500 MB | 1 GB |
 
-## 群组成员 API

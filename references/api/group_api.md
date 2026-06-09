@@ -68,4 +68,3 @@ DELETE /api/v2/groups/{login}/users/{id}
 
 **返回 JSON**：`{ "data": { "user_id": "string" } }`
 
-## 统计 API

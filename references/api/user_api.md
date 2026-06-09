@@ -47,5 +47,3 @@ GET /api/v2/user
 | `description` | string | 介绍 |
 | `created_at` | string | 创建时间 (ISO 8601) |
 | `updated_at` | string | 更新时间 (ISO 8601) |
-
-## 知识库 API
