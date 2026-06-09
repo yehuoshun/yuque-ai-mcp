@@ -28,8 +28,9 @@ import { repoGet } from "./repo/get-repo.js";
 import { repoUpdate } from "./repo/update-repo.js";
 import { repoDelete } from "./repo/delete-repo.js";
 import { groupStatistics } from "./statistic/group-statistics.js";
+import { memberStatistics } from "./statistic/member-statistics.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics, memberStatistics];
 
 async function main() {
   const server = new McpServer({

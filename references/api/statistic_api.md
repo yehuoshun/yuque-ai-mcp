@@ -116,3 +116,75 @@ GET /api/v2/groups/{login}/statistics
 | `working_hours` | string | 协同提效时长（小时） |
 | `baike` | string | 百科全书卷数 |
 | `table_count` | string | 数据表数量 |
+
+## 团队成员统计数据
+
+```http
+GET /api/v2/groups/{login}/statistics/members?range={range}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
+```
+
+**用途**：获取团队成员维度的统计数据，支持姓名过滤、时间范围和排序。
+
+> ⚠️ Token 需要 `statistic:read` 权限。limit ≤ 20。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 | 默认 |
+|------|------|------|------|------|
+| `login` | path | string | 团队的 Login 或 ID（必填） | - |
+| `name` | query | string | 成员名过滤 | - |
+| `range` | query | int | 时间范围：0=全部 / 30=近30天 / 365=近一年 | 0 |
+| `page` | query | int | 页码 | 1 |
+| `limit` | query | int | 每页数量 | 10（≤20） |
+| `sortField` | query | string | 排序字段：write_doc_count / write_count / read_count / like_count | - |
+| `sortOrder` | query | string | 排序方向：desc / asc | desc |
+
+### 返回结构
+
+```json
+{
+  "data": {
+    "members": {
+      "bizdate": "string",
+      "user_id": "string",
+      "group_id": "string",
+      "organization_id": "string",
+      "write_count": "string",
+      "write_count_30": "string",
+      "write_count_365": "string",
+      "write_doc_count": "string",
+      "write_doc_count_30": "string",
+      "write_doc_count_365": "string",
+      "read_count": "string",
+      "read_count_30": "string",
+      "read_count_365": "string",
+      "like_count": "string",
+      "like_count_30": "string",
+      "like_count_365": "string",
+      "user": "string"
+    },
+    "total": 0
+  }
+}
+```
+
+### 返回字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `members` | object | 成员统计数组 |
+| `members.user_id` | string | 成员 ID |
+| `members.user` | string | 成员名 |
+| `members.write_count` | string | 编辑次数 |
+| `members.write_count_30` | string | 编辑次数（30天） |
+| `members.write_count_365` | string | 编辑次数（一年） |
+| `members.write_doc_count` | string | 编辑文档数 |
+| `members.write_doc_count_30` | string | 编辑文档数（30天） |
+| `members.write_doc_count_365` | string | 编辑文档数（一年） |
+| `members.read_count` | string | 阅读量 |
+| `members.read_count_30` | string | 阅读量（30天） |
+| `members.read_count_365` | string | 阅读量（一年） |
+| `members.like_count` | string | 点赞量 |
+| `members.like_count_30` | string | 点赞量（30天） |
+| `members.like_count_365` | string | 点赞量（一年） |
+| `total` | int | 总数量 |

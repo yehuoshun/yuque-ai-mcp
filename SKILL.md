@@ -35,6 +35,7 @@
 | `yuque_update_repo` | repo | 更新知识库 |
 | `yuque_delete_repo` | repo | 删除知识库 |
 | `yuque_get_group_statistics` | statistic | 获取团队统计数据 |
+| `yuque_get_member_statistics` | statistic | 获取团队成员统计数据 |
 
 ## 错误码
 
