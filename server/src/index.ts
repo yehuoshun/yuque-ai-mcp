@@ -12,8 +12,9 @@ import { userGroups } from "./user/groups.js";
 import { search } from "./search/search.js";
 import { groupListUsers } from "./group/list-users.js";
 import { groupUpdateUser } from "./group/update-user.js";
+import { groupDeleteUser } from "./group/delete-user.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser];
+const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser];
 
 async function main() {
   const server = new McpServer({

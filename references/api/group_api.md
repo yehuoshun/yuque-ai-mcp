@@ -10,7 +10,7 @@ GET /api/v2/groups/{login}/users?role={role}&offset={offset}
 
 **用途**：获取指定团队的所有成员，支持角色过滤和分页。
 
-> ⚠️ 仅此两个 Group 端点可用。获取/创建/更新/删除团队均未开放。
+> ⚠️ 仅此三个 Group 端点可用。获取/创建/更新/删除团队均未开放。
 
 **PageSize 固定为 100**。
 
@@ -193,3 +193,34 @@ Content-Type: application/json
 | `updated_at` | string | 更新时间 (ISO 8601) |
 | `group` | object | V2Group，团队信息（字段同上） |
 | `user` | object | V2User，用户信息（字段同上） |
+
+## 删除成员
+
+```http
+DELETE /api/v2/groups/{login}/users/{id}
+```
+
+**用途**：将指定成员移出团队。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| `login` | path | string | 团队 Login 或 ID（必填） |
+| `id` | path | string | 用户 Login 或 ID（必填） |
+
+### 返回结构
+
+```json
+{
+  "data": {
+    "user_id": "string"
+  }
+}
+```
+
+### 返回字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `user_id` | string | 被删除的用户 ID |
