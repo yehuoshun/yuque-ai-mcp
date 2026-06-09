@@ -208,11 +208,10 @@ Content-Type: application/json
 
 ### 返回字段 (V2DocDetail)
 
+同 V2Doc，外加以下字段：
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | int | 文档 ID |
-| `slug` | string | 路径 |
-| `title` | string | 标题 |
 | `format` | string | 内容格式：markdown / lake / html |
 | `body` | string | 正文原始内容 |
 | `body_draft` | string | 正文草稿内容 |
@@ -220,12 +219,7 @@ Content-Type: application/json
 | `body_lake` | string | 正文 Lake 格式 |
 | `body_sheet` | string | 表格正文（type=Sheet 时返回） |
 | `body_table` | string | 数据表正文（type=Table 时返回） |
-| `public` | int | 0=私密 / 1=公开 / 2=企业内公开 |
-| `status` | string | 0=草稿 / 1=发布 |
-| `book` | object | V2Book，所属知识库 |
-| `user` | object | V2User，文档归属 |
 | `creator` | object | V2User，创建者 |
-| `latest_version_id` | int | 最新版本号 |
 
 ## 获取文档详情
 
@@ -431,18 +425,12 @@ GET /api/v2/doc_versions/{id}
 
 ### 返回字段 (V2DocVersionDetail)
 
+同 V2DocVersion，外加以下字段：
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | int | 版本 ID |
-| `doc_id` | int | 文档 ID |
-| `slug` | string | 该版本时的路径 |
-| `title` | string | 该版本时的标题 |
-| `user_id` | int | 发版人 ID |
 | `format` | string | 内容格式 |
 | `body` | string | Markdown 正文 |
 | `body_html` | string | HTML 正文 |
 | `body_asl` | string | Lake 格式正文 |
 | `diff` | string | 版本差异 |
-| `created_at` | string | 创建时间 (ISO 8601) |
-| `updated_at` | string | 更新时间 (ISO 8601) |
-| `user` | object | V2User，发版人 |
