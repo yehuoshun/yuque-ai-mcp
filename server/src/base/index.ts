@@ -1,1 +1,0 @@
-export { userGet } from "./user.js";

@@ -6,7 +6,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { userGet } from "./base/index.js";
+import { userGet } from "./base/user.js";
 
 const tools = [userGet];
 
