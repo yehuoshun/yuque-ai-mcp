@@ -14,6 +14,6 @@
 
 | 工具 | 域 | 说明 |
 |------|-----|------|
-| `yuque_get_user` | base | 获取当前 Token 的用户详情 |
-| `yuque_hello` | base | 心跳检测，验证 Token 有效性 |
-| `yuque_get_user_groups` | base | 获取用户所属的团队列表 |
+| `yuque_get_user` | user | 获取当前 Token 的用户详情 |
+| `yuque_hello` | user | 心跳检测，验证 Token 有效性 |
+| `yuque_get_user_groups` | user | 获取用户所属的团队列表 |

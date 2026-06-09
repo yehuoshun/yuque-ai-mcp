@@ -1,5 +1,5 @@
 /**
- * base/groups — 获取用户所属的团队列表
+ * user/groups — 获取用户所属的团队列表
  *
  * 端点：GET /api/v2/users/:id/groups
  * 职责：获取指定用户加入的所有团队

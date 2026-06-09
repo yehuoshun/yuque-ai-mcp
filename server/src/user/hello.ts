@@ -1,5 +1,5 @@
 /**
- * base/hello — 心跳检测
+ * user/hello — 心跳检测
  *
  * 端点：GET /api/v2/hello
  * 职责：测试 Token 有效性和 API 连通性

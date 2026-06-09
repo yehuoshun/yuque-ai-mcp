@@ -1,5 +1,5 @@
 /**
- * base/user — 获取当前 Token 的用户详情
+ * user/user — 获取当前 Token 的用户详情
  *
  * 端点：GET /api/v2/user
  * 职责：返回当前 Token 对应的用户完整信息
