@@ -31,3 +31,12 @@ declare module "@modelcontextprotocol/sdk/server/stdio.js" {
     constructor();
   }
 }
+
+declare module "@modelcontextprotocol/sdk/server/sse.js" {
+  import { IncomingMessage, ServerResponse } from "http";
+  export class SSEServerTransport {
+    readonly sessionId: string;
+    constructor(endpoint: string, res: ServerResponse);
+    handlePostMessage(req: IncomingMessage, res: ServerResponse): Promise<void>;
+  }
+}
