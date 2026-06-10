@@ -15,10 +15,10 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分，10 个域 33 个文件） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 工具注册中心，10 个域 35 个文件） |
 | 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie + 会员等级） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
-| HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（独立进程，修改无需重启 Gateway） |
+| HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
 | 配套 Skill 层 | ❌ 无 | ✅ [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)（33 个使用指导） |
 
 ## 架构
@@ -26,10 +26,11 @@
 ```
 server/
 ├── src/
-│   ├── common/          # 公共模块：配置、错误处理、类型定义
+│   ├── common/          # 公共模块：配置、错误处理、类型定义、工具注册
 │   │   ├── config.ts
 │   │   ├── errors.ts
-│   │   └── types.ts
+│   │   ├── types.ts
+│   │   └── register-tools.ts  # 工具注册中心（唯一真实来源）
 │   ├── user/            # 用户信息
 │   │   ├── user.ts      # GET /api/v2/user
 │   │   ├── hello.ts     # GET /api/v2/hello
@@ -52,7 +53,8 @@ server/
 │   ├── note/            # 小记
 │   ├── recycle/         # 回收站（Web API，Cookie 认证）
 │   ├── upload/          # 文件上传（Web API，Cookie 认证）
-│   └── index.ts         # MCP Server 入口
+│   ├── index.ts         # MCP Server 入口（stdio）
+│   └── http.ts           # HTTP Server 入口（SSE）
 ├── references/api/      # API 文档参考（11 个域）
 ├── config/              # 配置文件
 └── package.json
