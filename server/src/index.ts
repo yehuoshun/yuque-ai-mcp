@@ -11,6 +11,7 @@ import { userGet } from "./user/user.js";
 import { helloCheck } from "./user/hello.js";
 import { userGroups } from "./user/groups.js";
 import { search } from "./search/search.js";
+import { hydeSearch } from "./search/hyde-search.js";
 import { groupListUsers } from "./group/list-users.js";
 import { groupUpdateUser } from "./group/update-user.js";
 import { groupDeleteUser } from "./group/delete-user.js";
@@ -41,7 +42,7 @@ import { recycleRestore } from "./recycle/restore-recycle.js";
 import { recycleDestroy } from "./recycle/destroy-recycle.js";
 import { uploadAttachment } from "./upload/attachment.js";
 
-const tools = [userGet, helloCheck, userGroups, search, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics, memberStatistics, bookStatistics, docStatistics, noteList, noteGet, noteCreate, noteUpdate, recycleList, recycleRestore, recycleDestroy, uploadAttachment];
+const tools = [userGet, helloCheck, userGroups, search, hydeSearch, groupListUsers, groupUpdateUser, groupDeleteUser, docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail, tocGet, tocUpdate, repoList, repoCreate, repoGet, repoUpdate, repoDelete, groupStatistics, memberStatistics, bookStatistics, docStatistics, noteList, noteGet, noteCreate, noteUpdate, recycleList, recycleRestore, recycleDestroy, uploadAttachment];
 
 async function main() {
   const server = new McpServer({
