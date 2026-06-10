@@ -91,7 +91,12 @@ cp config/config.example.json config/config.json
 ### 运行
 
 ```bash
+# 生产模式（编译后运行）
 npm start
+
+# 开发模式（tsx 热重载，无需编译）
+npm run dev        # stdio 模式
+npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
 ## 工具列表（34 个）
