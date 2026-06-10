@@ -12,6 +12,7 @@ import { userGet } from "./user/user.js";
 import { helloCheck } from "./user/hello.js";
 import { userGroups } from "./user/groups.js";
 import { search } from "./search/search.js";
+import { hydeSearch } from "./search/hyde-search.js";
 import { groupListUsers } from "./group/list-users.js";
 import { groupUpdateUser } from "./group/update-user.js";
 import { groupDeleteUser } from "./group/delete-user.js";
@@ -43,7 +44,7 @@ import { recycleDestroy } from "./recycle/destroy-recycle.js";
 import { uploadAttachment } from "./upload/attachment.js";
 
 const tools = [
-  userGet, helloCheck, userGroups, search,
+  userGet, helloCheck, userGroups, search, hydeSearch,
   groupListUsers, groupUpdateUser, groupDeleteUser,
   docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail,
   tocGet, tocUpdate,
