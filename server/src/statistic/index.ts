@@ -1,0 +1,10 @@
+export { groupStatistics } from "./group-statistics.js";
+export { memberStatistics } from "./member-statistics.js";
+export { bookStatistics } from "./book-statistics.js";
+export { docStatistics } from "./doc-statistics.js";
+import { groupStatistics } from "./group-statistics.js";
+import { memberStatistics } from "./member-statistics.js";
+import { bookStatistics } from "./book-statistics.js";
+import { docStatistics } from "./doc-statistics.js";
+import type { McpTool } from "../common/types.js";
+export const statisticTools: McpTool[] = [groupStatistics, memberStatistics, bookStatistics, docStatistics];

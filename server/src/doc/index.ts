@@ -1,0 +1,16 @@
+export { docList } from "./list-docs.js";
+export { docCreate } from "./create-doc.js";
+export { docGet } from "./get-doc.js";
+export { docUpdate } from "./update-doc.js";
+export { docDelete } from "./delete-doc.js";
+export { docVersions } from "./versions.js";
+export { docVersionDetail } from "./version-detail.js";
+import { docList } from "./list-docs.js";
+import { docCreate } from "./create-doc.js";
+import { docGet } from "./get-doc.js";
+import { docUpdate } from "./update-doc.js";
+import { docDelete } from "./delete-doc.js";
+import { docVersions } from "./versions.js";
+import { docVersionDetail } from "./version-detail.js";
+import type { McpTool } from "../common/types.js";
+export const docTools: McpTool[] = [docList, docCreate, docGet, docUpdate, docDelete, docVersions, docVersionDetail];

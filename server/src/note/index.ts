@@ -1,0 +1,10 @@
+export { noteList } from "./list-notes.js";
+export { noteGet } from "./get-note.js";
+export { noteCreate } from "./create-note.js";
+export { noteUpdate } from "./update-note.js";
+import { noteList } from "./list-notes.js";
+import { noteGet } from "./get-note.js";
+import { noteCreate } from "./create-note.js";
+import { noteUpdate } from "./update-note.js";
+import type { McpTool } from "../common/types.js";
+export const noteTools: McpTool[] = [noteList, noteGet, noteCreate, noteUpdate];

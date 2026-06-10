@@ -15,7 +15,7 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 工具注册中心，10 个域 35 个文件） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，10 个域 45 个文件） |
 | 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie + 会员等级） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
 | HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
@@ -31,14 +31,17 @@ server/
 │   │   ├── errors.ts
 │   │   ├── types.ts
 │   │   └── register-tools.ts  # 工具注册中心（唯一真实来源）
-│   ├── user/            # 用户信息
+│   ├── user/            # 用户信息（含 index.ts barrel）
+│   │   ├── index.ts     # 域 barrel（userTools）
 │   │   ├── get-user.ts  # GET /api/v2/user
 │   │   ├── hello.ts     # GET /api/v2/hello
 │   │   └── get-groups.ts # GET /api/v2/users/:id/groups
-│   ├── search/          # 搜索
+│   ├── search/          # 搜索（含 index.ts barrel）
+│   │   ├── index.ts
 │   │   ├── search.ts    # GET /api/v2/search
 │   │   └── hyde-search.ts  # HyDE 降级搜索（关键词过滤 + 并发多路搜索）
-│   ├── doc/             # 文档 CRUD
+│   ├── doc/             # 文档 CRUD（含 index.ts barrel）
+│   │   ├── index.ts
 │   │   ├── list-docs.ts
 │   │   ├── get-doc.ts
 │   │   ├── create-doc.ts
@@ -46,13 +49,13 @@ server/
 │   │   ├── delete-doc.ts
 │   │   ├── versions.ts
 │   │   └── version-detail.ts
-│   ├── repo/            # 知识库 CRUD
-│   ├── group/           # 团队成员管理
-│   ├── toc/             # 目录导航
-│   ├── statistic/       # 统计数据
-│   ├── note/            # 小记
-│   ├── recycle/         # 回收站（Web API，Cookie 认证）
-│   ├── upload/          # 文件上传（Web API，Cookie 认证）
+│   ├── repo/            # 知识库 CRUD（含 index.ts barrel）
+│   ├── group/           # 团队成员管理（含 index.ts barrel）
+│   ├── toc/             # 目录导航（含 index.ts barrel）
+│   ├── statistic/       # 统计数据（含 index.ts barrel）
+│   ├── note/            # 小记（含 index.ts barrel）
+│   ├── recycle/         # 回收站（含 index.ts barrel）
+│   ├── upload/          # 文件上传（含 index.ts barrel）
 │   ├── index.ts         # MCP Server 入口（stdio）
 │   └── http.ts           # HTTP Server 入口（SSE）
 ├── references/api/      # API 文档参考（11 个域）
