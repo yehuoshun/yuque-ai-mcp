@@ -32,9 +32,9 @@ server/
 │   │   ├── types.ts
 │   │   └── register-tools.ts  # 工具注册中心（唯一真实来源）
 │   ├── user/            # 用户信息
-│   │   ├── user.ts      # GET /api/v2/user
+│   │   ├── get-user.ts  # GET /api/v2/user
 │   │   ├── hello.ts     # GET /api/v2/hello
-│   │   └── groups.ts    # GET /api/v2/users/:id/groups
+│   │   └── get-groups.ts # GET /api/v2/users/:id/groups
 │   ├── search/          # 搜索
 │   │   ├── search.ts    # GET /api/v2/search
 │   │   └── hyde-search.ts  # HyDE 降级搜索（关键词过滤 + 并发多路搜索）

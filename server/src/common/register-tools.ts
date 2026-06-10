@@ -9,13 +9,13 @@ import { z } from "zod";
 import type { McpTool } from "./types.js";
 
 // ── user ──
-import { userGet } from "../user/user.js";
-import { helloCheck } from "../user/hello.js";
-import { userGroups } from "../user/groups.js";
+import { userGet } from "../user/get-user.js";
+import { userHello } from "../user/hello.js";
+import { userGetGroups } from "../user/get-groups.js";
 
 // ── search ──
-import { search } from "../search/search.js";
-import { hydeSearch } from "../search/hyde-search.js";
+import { searchGeneral } from "../search/search.js";
+import { searchHyde } from "../search/hyde-search.js";
 
 // ── group ──
 import { groupListUsers } from "../group/list-users.js";
@@ -60,14 +60,14 @@ import { recycleRestore } from "../recycle/restore-recycle.js";
 import { recycleDestroy } from "../recycle/destroy-recycle.js";
 
 // ── upload ──
-import { uploadAttachment } from "../upload/attachment.js";
+import { uploadAttachment } from "../upload/upload-attachment.js";
 
 /** 所有工具（按域分组，唯一真实来源） */
 export const ALL_TOOLS: McpTool[] = [
   // user
-  userGet, helloCheck, userGroups,
+  userGet, userHello, userGetGroups,
   // search
-  search, hydeSearch,
+  searchGeneral, searchHyde,
   // group
   groupListUsers, groupUpdateUser, groupDeleteUser,
   // doc

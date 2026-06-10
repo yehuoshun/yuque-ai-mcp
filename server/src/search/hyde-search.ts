@@ -97,7 +97,7 @@ async function searchYuque(
 
 // ─── Tool 定义 ────────────────────────────────────
 
-export const hydeSearch: McpTool = {
+export const searchHyde: McpTool = {
   name: "yuque_hyde_search",
   description:
     "HyDE 降级搜索：接收 Agent 生成的搜索关键词，过滤语雀分词器不支持的符号（- . _），" +

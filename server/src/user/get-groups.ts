@@ -25,7 +25,7 @@ interface Group {
   updated_at: string;
 }
 
-export const userGroups: McpTool = {
+export const userGetGroups: McpTool = {
   name: "yuque_get_user_groups",
   description: "获取用户所属的团队列表（id 支持 login 或 ID，role 可过滤管理员/成员，PageSize 固定 100）",
 

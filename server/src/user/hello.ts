@@ -10,7 +10,7 @@ import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
 
-export const helloCheck: McpTool = {
+export const userHello: McpTool = {
   name: "yuque_hello",
   description: "心跳检测：测试语雀 API Token 是否有效，返回欢迎消息",
 

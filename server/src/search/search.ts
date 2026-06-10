@@ -10,7 +10,7 @@ import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
 
-export const search: McpTool = {
+export const searchGeneral: McpTool = {
   name: "yuque_search",
   description: "通用搜索：搜索语雀文档或知识库（PageSize 固定 20，支持 scope 范围过滤）",
 
