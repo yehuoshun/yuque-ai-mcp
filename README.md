@@ -2,6 +2,25 @@
 
 语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 33 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
 
+## 与官方版对比
+
+| 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
+|--------|------|------|
+| 工具数量 | 19 个 | **33 个** |
+| 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
+| 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
+| 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
+| 文件上传 | ❌ 不支持 | ✅ upload 域（图片/附件/视频） |
+| 统计数据 | ❌ 不支持 | ✅ statistic 域（4 个维度） |
+| 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
+| 知识库删除 | ❌ 不支持 | ✅ delete_repo |
+| 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分，10 个域 33 个文件） |
+| 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie + 会员等级） |
+| 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
+| HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（独立进程，修改无需重启 Gateway） |
+| 配套 Skill 层 | ❌ 无 | ✅ [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)（33 个使用指导） |
+
 ## 架构
 
 ```
