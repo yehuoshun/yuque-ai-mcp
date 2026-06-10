@@ -13,6 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 interface Config {
   token: string;
   api_base: string;
+  membership?: "pro" | "super";
   cookie?: string;
   ctoken?: string;
 }

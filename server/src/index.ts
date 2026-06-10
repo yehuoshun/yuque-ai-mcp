@@ -6,6 +6,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { userGet } from "./user/user.js";
 import { helloCheck } from "./user/hello.js";
 import { userGroups } from "./user/groups.js";
@@ -50,9 +51,24 @@ async function main() {
 
   for (const tool of tools) {
     if (tool.inputSchema) {
+      // 将 JSON Schema 格式转为 Zod raw shape
+      const shape: Record<string, z.ZodTypeAny> = {};
+      for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
+        const p = prop as { type: string; description?: string };
+        let zodType: z.ZodTypeAny;
+        switch (p.type) {
+          case "string": zodType = z.string(); break;
+          case "number": zodType = z.number(); break;
+          case "boolean": zodType = z.boolean(); break;
+          default: zodType = z.string();
+        }
+        if (p.description) zodType = zodType.describe(p.description);
+        if (!tool.inputSchema.required?.includes(key)) zodType = zodType.optional();
+        shape[key] = zodType;
+      }
       server.registerTool(tool.name, {
         description: tool.description,
-        inputSchema: tool.inputSchema,
+        inputSchema: shape,
       }, tool.handler as any);
     } else {
       server.registerTool(tool.name, { description: tool.description }, tool.handler as any);
