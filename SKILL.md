@@ -18,7 +18,7 @@
 | `GET /api/v2/hello` | user | 心跳检测，验证 Token 有效性 |
 | `GET /api/v2/users/:id/groups` | user | 获取用户所属的团队列表 |
 | `GET /api/v2/search` | search | 通用搜索文档/知识库 |
-| `GET /api/v2/search` (HyDE) | search | HyDE 降级搜索（LLM 生成关键词 + 多路搜索合并去重） |
+| RAG 检索增强 | search | RAG 搜索 + 读文档（搜索结果自动获取文档内容） |
 | `GET /api/v2/groups/:login/users` | group | 获取团队成员列表 |
 | `PUT /api/v2/groups/:login/users/:id` | group | 变更团队成员角色 |
 | `DELETE /api/v2/groups/:login/users/:id` | group | 删除团队成员 |

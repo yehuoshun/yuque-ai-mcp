@@ -1,14 +1,16 @@
 /**
- * search/hyde-search — HyDE 降级搜索
+ * search/rag-search — RAG 检索增强生成搜索
  *
- * 流程（Agent 侧）：
- *   1. Agent 用 LLM 生成假设文档 + 关键词（HyDE）
+ * 流程：
+ *   1. Agent 用 LLM 生成搜索关键词
  *   2. 调本工具，传入关键词列表
  *   3. 本工具：过滤语雀分词器不支持的符号（- . _）
  *   4. 并发调语雀搜索
  *   5. 按 doc_id 去重合并
+ *   6. 获取前 N 篇文档的完整内容
+ *   7. 返回搜索结果 + 文档内容，由 Agent 侧 LLM 总结
  *
- * 端点：复用 GET /api/v2/search
+ * 端点：复用 GET /api/v2/search + GET /api/v2/repos/docs/:id
  */
 
 import type { McpTool } from "../common/types.js";
@@ -22,12 +24,6 @@ const SPLIT_CHARS = /[-._]/;
 /** 需要丢弃的纯符号 */
 const STRIP_CHARS = /[\[\](){}<>【】「」『』""'']/g;
 
-/**
- * 将原始关键词转为语雀搜索友好的版本
- *   - 含 - . _ → 拆成空格分隔版 + 去符号拼接版
- *   - 纯符号 → 丢弃
- *   - 中文/英文/数字 → 原样保留
- */
 function normalizeKeywords(raw: string[]): string[] {
   const result: string[] = [];
   for (const kw of raw) {
@@ -95,19 +91,54 @@ async function searchYuque(
   }));
 }
 
+// ─── 获取文档内容 ────────────────────────────────
+
+interface DocContent {
+  doc_id: number;
+  title: string;
+  body: string;
+  url: string;
+  book_name: string;
+}
+
+async function fetchDoc(
+  docId: number,
+  cfg: ReturnType<typeof loadConfig>,
+): Promise<DocContent | null> {
+  const url = `${cfg.api_base}/repos/docs/${docId}`;
+  const res = await fetch(url, {
+    headers: { "X-Auth-Token": cfg.token },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const doc = data?.data;
+  if (!doc) return null;
+
+  return {
+    doc_id: docId,
+    title: doc.title ?? "",
+    body: doc.body ?? "",
+    url: `https://www.yuque.com/${doc.book?.namespace ?? ""}/${doc.slug ?? ""}`,
+    book_name: doc.book?.name ?? "",
+  };
+}
+
 // ─── Tool 定义 ────────────────────────────────────
 
-export const searchHyde: McpTool = {
-  name: "yuque_hyde_search",
+export const searchRag: McpTool = {
+  name: "yuque_rag_search",
   description:
-    "HyDE 降级搜索：接收 Agent 生成的搜索关键词，过滤语雀分词器不支持的符号（- . _），" +
-    "并发多路搜索语雀全库，按 doc_id 去重合并。关键词由 Agent 侧的 HyDE skill 生成。",
+    "RAG 检索增强搜索：接收 Agent 生成的关键词，并发多路搜索语雀全库，" +
+    "按 doc_id 去重合并，并获取前 N 篇文档的完整内容。" +
+    "关键词由 Agent 侧 LLM 生成，文档内容由 Agent 侧 LLM 总结。",
   inputSchema: {
     type: "object",
     properties: {
       keywords: {
         type: "string",
-        description: "搜索关键词列表，逗号分隔。由 Agent 通过 HyDE（假设文档）策略生成，5-10 个为宜",
+        description: "搜索关键词列表，逗号分隔。由 Agent 通过 LLM 生成，5-10 个为宜",
       },
       scope: {
         type: "string",
@@ -116,7 +147,11 @@ export const searchHyde: McpTool = {
       creator: { type: "string", description: "仅搜索指定作者 login" },
       max_results: {
         type: "number",
-        description: "最大返回结果数（默认 30）",
+        description: "最大搜索结果数（默认 10）",
+      },
+      fetch_docs: {
+        type: "number",
+        description: "获取前 N 篇文档的完整内容（默认 3，最大 5）",
       },
     },
     required: ["keywords"],
@@ -127,7 +162,8 @@ export const searchHyde: McpTool = {
     const keywordsStr = args?.keywords as string;
     const scope = args?.scope as string | undefined;
     const creator = args?.creator as string | undefined;
-    const maxResults = (args?.max_results as number) ?? 30;
+    const maxResults = (args?.max_results as number) ?? 10;
+    const fetchDocs = Math.min((args?.fetch_docs as number) ?? 3, 5);
 
     // 解析关键词
     const rawKeywords = keywordsStr
@@ -140,8 +176,9 @@ export const searchHyde: McpTool = {
         content: [{
           type: "text" as const,
           text: JSON.stringify({
-            meta: { total: 0, method: "no_keywords", keywords_used: [] },
+            meta: { total: 0, method: "rag_search", keywords_used: [] },
             data: [],
+            docs: [],
           }, null, 2),
         }],
       };
@@ -169,17 +206,25 @@ export const searchHyde: McpTool = {
 
     const finalResults = merged.slice(0, maxResults);
 
+    // 获取前 N 篇文档的完整内容
+    const docsToFetch = finalResults.slice(0, fetchDocs);
+    const docs = (await Promise.all(
+      docsToFetch.map((r) => fetchDoc(r.doc_id, cfg)),
+    )).filter(Boolean) as DocContent[];
+
     return {
       content: [{
         type: "text" as const,
         text: JSON.stringify({
           meta: {
             total: finalResults.length,
-            method: "keyword_search",
+            method: "rag_search",
             keywords_used: keywords,
             raw_keywords: rawKeywords,
+            docs_fetched: docs.length,
           },
           data: finalResults,
+          docs,
         }, null, 2),
       }],
     };
