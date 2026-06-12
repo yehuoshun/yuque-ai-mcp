@@ -13,7 +13,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoList: McpTool = {
   name: "yuque_list_repos",
-  description: "获取用户或团队的知识库列表（login 支持 Login 或 ID，type 可过滤 Book/Design，limit ≤ 100）",
+  description: "获取用户或团队的知识库列表（login 支持 Login 或 ID，type 可过滤 Book/Design，limit ≤ 100，默认按更新时间倒序）",
 
   inputSchema: {
     type: "object",

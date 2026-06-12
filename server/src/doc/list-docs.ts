@@ -13,7 +13,7 @@ import { formatDocSummary, wrapResult } from "../common/format.js";
 
 export const docList: McpTool = {
   name: "yuque_list_docs",
-  description: "获取知识库的文档列表（book_id 支持 ID 或 namespace 格式如 group/book_slug，limit ≤ 100，支持 optional_properties）",
+  description: "获取知识库的文档列表（book_id 支持 ID 或 namespace 格式如 group/book_slug，limit ≤ 100，默认按更新时间倒序，支持 optional_properties）",
 
   inputSchema: {
     type: "object",

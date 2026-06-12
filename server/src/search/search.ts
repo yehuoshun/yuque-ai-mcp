@@ -12,7 +12,7 @@ import { loadConfig } from "../common/config.js";
 
 export const searchGeneral: McpTool = {
   name: "yuque_search",
-  description: "通用搜索：搜索语雀文档或知识库（PageSize 固定 20，支持 scope 范围过滤）",
+  description: "通用搜索：搜索语雀文档或知识库（PageSize 固定 20，返回 title/summary/url/book_name 等，支持 scope 范围过滤）",
 
   inputSchema: {
     type: "object",

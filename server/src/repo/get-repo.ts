@@ -13,7 +13,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoGet: McpTool = {
   name: "yuque_get_repo",
-  description: "获取知识库详情（book_id 支持 ID 或 namespace，返回含 toc_yml 目录的完整信息）",
+  description: "获取知识库详情（book_id 支持 ID 或 namespace，返回 name/description/public/items_count/likes_count/toc_yml 等完整信息）",
 
   inputSchema: {
     type: "object",

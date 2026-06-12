@@ -12,7 +12,7 @@ import { loadConfig } from "../common/config.js";
 
 export const userHello: McpTool = {
   name: "yuque_hello",
-  description: "心跳检测：测试语雀 API Token 是否有效，返回欢迎消息",
+  description: "心跳检测：测试语雀 API Token 是否有效，返回欢迎消息（含 message 字段）",
 
   async handler() {
     const cfg = loadConfig();
