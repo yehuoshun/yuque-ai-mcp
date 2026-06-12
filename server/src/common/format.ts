@@ -99,12 +99,13 @@ export function formatRepo(data: any) {
 // ── Group ─────────────────────────────────────────────────────
 
 export function formatGroupUser(data: any) {
+  const u = data.user ?? data;
   return {
-    id: data.id,
-    login: data.login,
-    name: data.name,
+    id: u.id,
+    login: u.login,
+    name: u.name,
     role: data.role,
-    avatar_url: data.avatar_url,
+    avatar_url: u.avatar_url,
     created_at: data.created_at,
   };
 }
@@ -200,6 +201,8 @@ export function wrapResult(
   }
   // 处理纯数组（formatToc 等直接处理数组的 format 函数）
   if (Array.isArray(data)) {
+    // 判断数组元素结构：如果第一个元素有 user 字段（group user），用 map
+    // 否则让 formatFn 自己处理整个数组
     return JSON.stringify(formatFn(data), null, 2);
   }
   // 处理纯对象

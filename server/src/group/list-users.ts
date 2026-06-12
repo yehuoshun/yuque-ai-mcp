@@ -83,8 +83,11 @@ export const groupListUsers: McpTool = {
     if (!res.ok) return handleApiError(res, "获取团队成员");
 
     const { data } = (await res.json()) as { data: GroupUser[] };
+    const result = raw
+      ? JSON.stringify(data, null, 2)
+      : JSON.stringify(data.map(formatGroupUser), null, 2);
     return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatGroupUser, raw) }],
+      content: [{ type: "text" as const, text: result }],
     };
   },
 };
