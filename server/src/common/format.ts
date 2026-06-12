@@ -123,6 +123,7 @@ export function formatNote(data: any) {
     book_id: d.book_id,
     created_at: d.created_at,
     updated_at: d.updated_at,
+    note_url: d.note_url,
   };
 }
 
