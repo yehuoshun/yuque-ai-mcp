@@ -17,7 +17,7 @@ import { statisticTools } from "../statistic/index.js";
 import { noteTools } from "../note/index.js";
 import { recycleTools } from "../recycle/index.js";
 import { uploadTools } from "../upload/index.js";
-import { resourceTools } from "../resource/index.js";
+import { boardTools } from "../board/index.js";
 
 /** 所有工具（按域展开，唯一真实来源） */
 export const ALL_TOOLS = [
@@ -31,7 +31,7 @@ export const ALL_TOOLS = [
   ...noteTools,
   ...recycleTools,
   ...uploadTools,
-  ...resourceTools,
+  ...boardTools,
 ];
 
 /** 将 JSON Schema 转为 Zod raw shape 并注册到 McpServer */

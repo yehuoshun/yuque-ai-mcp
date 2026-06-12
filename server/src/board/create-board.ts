@@ -9,8 +9,8 @@ import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
-export const resourceCreate: McpTool = {
-  name: "yuque_create_resource",
+export const boardCreate: McpTool = {
+  name: "yuque_create_board",
   description: "在文档中创建画板资源（思维导图/流程图/架构图），需传 type 和 DSL 文本内容",
 
   inputSchema: {

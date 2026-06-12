@@ -9,8 +9,8 @@ import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
-export const resourceGet: McpTool = {
-  name: "yuque_get_resource",
+export const boardGet: McpTool = {
+  name: "yuque_get_board",
   description: "获取文档中的画板资源（思维导图/流程图/架构图），返回 JSON DSL 和摘要统计",
 
   inputSchema: {

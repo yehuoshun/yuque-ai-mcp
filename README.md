@@ -57,7 +57,7 @@ server/
 │   ├── note/            # 小记（含 index.ts barrel）
 │   ├── recycle/         # 回收站（含 index.ts barrel）
 │   ├── upload/          # 文件上传（含 index.ts barrel）
-│   └── resource/        # 画板资源（含 index.ts barrel）
+│   └── board/        # 画板资源（含 index.ts barrel）
 │   ├── index.ts         # MCP Server 入口（stdio）
 │   └── http.ts           # HTTP Server 入口（SSE）
 ├── references/api/      # API 文档参考（11 个域）
@@ -181,12 +181,12 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 |------|------|------|
 | `yuque_upload_attachment` | `POST /api/upload/attach` | Cookie |
 
-### resource — 画板资源
+### board — 画板资源
 | 工具 | 端点 |
 |------|------|
-| `yuque_get_resource` | `GET /api/v2/yfm/boards` |
-| `yuque_create_resource` | `POST /api/v2/yfm/boards` |
-| `yuque_update_resource` | `PUT /api/v2/yfm/boards` |
+| `yuque_get_board` | `GET /api/v2/yfm/boards` |
+| `yuque_create_board` | `POST /api/v2/yfm/boards` |
+| `yuque_update_board` | `PUT /api/v2/yfm/boards` |
 
 ## 错误处理
 

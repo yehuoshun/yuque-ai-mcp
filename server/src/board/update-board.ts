@@ -9,8 +9,8 @@ import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
-export const resourceUpdate: McpTool = {
-  name: "yuque_update_resource",
+export const boardUpdate: McpTool = {
+  name: "yuque_update_board",
   description: "更新文档中的画板资源（思维导图/流程图/架构图），text 和 dsl 二选一，text 更新文本 DSL，dsl 更新 JSON DSL",
 
   inputSchema: {
