@@ -131,9 +131,9 @@ export function formatNoteSummary(data: any) {
   return {
     id: d.id,
     slug: d.slug,
-    title: d.title,
     word_count: d.word_count,
     updated_at: d.updated_at,
+    abstract: (d.content?.abstract || "").replace(/<[^>]*>/g, "").substring(0, 200),
   };
 }
 

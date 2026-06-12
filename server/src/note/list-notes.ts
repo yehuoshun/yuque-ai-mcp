@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
-import { formatNoteSummary, wrapResult } from "../common/format.js";
+import { formatNoteSummary } from "../common/format.js";
 
 
 export const noteList: McpTool = {
@@ -44,8 +44,17 @@ export const noteList: McpTool = {
     if (!res.ok) return handleApiError(res, "获取小记列表");
 
     const data = await res.json();
+    const notes = data?.data?.notes || [];
+    const pinNotes = data?.data?.pin_notes || [];
+    const formatted = {
+      pin_notes: pinNotes.map(formatNoteSummary),
+      notes: notes.map(formatNoteSummary),
+    };
+    const result = raw
+      ? JSON.stringify(data, null, 2)
+      : JSON.stringify(formatted, null, 2);
     return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatNoteSummary, raw) }],
+      content: [{ type: "text" as const, text: result }],
     };
   },
 };
