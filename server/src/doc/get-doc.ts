@@ -10,6 +10,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatDoc, wrapResult } from "../common/format.js";
 
 
 export const docGet: McpTool = {
@@ -22,6 +23,7 @@ export const docGet: McpTool = {
       id: { type: "string", description: "文档 ID 或 slug（必填）" },
       page_size: { type: "number", description: "数据表分页大小，1-200，默认 100" },
       page: { type: "number", description: "数据表页码，≥1，默认 1" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["id"],
   },
@@ -31,6 +33,7 @@ export const docGet: McpTool = {
     const id = args?.id as string;
     const pageSize = (args?.page_size as number) ?? 100;
     const page = (args?.page as number) ?? 1;
+    const raw = args?.raw as boolean | undefined;
 
     const params = new URLSearchParams();
     params.set("page_size", String(Math.min(pageSize, 200)));
@@ -45,7 +48,7 @@ export const docGet: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatDoc, raw) }],
     };
   },
 };

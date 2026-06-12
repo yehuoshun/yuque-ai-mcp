@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatGroupUser, wrapResult } from "../common/format.js";
 
 
 interface GroupUser {
@@ -58,12 +59,14 @@ export const groupListUsers: McpTool = {
       login: { type: "string", description: "团队 Login 或 ID（必填）" },
       role: { type: "number", description: "角色过滤：0=管理员 / 1=成员 / 2=只读成员" },
       offset: { type: "number", description: "分页偏移，默认 0" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["login"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
@@ -81,7 +84,7 @@ export const groupListUsers: McpTool = {
 
     const { data } = (await res.json()) as { data: GroupUser[] };
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatGroupUser, raw) }],
     };
   },
 };

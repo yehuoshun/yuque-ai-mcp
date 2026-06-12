@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatNote, wrapResult } from "../common/format.js";
 
 
 export const noteCreate: McpTool = {
@@ -18,12 +19,14 @@ export const noteCreate: McpTool = {
     type: "object",
     properties: {
       body: { type: "string", description: "小记内容（必填，纯文本或 Markdown）" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["body"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const body = args?.body as string;
 
     const url = `${cfg.api_base}/notes`;
@@ -40,7 +43,7 @@ export const noteCreate: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
     };
   },
 };

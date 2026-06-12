@@ -8,26 +8,11 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
-
-
-interface Group {
-  id: number;
-  type: string;
-  login: string;
-  name: string;
-  avatar_url: string;
-  books_count: number;
-  public_books_count: number;
-  members_count: number;
-  public: number;
-  description: string;
-  created_at: string;
-  updated_at: string;
-}
+import { formatUserGroup, wrapResult } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
   name: "yuque_get_user_groups",
-  description: "获取用户所属的团队列表（id 支持 login 或 ID，role 可过滤管理员/成员，PageSize 固定 100）",
+  description: "获取用户所属的团队列表（id 支持 login 或 ID，role 可过滤管理员/成员）",
 
   inputSchema: {
     type: "object",
@@ -35,6 +20,7 @@ export const userGetGroups: McpTool = {
       id: { type: "string", description: "用户 login 或 ID（必填）" },
       role: { type: "number", description: "角色过滤：0=管理员 / 1=成员" },
       offset: { type: "number", description: "分页偏移，默认 0" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["id"],
   },
@@ -44,6 +30,7 @@ export const userGetGroups: McpTool = {
     const id = args?.id as string;
     const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
+    const raw = args?.raw as boolean | undefined;
 
     const params = new URLSearchParams();
     params.set("offset", String(offset));
@@ -56,9 +43,11 @@ export const userGetGroups: McpTool = {
 
     if (!res.ok) return handleApiError(res, "获取用户团队");
 
-    const { data } = (await res.json()) as { data: Group[] };
+    const data = await res.json();
+    const items = (data?.data ?? data) as Record<string, unknown>[];
+    const formatted = Array.isArray(items) ? items.map(formatUserGroup) : items;
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(raw ? data : formatted, undefined, raw) }],
     };
   },
 };

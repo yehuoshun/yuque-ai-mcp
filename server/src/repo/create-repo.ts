@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoCreate: McpTool = {
@@ -23,12 +24,14 @@ export const repoCreate: McpTool = {
       description: { type: "string", description: "简介" },
       public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开（默认 0）" },
       enhancedPrivacy: { type: "boolean", description: "增强私密性：将非管理员成员也设为无权限" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["login", "name", "slug"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const name = args?.name as string;
     const slug = args?.slug as string;
@@ -67,7 +70,7 @@ export const repoCreate: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };
   },
 };

@@ -10,6 +10,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoUpdate: McpTool = {
@@ -25,12 +26,14 @@ export const repoUpdate: McpTool = {
       description: { type: "string", description: "简介" },
       public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开" },
       toc: { type: "string", description: "目录（Markdown 格式：[名称](文档路径)，可批量更新目录结构）" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["book_id"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 
     const payload: Record<string, unknown> = {};
@@ -54,7 +57,7 @@ export const repoUpdate: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };
   },
 };

@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatDoc, wrapResult } from "../common/format.js";
 
 /** 创建文档后自动追加到 TOC 末尾 */
 async function appendToToc(cfg: ReturnType<typeof loadConfig>, bookId: string, docId: number): Promise<string | null> {
@@ -50,12 +51,14 @@ export const docCreate: McpTool = {
       format: { type: "string", description: "内容格式：markdown / html / lake，默认 markdown" },
       body: { type: "string", description: "正文内容（必填）" },
       public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开，默认继承知识库" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["book_id", "body"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
     const title = (args?.title as string) ?? "无标题";
     const slug = args?.slug as string | undefined;
@@ -84,7 +87,7 @@ export const docCreate: McpTool = {
 
     // 自动追加到目录末尾
     const result: Array<{ type: "text"; text: string }> = [
-      { type: "text" as const, text: JSON.stringify(data, null, 2) },
+      { type: "text" as const, text: wrapResult(data, formatDoc, raw) },
     ];
 
     if (docId) {

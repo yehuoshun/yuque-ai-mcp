@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatDoc, wrapResult } from "../common/format.js";
 
 
 export const docDelete: McpTool = {
@@ -19,12 +20,14 @@ export const docDelete: McpTool = {
     properties: {
       book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
       id: { type: "string", description: "文档 ID 或 slug（必填）" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["book_id", "id"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
     const id = args?.id as string;
 
@@ -38,7 +41,7 @@ export const docDelete: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatDoc, raw) }],
     };
   },
 };

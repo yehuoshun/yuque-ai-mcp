@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoList: McpTool = {
@@ -22,12 +23,14 @@ export const repoList: McpTool = {
       offset: { type: "number", description: "分页偏移，默认 0" },
       limit: { type: "number", description: "每页数量，≤100，默认 100" },
       filterByAbility: { type: "string", description: "权限过滤：create_doc（仅返回有创建文档权限的知识库）" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["login"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const type = args?.type as string | undefined;
     const offset = (args?.offset as number) ?? 0;
@@ -53,7 +56,7 @@ export const repoList: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };
   },
 };

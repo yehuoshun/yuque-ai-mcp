@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatDocSummary, wrapResult } from "../common/format.js";
 
 
 export const docList: McpTool = {
@@ -21,6 +22,7 @@ export const docList: McpTool = {
       offset: { type: "number", description: "分页偏移，默认 0" },
       limit: { type: "number", description: "每页数量，≤100，默认 100" },
       optional_properties: { type: "string", description: "额外字段，逗号分隔。支持：hits / tags / latest_version_id" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["book_id"],
   },
@@ -31,6 +33,7 @@ export const docList: McpTool = {
     const offset = (args?.offset as number) ?? 0;
     const limit = (args?.limit as number) ?? 100;
     const opt = (args?.optional_properties as string) || "";
+    const raw = args?.raw as boolean | undefined;
 
     const params = new URLSearchParams();
     params.set("offset", String(offset));
@@ -46,7 +49,7 @@ export const docList: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatDocSummary, raw) }],
     };
   },
 };

@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
+import { formatDocVersion, wrapResult } from "../common/format.js";
 
 
 export const docVersions: McpTool = {
@@ -18,12 +19,14 @@ export const docVersions: McpTool = {
     type: "object",
     properties: {
       doc_id: { type: "number", description: "文档 ID（必填）" },
+      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
     },
     required: ["doc_id"],
   },
 
   async handler(args) {
     const cfg = loadConfig();
+    const raw = args?.raw as boolean | undefined;
     const docId = args?.doc_id as number;
 
     const url = `${cfg.api_base}/doc_versions?doc_id=${docId}`;
@@ -35,7 +38,7 @@ export const docVersions: McpTool = {
 
     const data = await res.json();
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: wrapResult(data, formatDocVersion, raw) }],
     };
   },
 };
