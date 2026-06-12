@@ -37,8 +37,9 @@ export const tocGet: McpTool = {
     if (!res.ok) return handleApiError(res, "获取目录");
 
     const data = await res.json();
+    const items = data?.data ?? data;
     return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatToc, raw) }],
+      content: [{ type: "text" as const, text: wrapResult(items, formatToc, raw) }],
     };
   },
 };

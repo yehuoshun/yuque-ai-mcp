@@ -181,8 +181,26 @@ export function wrapResult(
   if (raw) {
     return JSON.stringify(data, null, 2);
   }
-  if (formatFn) {
+  if (!formatFn) {
+    return JSON.stringify(data, null, 2);
+  }
+  // 处理 { data: [...] } 列表结构
+  const obj = data as any;
+  if (obj?.data && Array.isArray(obj.data)) {
+    const formatted = {
+      ...(obj.meta ? { meta: obj.meta } : {}),
+      data: obj.data.map(formatFn),
+    };
+    return JSON.stringify(formatted, null, 2);
+  }
+  // 处理 { data: {...} } 单个对象
+  if (obj?.data && typeof obj.data === "object" && !Array.isArray(obj.data)) {
+    return JSON.stringify(formatFn(obj.data), null, 2);
+  }
+  // 处理纯数组（formatToc 等直接处理数组的 format 函数）
+  if (Array.isArray(data)) {
     return JSON.stringify(formatFn(data), null, 2);
   }
-  return JSON.stringify(data, null, 2);
+  // 处理纯对象
+  return JSON.stringify(formatFn(data), null, 2);
 }
