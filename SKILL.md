@@ -25,6 +25,7 @@
 | `GET /api/v2/repos/:book_id/docs` | doc | 获取知识库文档列表 |
 | `POST /api/v2/repos/:book_id/docs` | doc | 创建文档 |
 | `GET /api/v2/repos/docs/:id` | doc | 获取文档详情 |
+| 无（单篇操作） | doc | 导出单篇文档为 Markdown（含图片下载/降级） |
 | `PUT /api/v2/repos/:book_id/docs/:id` | doc | 更新文档 |
 | `DELETE /api/v2/repos/:book_id/docs/:id` | doc | 删除文档 |
 | `GET /api/v2/doc_versions` | doc | 获取文档历史版本列表 |
