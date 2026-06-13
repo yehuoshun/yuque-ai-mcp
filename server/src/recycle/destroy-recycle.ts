@@ -10,12 +10,12 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleDestroy: McpTool = {
   name: "yuque_destroy_recycle",
-  description: "彻底删除回收站项目（⚠️ 不可恢复，需要 config.json 中配置 cookie + ctoken）",
+  description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie + ctoken in config.json)",
 
   inputSchema: {
     type: "object",
     properties: {
-      recycle_id: { type: "number", description: "回收站项目 ID（必填）" },
+      recycle_id: { type: "number", description: "Recycle bin item ID (required)" },
     },
     required: ["recycle_id"],
   },

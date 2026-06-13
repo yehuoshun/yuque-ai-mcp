@@ -13,18 +13,18 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoCreate: McpTool = {
   name: "yuque_create_repo",
-  description: "创建语雀知识库（login 支持 Login 或 ID，自动判断用户/团队端点，name 和 slug 必填）",
+  description: "Create a repository (login supports login or ID, auto-detects user vs group endpoint, name and slug required)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "用户/团队的 Login 或 ID（必填）" },
-      name: { type: "string", description: "知识库名称（必填）" },
-      slug: { type: "string", description: "知识库路径（必填）" },
-      description: { type: "string", description: "简介" },
-      public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开（默认 0）" },
-      enhancedPrivacy: { type: "boolean", description: "增强私密性：将非管理员成员也设为无权限" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      login: { type: "string", description: "User or group login / ID (required)" },
+      name: { type: "string", description: "Repository name (required)" },
+      slug: { type: "string", description: "Repository slug (required)" },
+      description: { type: "string", description: "Description" },
+      public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public (default 0)" },
+      enhancedPrivacy: { type: "boolean", description: "Enhanced privacy: non-admin members get no access by default" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["login", "name", "slug"],
   },

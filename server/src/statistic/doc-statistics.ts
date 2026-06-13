@@ -12,19 +12,19 @@ import { loadConfig } from "../common/config.js";
 
 export const docStatistics: McpTool = {
   name: "yuque_get_doc_statistics",
-  description: "获取团队文档统计数据（支持 bookId/name 过滤、range 时间范围、多字段排序，limit ≤ 20）",
+  description: "Get group document statistics (supports bookId/name filter, date range, multi-field sorting, limit ≤ 20)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "团队的 Login 或 ID（必填）" },
-      bookId: { type: "number", description: "指定知识库 ID 过滤" },
-      name: { type: "string", description: "文档名过滤" },
-      range: { type: "number", description: "时间范围：0=全部 / 30=近30天 / 365=近一年（默认 0）" },
-      page: { type: "number", description: "页码，默认 1" },
-      limit: { type: "number", description: "分页数量，≤20，默认 10" },
-      sortField: { type: "string", description: "排序字段：content_updated_at / word_count / read_count / like_count / comment_count / created_at" },
-      sortOrder: { type: "string", description: "排序方向：desc（默认）/ asc" },
+      login: { type: "string", description: "Group login or ID (required)" },
+      bookId: { type: "number", description: "Filter by repository ID" },
+      name: { type: "string", description: "Filter by document name" },
+      range: { type: "number", description: "Date range: 0=all, 30=last 30 days, 365=last year (default 0)" },
+      page: { type: "number", description: "Page number, default 1" },
+      limit: { type: "number", description: "Page size, max 20, default 10" },
+      sortField: { type: "string", description: "Sort field: content_updated_at, word_count, read_count, like_count, comment_count, created_at" },
+      sortOrder: { type: "string", description: "Sort order: desc (default) / asc" },
     },
     required: ["login"],
   },

@@ -11,30 +11,30 @@ import { loadConfig } from "../common/config.js";
 
 export const boardUpdate: McpTool = {
   name: "yuque_update_board",
-  description: "更新文档中的画板资源（思维导图/流程图/架构图），text 和 dsl 二选一，text 更新文本 DSL，dsl 更新 JSON DSL",
+  description: "Update a board resource (mindmap/flowchart/architecture diagram), text or dsl (choose one): text updates textual DSL, dsl updates JSON DSL",
 
   inputSchema: {
     type: "object",
     properties: {
       doc_id: {
         type: "number",
-        description: "文档 ID（与 url 二选一）",
+        description: "Document ID (mutually exclusive with url)",
       },
       url: {
         type: "string",
-        description: "文档 URL（与 doc_id 二选一）",
+        description: "Document URL (mutually exclusive with doc_id)",
       },
       resource_id: {
         type: "string",
-        description: "画板资源 ID（必填，从 board://<resource_id> 中提取）",
+        description: "Board resource ID (required, extract from board://<resource_id>)",
       },
       text: {
         type: "string",
-        description: "新的文本 DSL 内容（与 dsl 二选一）",
+        description: "New textual DSL content (mutually exclusive with dsl)",
       },
       dsl: {
         type: "string",
-        description: "新的 JSON DSL 对象（与 text 二选一），会作为 JSON 发送",
+        description: "New JSON DSL object (mutually exclusive with text), sent as JSON",
       },
     },
     required: ["resource_id"],

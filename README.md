@@ -39,7 +39,7 @@ server/
 │   ├── search/          # 搜索（含 index.ts barrel）
 │   │   ├── index.ts
 │   │   ├── search.ts    # GET /api/v2/search
-│   │   └── hyde-search.ts  # HyDE 降级搜索（关键词过滤 + 并发多路搜索）
+│   │   └── rag-search.ts   # RAG 增强搜索（关键词过滤 + 并发多路搜索）
 │   ├── doc/             # 文档 CRUD（含 index.ts barrel）
 │   │   ├── index.ts
 │   │   ├── list-docs.ts
@@ -117,7 +117,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | 工具 | 端点 |
 |------|------|
 | `yuque_search` | `GET /api/v2/search` |
-| `yuque_hyde_search` | 关键词过滤 + 并发多路搜索（降级兜底） |
+| `yuque_rag_search` | RAG 增强搜索：关键词过滤 + 并发多路搜索 + 文档内容获取 |
 
 ### doc — 文档
 | 工具 | 端点 |

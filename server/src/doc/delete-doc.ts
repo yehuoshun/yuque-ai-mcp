@@ -13,14 +13,14 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docDelete: McpTool = {
   name: "yuque_delete_doc",
-  description: "删除语雀文档（移入回收站，book_id 支持 ID 或 namespace，id 支持文档 ID 或 slug）",
+  description: "Delete a document (moves to recycle bin; book_id supports numeric ID or namespace, id supports numeric ID or slug)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      id: { type: "string", description: "文档 ID 或 slug（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      id: { type: "string", description: "Document ID or slug (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id", "id"],
   },

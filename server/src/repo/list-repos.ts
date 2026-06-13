@@ -13,17 +13,17 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoList: McpTool = {
   name: "yuque_list_repos",
-  description: "获取用户或团队的知识库列表（login 支持 Login 或 ID，type 可过滤 Book/Design，limit ≤ 100，默认按更新时间倒序）",
+  description: "List repositories for a user or group (login supports login or ID, type filter: Book/Design, limit ≤ 100, sorted by updated_at desc)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "用户/团队的 Login 或 ID（必填）" },
-      type: { type: "string", description: "类型过滤：Book（文档型）/ Design（画板型）" },
-      offset: { type: "number", description: "分页偏移，默认 0" },
-      limit: { type: "number", description: "每页数量，≤100，默认 100" },
-      filterByAbility: { type: "string", description: "权限过滤：create_doc（仅返回有创建文档权限的知识库）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      login: { type: "string", description: "User or group login / ID (required)" },
+      type: { type: "string", description: "Type filter: Book (docs) / Design (boards)" },
+      offset: { type: "number", description: "Pagination offset, default 0" },
+      limit: { type: "number", description: "Page size, max 100, default 100" },
+      filterByAbility: { type: "string", description: "Ability filter: create_doc (only repos with doc creation permission)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["login"],
   },

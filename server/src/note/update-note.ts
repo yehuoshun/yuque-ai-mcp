@@ -13,15 +13,15 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteUpdate: McpTool = {
   name: "yuque_update_note",
-  description: "更新或删除小记（body 更新内容，status 设为 9 即软删除，设为 0 恢复）",
+  description: "Update or delete a note (body for content update, status=9 soft-deletes, status=0 restores)",
 
   inputSchema: {
     type: "object",
     properties: {
-      note_id: { type: "number", description: "小记 ID（必填）" },
-      body: { type: "string", description: "新内容（纯文本或 Markdown，不填则保持不变）" },
-      status: { type: "number", description: "状态：0=正常 / 9=删除（不填则不变）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      note_id: { type: "number", description: "Note ID (required)" },
+      body: { type: "string", description: "New content (plain text or Markdown, unchanged if omitted)" },
+      status: { type: "number", description: "Status: 0=active, 9=deleted (unchanged if omitted)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["note_id"],
   },

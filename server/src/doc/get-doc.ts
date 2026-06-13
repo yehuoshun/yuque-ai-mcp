@@ -15,15 +15,15 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docGet: McpTool = {
   name: "yuque_get_doc",
-  description: "获取文档详情（id 支持文档 ID 或 slug，返回正文 body/body_html/body_lake 等完整内容）",
+  description: "Get document detail (id supports numeric ID or slug, returns body/body_html/body_lake content)",
 
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "string", description: "文档 ID 或 slug（必填）" },
-      page_size: { type: "number", description: "数据表分页大小，1-200，默认 100" },
-      page: { type: "number", description: "数据表页码，≥1，默认 1" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      id: { type: "string", description: "Document ID or slug (required)" },
+      page_size: { type: "number", description: "Table page size, 1-200, default 100" },
+      page: { type: "number", description: "Table page number, ≥1, default 1" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["id"],
   },

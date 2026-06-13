@@ -51,15 +51,15 @@ interface GroupUser {
 
 export const groupUpdateUser: McpTool = {
   name: "yuque_update_group_user",
-  description: "变更团队成员角色（login 支持团队 Login 或 ID，id 支持用户 Login 或 ID，role 0=管理员/1=成员/2=只读）",
+  description: "Change a group member role (login supports group login or ID, id supports user login or ID, role: 0=admin, 1=member, 2=readonly)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "团队 Login 或 ID（必填）" },
-      id: { type: "string", description: "用户 Login 或 ID（必填）" },
-      role: { type: "number", description: "角色：0=管理员 / 1=成员 / 2=只读成员（默认 1）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      login: { type: "string", description: "Group login or ID (required)" },
+      id: { type: "string", description: "User login or ID (required)" },
+      role: { type: "number", description: "Role: 0=admin, 1=member, 2=readonly (default 1)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["login", "id"],
   },

@@ -12,12 +12,12 @@ import { loadConfig } from "../common/config.js";
 
 export const groupStatistics: McpTool = {
   name: "yuque_get_group_statistics",
-  description: "获取团队汇总统计数据（文档数、阅读量、点赞量、评论量、知识库数量等）",
+  description: "Get group summary statistics (doc count, reads, likes, comments, repo count, etc.)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "团队的 Login 或 ID（必填）" },
+      login: { type: "string", description: "Group login or ID (required)" },
     },
     required: ["login"],
   },

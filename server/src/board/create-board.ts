@@ -11,30 +11,30 @@ import { loadConfig } from "../common/config.js";
 
 export const boardCreate: McpTool = {
   name: "yuque_create_board",
-  description: "在文档中创建画板资源（思维导图/流程图/架构图），需传 type 和 DSL 文本内容",
+  description: "Create a board resource (mindmap/flowchart/architecture diagram) in a document, requires type and DSL text content",
 
   inputSchema: {
     type: "object",
     properties: {
       doc_id: {
         type: "number",
-        description: "文档 ID（与 url 二选一）",
+        description: "Document ID (mutually exclusive with url)",
       },
       url: {
         type: "string",
-        description: "文档 URL（与 doc_id 二选一）",
+        description: "Document URL (mutually exclusive with doc_id)",
       },
       type: {
         type: "string",
-        description: "画板类型（必填）：mindmap=思维导图 / flowchart=流程图 / architecturediagram=架构图",
+        description: "Board type (required): mindmap, flowchart, architecturediagram",
       },
       dsl: {
         type: "string",
-        description: "画板文本 DSL 内容（必填），格式取决于 type",
+        description: "Board DSL text content (required), format depends on type",
       },
       insert_after_lake_id: {
         type: "string",
-        description: "插入到指定 Lake 节点之后，不填则追加到文档末尾",
+        description: "Insert after specified Lake node, appends to document end if omitted",
       },
     },
     required: ["type", "dsl"],

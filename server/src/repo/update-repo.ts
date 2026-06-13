@@ -15,18 +15,18 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoUpdate: McpTool = {
   name: "yuque_update_repo",
-  description: "更新知识库信息（book_id 支持 ID 或 namespace，所有 body 参数可选，toc 字段可批量更新目录）",
+  description: "Update repository info (book_id supports numeric ID or namespace, all body fields optional, toc field supports batch TOC update)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      name: { type: "string", description: "名称" },
-      slug: { type: "string", description: "路径" },
-      description: { type: "string", description: "简介" },
-      public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开" },
-      toc: { type: "string", description: "目录（Markdown 格式：[名称](文档路径)，可批量更新目录结构）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      name: { type: "string", description: "Name" },
+      slug: { type: "string", description: "Slug" },
+      description: { type: "string", description: "Description" },
+      public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public" },
+      toc: { type: "string", description: "TOC in Markdown format: [Title](doc-slug), supports batch TOC update" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id"],
   },

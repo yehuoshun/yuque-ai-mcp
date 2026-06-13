@@ -40,18 +40,18 @@ async function appendToToc(cfg: ReturnType<typeof loadConfig>, bookId: string, d
 
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
-  description: "创建语雀文档（book_id 支持 ID 或 namespace，title 默认「无标题」，format 默认 markdown，创建后自动追加到目录末尾）",
+  description: "Create a document (book_id supports numeric ID or namespace, title defaults to 'Untitled', format defaults to markdown, auto-appended to TOC)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      title: { type: "string", description: "标题，默认「无标题」" },
-      slug: { type: "string", description: "文档路径，不填则自动生成" },
-      format: { type: "string", description: "内容格式：markdown / html / lake，默认 markdown" },
-      body: { type: "string", description: "正文内容（必填）" },
-      public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开，默认继承知识库" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      title: { type: "string", description: "Title, defaults to 'Untitled'" },
+      slug: { type: "string", description: "Document slug, auto-generated if omitted" },
+      format: { type: "string", description: "Content format: markdown / html / lake, defaults to markdown" },
+      body: { type: "string", description: "Document body content (required)" },
+      public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public, defaults to repo setting" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id", "body"],
   },

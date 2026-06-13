@@ -9,12 +9,12 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleRestore: McpTool = {
   name: "yuque_restore_recycle",
-  description: "恢复回收站项目（需要 config.json 中配置 cookie + ctoken）",
+  description: "Restore an item from recycle bin (requires cookie + ctoken in config.json)",
 
   inputSchema: {
     type: "object",
     properties: {
-      recycle_id: { type: "number", description: "回收站项目 ID（必填）" },
+      recycle_id: { type: "number", description: "Recycle bin item ID (required)" },
     },
     required: ["recycle_id"],
   },

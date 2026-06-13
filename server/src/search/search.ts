@@ -12,16 +12,16 @@ import { loadConfig } from "../common/config.js";
 
 export const searchGeneral: McpTool = {
   name: "yuque_search",
-  description: "通用搜索：搜索语雀文档或知识库（PageSize 固定 20，返回 title/summary/url/book_name 等，支持 scope 范围过滤）",
+  description: "General search across Yuque documents and repositories (PageSize fixed 20, returns title/summary/url/book_name, supports scope filter)",
 
   inputSchema: {
     type: "object",
     properties: {
-      q: { type: "string", description: "搜索关键词（必填，≤200 字符）" },
-      type: { type: "string", description: "搜索类型：doc（文档）/ repo（知识库）" },
-      scope: { type: "string", description: "搜索范围（≤400 字符），如 group 或 group/book_slug" },
-      page: { type: "number", description: "页码（1-100）" },
-      creator: { type: "string", description: "仅搜索指定作者 login" },
+      q: { type: "string", description: "Search keyword (required, max 200 chars)" },
+      type: { type: "string", description: "Search type: doc (document) / repo (repository)" },
+      scope: { type: "string", description: "Search scope (max 400 chars), e.g. group or group/book_slug" },
+      page: { type: "number", description: "Page number (1-100)" },
+      creator: { type: "string", description: "Filter by author login" },
     },
     required: ["q", "type"],
   },

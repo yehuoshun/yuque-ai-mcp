@@ -12,15 +12,15 @@ import { formatUserGroup, wrapResult } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
   name: "yuque_get_user_groups",
-  description: "获取用户所属的团队列表（id 支持 login 或 ID，role 可过滤管理员/成员）",
+  description: "List groups the user belongs to (id supports login or user ID, optional role filter: admin/member)",
 
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "string", description: "用户 login 或 ID（必填）" },
-      role: { type: "number", description: "角色过滤：0=管理员 / 1=成员" },
-      offset: { type: "number", description: "分页偏移，默认 0" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      id: { type: "string", description: "User login or ID (required)" },
+      role: { type: "number", description: "Role filter: 0=admin, 1=member" },
+      offset: { type: "number", description: "Pagination offset, default 0" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["id"],
   },

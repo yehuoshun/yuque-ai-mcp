@@ -13,13 +13,13 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteGet: McpTool = {
   name: "yuque_get_note",
-  description: "获取小记详情（返回完整内容含 content.text/content.html）",
+  description: "Get note detail (returns full content including content.text/content.html)",
 
   inputSchema: {
     type: "object",
     properties: {
-      note_id: { type: "number", description: "小记 ID（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      note_id: { type: "number", description: "Note ID (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["note_id"],
   },

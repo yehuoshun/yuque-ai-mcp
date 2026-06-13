@@ -13,13 +13,13 @@ import { formatToc, wrapResult } from "../common/format.js";
 
 export const tocGet: McpTool = {
   name: "yuque_get_toc",
-  description: "获取知识库目录树（book_id 支持 ID 或 namespace，返回扁平数组通过 uuid/parent_uuid/child_uuid 导航）",
+  description: "Get repository TOC tree (book_id supports numeric ID or namespace, returns flat array navigable via uuid/parent_uuid/child_uuid)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id"],
   },

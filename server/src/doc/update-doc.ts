@@ -15,19 +15,19 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docUpdate: McpTool = {
   name: "yuque_update_doc",
-  description: "更新语雀文档（book_id 支持 ID 或 namespace，id 支持文档 ID 或 slug，所有 body 参数可选）",
+  description: "Update a document (book_id supports numeric ID or namespace, id supports numeric ID or slug, all body fields optional)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      id: { type: "string", description: "文档 ID 或 slug（必填）" },
-      title: { type: "string", description: "标题" },
-      slug: { type: "string", description: "文档路径" },
-      format: { type: "string", description: "内容格式：markdown / html / lake" },
-      body: { type: "string", description: "正文内容" },
-      public: { type: "number", description: "公开性：0=私密 / 1=公开 / 2=企业内公开" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      id: { type: "string", description: "Document ID or slug (required)" },
+      title: { type: "string", description: "Title" },
+      slug: { type: "string", description: "Document slug" },
+      format: { type: "string", description: "Content format: markdown / html / lake" },
+      body: { type: "string", description: "Document body content" },
+      public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id", "id"],
   },

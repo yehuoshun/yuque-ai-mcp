@@ -10,14 +10,14 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleList: McpTool = {
   name: "yuque_list_recycles",
-  description: "列出回收站项目（需要 config.json 中配置 cookie + ctoken，支持分页和 target_type 筛选）",
+  description: "List recycle bin items (requires cookie + ctoken in config.json, supports pagination and target_type filter)",
 
   inputSchema: {
     type: "object",
     properties: {
-      offset: { type: "number", description: "分页偏移，默认 0" },
-      limit: { type: "number", description: "每页数量，≤100，默认 50" },
-      target_type: { type: "string", description: "类型筛选：Doc / Note / Repo" },
+      offset: { type: "number", description: "Pagination offset, default 0" },
+      limit: { type: "number", description: "Page size, max 100, default 50" },
+      target_type: { type: "string", description: "Target type filter: Doc, Note, Repo" },
     },
   },
 

@@ -13,13 +13,13 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoDelete: McpTool = {
   name: "yuque_delete_repo",
-  description: "删除语雀知识库（book_id 支持 ID 或 namespace，⚠️ 不可恢复）",
+  description: "Delete a repository (book_id supports numeric ID or namespace, ⚠️ irreversible)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id"],
   },

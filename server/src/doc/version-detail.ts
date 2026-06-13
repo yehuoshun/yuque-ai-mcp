@@ -13,13 +13,13 @@ import { formatDocVersion, wrapResult } from "../common/format.js";
 
 export const docVersionDetail: McpTool = {
   name: "yuque_get_doc_version_detail",
-  description: "获取文档历史版本详情（返回版本正文 body/body_html/body_asl 及 diff）",
+  description: "Get version detail (returns version body/body_html/body_asl and diff)",
 
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "number", description: "版本 ID（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      id: { type: "number", description: "Version ID (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["id"],
   },

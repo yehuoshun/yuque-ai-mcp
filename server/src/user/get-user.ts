@@ -12,12 +12,12 @@ import { formatUser, wrapResult } from "../common/format.js";
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
-  description: "获取当前 Token 的用户详情（id、login、name、avatar_url、books_count、description 等）",
+  description: "Get current user profile (id, login, name, avatar_url, books_count, description, etc.)",
 
   inputSchema: {
     type: "object",
     properties: {
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
   },
 

@@ -74,14 +74,14 @@ async function doUpload(
 export const uploadAttachment: McpTool = {
   name: "yuque_upload_attachment",
   description:
-    "上传文件到语雀 CDN（超级会员上限：图片 ≤50MB，附件/视频 ≤2GB。需 config.json 配 cookie + ctoken）",
+    "Upload a file to Yuque CDN (Super member limits: image ≤ 50MB, attachment/video ≤ 2GB. Requires cookie + ctoken in config.json)",
 
   inputSchema: {
     type: "object",
     properties: {
-      file_path: { type: "string", description: "本地文件路径（必填）" },
-      type: { type: "string", description: "文件类型：image / attachment / video，默认 attachment" },
-      user_id: { type: "string", description: "用户 ID，不传自动从 Token 获取" },
+      file_path: { type: "string", description: "Local file path (required)" },
+      type: { type: "string", description: "File type: image, attachment, video, default attachment" },
+      user_id: { type: "string", description: "User ID, auto-detected from token if omitted" },
     },
     required: ["file_path"],
   },

@@ -13,16 +13,16 @@ import { formatDocSummary, wrapResult } from "../common/format.js";
 
 export const docList: McpTool = {
   name: "yuque_list_docs",
-  description: "获取知识库的文档列表（book_id 支持 ID 或 namespace 格式如 group/book_slug，limit ≤ 100，默认按更新时间倒序，支持 optional_properties）",
+  description: "List documents in a repository (book_id supports numeric ID or namespace like group/book_slug, limit ≤ 100, sorted by updated_at desc, supports optional_properties)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      offset: { type: "number", description: "分页偏移，默认 0" },
-      limit: { type: "number", description: "每页数量，≤100，默认 100" },
-      optional_properties: { type: "string", description: "额外字段，逗号分隔。支持：hits / tags / latest_version_id" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      offset: { type: "number", description: "Pagination offset, default 0" },
+      limit: { type: "number", description: "Page size, max 100, default 100" },
+      optional_properties: { type: "string", description: "Extra fields, comma-separated. Supports: hits, tags, latest_version_id" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id"],
   },

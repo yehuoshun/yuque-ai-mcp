@@ -13,13 +13,13 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoGet: McpTool = {
   name: "yuque_get_repo",
-  description: "获取知识库详情（book_id 支持 ID 或 namespace，返回 name/description/public/items_count/likes_count/toc_yml 等完整信息）",
+  description: "Get repository detail (book_id supports numeric ID or namespace, returns name/description/public/items_count/likes_count/toc_yml)",
 
   inputSchema: {
     type: "object",
     properties: {
-      book_id: { type: "string", description: "知识库 ID（数字）或 namespace（如 group/book_slug）（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id"],
   },

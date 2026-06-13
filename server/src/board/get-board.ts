@@ -11,22 +11,22 @@ import { loadConfig } from "../common/config.js";
 
 export const boardGet: McpTool = {
   name: "yuque_get_board",
-  description: "获取文档中的画板资源（思维导图/流程图/架构图），返回 JSON DSL 和摘要统计",
+  description: "Get a board resource (mindmap/flowchart/architecture diagram) from a document, returns JSON DSL and summary stats",
 
   inputSchema: {
     type: "object",
     properties: {
       doc_id: {
         type: "number",
-        description: "文档 ID（与 url 二选一）",
+        description: "Document ID (mutually exclusive with url)",
       },
       url: {
         type: "string",
-        description: "文档 URL（与 doc_id 二选一）",
+        description: "Document URL (mutually exclusive with doc_id)",
       },
       resource_id: {
         type: "string",
-        description: "画板资源 ID（必填，从 board://<resource_id> 中提取，只传 ID 部分）",
+        description: "Board resource ID (required, extract the ID part from board://<resource_id>)",
       },
     },
     required: ["resource_id"],

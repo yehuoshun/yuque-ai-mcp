@@ -13,14 +13,14 @@ import { formatNoteSummary } from "../common/format.js";
 
 export const noteList: McpTool = {
   name: "yuque_list_notes",
-  description: "获取当前用户的小记列表（含置顶小记，支持 status 过滤和分页）",
+  description: "List current user's notes (includes pinned notes, supports status filter and pagination)",
 
   inputSchema: {
     type: "object",
     properties: {
-      status: { type: "number", description: "状态过滤：0=正常 / 9=已删除" },
-      page: { type: "number", description: "页码，默认 1" },
-      limit: { type: "number", description: "每页数量，默认 20" },
+      status: { type: "number", description: "Status filter: 0=active, 9=deleted" },
+      page: { type: "number", description: "Page number, default 1" },
+      limit: { type: "number", description: "Page size, default 20" },
     },
   },
 

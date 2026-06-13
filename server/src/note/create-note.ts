@@ -13,13 +13,13 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteCreate: McpTool = {
   name: "yuque_create_note",
-  description: "创建小记（body 支持纯文本或 Markdown）",
+  description: "Create a note (body supports plain text or Markdown)",
 
   inputSchema: {
     type: "object",
     properties: {
-      body: { type: "string", description: "小记内容（必填，纯文本或 Markdown）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      body: { type: "string", description: "Note body content (required, plain text or Markdown)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["body"],
   },

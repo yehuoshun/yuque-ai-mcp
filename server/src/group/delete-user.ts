@@ -13,14 +13,14 @@ import { formatGroupUser, wrapResult } from "../common/format.js";
 
 export const groupDeleteUser: McpTool = {
   name: "yuque_delete_group_user",
-  description: "删除团队成员：将指定成员移出团队（login 支持团队 Login 或 ID，id 支持用户 Login 或 ID）",
+  description: "Remove a member from a group (login supports group login or ID, id supports user login or ID)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "团队 Login 或 ID（必填）" },
-      id: { type: "string", description: "用户 Login 或 ID（必填）" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      login: { type: "string", description: "Group login or ID (required)" },
+      id: { type: "string", description: "User login or ID (required)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["login", "id"],
   },

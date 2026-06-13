@@ -51,15 +51,15 @@ interface GroupUser {
 
 export const groupListUsers: McpTool = {
   name: "yuque_get_group_users",
-  description: "获取指定团队的成员列表（login 支持团队 Login 或 ID，role 可过滤管理员/成员/只读，PageSize 固定 100）",
+  description: "List group members (login supports group login or ID, role filter: admin/member/readonly, PageSize fixed 100)",
 
   inputSchema: {
     type: "object",
     properties: {
-      login: { type: "string", description: "团队 Login 或 ID（必填）" },
-      role: { type: "number", description: "角色过滤：0=管理员 / 1=成员 / 2=只读成员" },
-      offset: { type: "number", description: "分页偏移，默认 0" },
-      raw: { type: "boolean", description: "是否返回原始全量 JSON（默认 false，返回精简字段）" },
+      login: { type: "string", description: "Group login or ID (required)" },
+      role: { type: "number", description: "Role filter: 0=admin, 1=member, 2=readonly" },
+      offset: { type: "number", description: "Pagination offset, default 0" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["login"],
   },

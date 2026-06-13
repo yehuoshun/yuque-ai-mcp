@@ -12,34 +12,34 @@ import type { McpTool } from "../common/types.js";
 export const docEmbedUrl: McpTool = {
   name: "yuque_embed_url",
   description:
-    "生成语雀文档嵌入阅读器 URL。根据文档链接或 doc_id 拼接 view=doc_embed 参数，支持标题/大纲/翻译等可选配置",
+    "Generate a Yuque embed reader URL from a document link or doc_id + book_id, supports optional title/outline/translate params",
 
   inputSchema: {
     type: "object",
     properties: {
       url: {
         type: "string",
-        description: "语雀文档完整 URL，如 https://www.yuque.com/yuque/developer/embed（与 doc_id+book 二选一）",
+        description: "Full Yuque document URL, e.g. https://www.yuque.com/yuque/developer/embed (mutually exclusive with doc_id+book)",
       },
       doc_id: {
         type: "string",
-        description: "文档 ID（与 url 二选一，需配合 book_id 或 namespace）",
+        description: "Document ID (mutually exclusive with url, requires book_id or namespace)",
       },
       book_id: {
         type: "string",
-        description: "知识库 ID 或 namespace（如 yuque/developer），配合 doc_id 使用",
+        description: "Repository ID or namespace (e.g. yuque/developer), used with doc_id",
       },
       from: {
         type: "string",
-        description: "调用方名称（appname），必填。建议填团队/应用的英文名",
+        description: "Caller app name (required). Use your team/app English name",
       },
       title: {
         type: "number",
-        description: "是否显示标题：1=显示，0=隐藏",
+        description: "Show title: 1=show, 0=hide",
       },
       outline: {
         type: "number",
-        description: "是否显示右侧大纲：1=显示，0=隐藏",
+        description: "Show outline sidebar: 1=show, 0=hide",
       },
       translate: {
         type: "string",
