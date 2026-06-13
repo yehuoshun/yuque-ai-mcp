@@ -26,9 +26,13 @@ export const docVersions: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.id, "id");
-    if (__v) return __v;
     const docId = args?.doc_id as number;
+    if (!docId) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "doc_id 是必填参数 / doc_id is required" }, null, 2) }],
+        isError: true,
+      };
+    }
     const raw = args?.raw as boolean | undefined;
 
     const data = await apiGet("/doc_versions", { doc_id: String(docId) }, "Get doc versions");
