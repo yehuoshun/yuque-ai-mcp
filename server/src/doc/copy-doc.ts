@@ -1,59 +1,72 @@
 /**
  * doc/copy-doc — 单文档跨知识库复制
  *
- * 流程：拉源文档 → 清洗 content → 按 Agent 指定的路径建目录 → 创建副本
- * 分类由 Agent 判断，paths 由 Agent 传入
+ * Agent 清洗内容后传入 title/body/format/paths，工具建目录+创建文档
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { sanitizeContent, ensureDirectoryPath } from "./copy-common.js";
+import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
 
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",
   description:
-    "Copy a single document to another repository. The caller (Agent) provides classification paths. The tool creates directory structure and copies the document under each path.",
+    "Copy a single document to another repository. Agent provides cleaned content (title/body/format/paths). Tool creates TOC directories and copies under each path.",
 
   inputSchema: {
     type: "object",
     properties: {
-      doc_id: {
-        type: "string",
-        description: "Source document ID (required)",
-      },
       target_book_id: {
         type: "string",
         description: "Target repository ID or namespace (required)",
       },
-      paths: {
-        type: "string",
-        description: "JSON array of directory paths, e.g. '[\"Java/Spring/SpringBoot\",\"Database/MySQL\"]'. At least 1, max 5. (required)",
-      },
       title: {
         type: "string",
-        description: "Custom title for the copied document. Defaults to original title",
+        description: "Document title (required)",
+      },
+      body: {
+        type: "string",
+        description: "Document body, cleaned by Agent (required)",
+      },
+      format: {
+        type: "string",
+        description: "Content format: markdown / lake / html (required)",
+      },
+      paths: {
+        type: "string",
+        description: "JSON array of directory paths, e.g. '[\"Java/Spring\",\"Database/MySQL\"]'. 1-5 paths (required)",
+      },
+      source_url: {
+        type: "string",
+        description: "Source document URL, appended as footer link",
+      },
+      source_title: {
+        type: "string",
+        description: "Source document title for the footer link",
       },
       raw: {
         type: "boolean",
-        description: "Return raw full JSON (default false)",
+        description: "Return raw full JSON",
       },
     },
-    required: ["doc_id", "target_book_id", "paths"],
+    required: ["target_book_id", "title", "body", "format", "paths"],
   },
 
   async handler(args) {
-    const __v = requiredString(args?.doc_id, "doc_id");
-    if (__v) return __v;
-    const __v2 = requiredString(args?.target_book_id, "target_book_id");
-    if (__v2) return __v2;
-    const __v3 = requiredString(args?.paths, "paths");
-    if (__v3) return __v3;
-
-    const docId = args?.doc_id as string;
     const targetBookId = args?.target_book_id as string;
+    const title = args?.title as string;
+    let body = args?.body as string;
+    const format = args?.format as string;
+    const sourceUrl = args?.source_url as string | undefined;
+    const sourceTitle = args?.source_title as string | undefined;
     const raw = args?.raw as boolean | undefined;
-    const customTitle = args?.title as string | undefined;
+
+    // 校验必填
+    for (const [val, name] of [[targetBookId, "target_book_id"], [title, "title"], [body, "body"], [format, "format"], [args?.paths, "paths"]] as const) {
+      const err = requiredString(val as string, name);
+      if (err) return err;
+    }
 
     // 解析 paths
     let paths: string[];
@@ -73,47 +86,23 @@ export const docCopySingle: McpTool = {
       };
     }
 
-    // ── 1. 拉源文档 ──
-    const srcData = await apiGet(`/repos/docs/${docId}`, {}, "Get source doc");
-    if (isErrorResult(srcData)) return srcData;
-
-    const src = (srcData as { data?: Record<string, unknown> }).data;
-    if (!src) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "DOC_NOT_FOUND", message: "源文档不存在" }, null, 2) }],
-        isError: true,
-      };
+    // 追尾源链接
+    if (sourceUrl) {
+      body = appendSourceLink(body, sourceUrl, sourceTitle || "原文档");
     }
 
-    const title = customTitle || (src.title as string) || "无标题";
-    const body = (src.body as string) || (src.body_html as string) || "";
-    const bodyLake = src.body_lake as string | undefined;
-    const format = (src.format as string) || "lake";
-    const isLake = format === "lake" && !!bodyLake;
-
-    // ── 2. 准备 content ──
-    const finalBody = isLake ? bodyLake : sanitizeContent(body);
-    const finalFormat = isLake ? "lake" : (format || "markdown");
-
-    // ── 3. 逐路径创建副本 ──
+    // 逐路径创建副本
     const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
 
     for (const path of paths) {
       try {
-        // 确保目录存在，拿到目录节点的 uuid
         const dirUuid = await ensureDirectoryPath(targetBookId, path);
         if (!dirUuid) {
           results.push({ path, error: "目录创建失败" });
           continue;
         }
 
-        // 创建文档
-        const payload: Record<string, unknown> = {
-          title,
-          body: finalBody,
-          format: finalFormat,
-        };
-
+        const payload: Record<string, unknown> = { title, body, format };
         const data = await apiPost(`/repos/${targetBookId}/docs`, payload, `Copy doc to ${path}`);
         if (isErrorResult(data)) {
           const errMsg = (data as { content?: Array<{ text: string }> }).content?.[0]?.text || "Unknown error";
@@ -127,29 +116,23 @@ export const docCopySingle: McpTool = {
           continue;
         }
 
-        // 把文档挂到目录节点下
-        const tocPayload: Record<string, unknown> = {
+        // 挂到目录节点下
+        await apiPut(`/repos/${targetBookId}/toc`, {
           action: "appendNode",
           action_mode: "child",
           type: "DOC",
           doc_ids: [newDoc.id],
           target_uuid: dirUuid,
-        };
-        await apiPut(`/repos/${targetBookId}/toc`, tocPayload, `Append doc to TOC: ${path}`);
+        }, `Append doc to TOC: ${path}`);
 
-        results.push({
-          path,
-          doc_id: newDoc.id,
-          slug: newDoc.slug,
-        });
+        results.push({ path, doc_id: newDoc.id, slug: newDoc.slug });
       } catch (err) {
         results.push({ path, error: err instanceof Error ? err.message : String(err) });
       }
     }
 
     const summary = {
-      source_doc_id: docId,
-      source_title: title,
+      title,
       target_book_id: targetBookId,
       paths,
       results,

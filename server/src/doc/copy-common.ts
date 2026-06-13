@@ -1,60 +1,11 @@
 /**
  * copy-common — 跨知识库文档复制公共逻辑
  *
- * 职责：content 清洗、目录缓存与创建（TOC TITLE 节点）
- * 分类由 Agent 判断，工具不调 LLM
+ * 职责：目录缓存与创建（TOC TITLE 节点）
+ * 清洗由 Agent 负责，工具只做搬运
  */
 
-import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
-
-// ─── Content 清洗 ─────────────────────────────────────────
-
-/** 清洗剪藏网页的垃圾标签，保留干净结构 */
-export function sanitizeContent(html: string): string {
-  let cleaned = html;
-
-  cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
-  cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
-  cleaned = cleaned.replace(/<[^>]*\bstyle\s*=\s*["'][^"']*display\s*:\s*none[^"']*["'][^>]*>[\s\S]*?<\/[^>]+>/gi, "");
-  cleaned = cleaned.replace(/<[^>]*\bhidden\b[^>]*>[\s\S]*?<\/[^>]+>/gi, "");
-  cleaned = cleaned.replace(/<(div|span|p|li|td|th)\b[^>]*>\s*<\/(div|span|p|li|td|th)>/gi, "");
-  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-  cleaned = cleaned.replace(/&nbsp;/g, " ");
-  cleaned = cleaned.replace(/\s*(class|id)\s*=\s*["'][^"']*["']/gi, "");
-  cleaned = cleaned.replace(/\s*data-[a-z0-9_-]+\s*=\s*["'][^"']*["']/gi, "");
-
-  // 内容级清洗：剪藏论坛垃圾文本
-  cleaned = cleaned.replace(/^您已选择 \*\*\d+\*\* 个帖子.?\s*/gm, "");
-  cleaned = cleaned.replace(/^\d+ 浏览量.*$/gm, "");
-  cleaned = cleaned.replace(/^\d+ 赞.*$/gm, "");
-  cleaned = cleaned.replace(/^\d+ 用户$/gm, "");
-  cleaned = cleaned.replace(/^全选\s*$/gm, "");
-  cleaned = cleaned.replace(/^取消选择\s*$/gm, "");
-  cleaned = cleaned.replace(/^总结\s*$/gm, "");
-  cleaned = cleaned.replace(/^\[View as nested\].*$/gm, "");
-  cleaned = cleaned.replace(/^查看回复楼层\s*$/gm, "");
-  cleaned = cleaned.replace(/^\[.*?\]\(\/t\/topic\/\d+\/\d+.*?\)\s*$/gm, "");
-  cleaned = cleaned.replace(/^\[.*?\]\(\/t\/topic\/\d+.*?\)\s*$/gm, "");
-  cleaned = cleaned.replace(/^\d+ \/ \d+\s*$/gm, "");
-  cleaned = cleaned.replace(/^由 .* 于 .* 发布\s*$/gm, "");
-  cleaned = cleaned.replace(/^---+\s*$/gm, "");
-  cleaned = cleaned.replace(/^楼主\s*$/gm, "");
-  cleaned = cleaned.replace(/^\[\d+ 小时\].*$/gm, "");
-  cleaned = cleaned.replace(/^\[.*?\]\(\/u\/\S+.*?\)\s*$/gm, "");
-  cleaned = cleaned.replace(/^\d+月 \d+ 日\s*$/gm, "");
-  cleaned = cleaned.replace(/^\d+ 小时\s*$/gm, "");
-  cleaned = cleaned.replace(/^\s*\[!\]\(https:\/\/cdn\.ldstatic\.com\/.*?\)\s*$/gm, "");
-  // LDStatic 头像 + 用户链接（论坛回复者头像行）
-  cleaned = cleaned.replace(/^\s*\[!\]\(https:\/\/cdn\.ldstatic\.com\/.*?\)\[\/u\/\S+\].*$/gm, "");
-  // 论坛 emoji 图片（纯装饰）
-  cleaned = cleaned.replace(/^!\[\]\(https:\/\/cdn\.ldstatic\.com\/images\/emoji\/.*?\)\s*$/gm, "");
-  // 残留的用户链接行（已被清洗掉头像但剩链接）
-  cleaned = cleaned.replace(/^\s*\[\/u\/\S+\]\s*$/gm, "");
-  // 残留的纯链接行
-  cleaned = cleaned.replace(/^\s*\[.*?\]\(\/u\/\S+.*?\)\s*$/gm, "");
-
-  return cleaned.trim();
-}
+import { apiPut, isErrorResult } from "../common/api-client.js";
 
 // ─── 目录缓存（带 TTL） ──────────────────────────────────
 
@@ -101,7 +52,6 @@ function getCached(cache: Map<string, CacheEntry>, key: string): string | null {
 
 /**
  * 确保目录路径在目标库 TOC 中存在，返回路径最末端节点的 UUID
- * 路径格式: "Java/Spring/SpringBoot"
  */
 export async function ensureDirectoryPath(
   bookId: string,
@@ -122,7 +72,6 @@ export async function ensureDirectoryPath(
       continue;
     }
 
-    // 拉 TOC 树，查是否已有同名节点
     const tocData = await apiPut(`/repos/${bookId}/toc`, {}, "List TOC");
     const existingUuid = findTocNode(tocData, parts[i], parentUuid);
     if (existingUuid) {
@@ -131,7 +80,6 @@ export async function ensureDirectoryPath(
       continue;
     }
 
-    // 创建 TITLE 节点
     const createResult = await apiPut(`/repos/${bookId}/toc`, {
       action: "appendNode",
       action_mode: "child",
@@ -199,4 +147,16 @@ function extractTocNodes(data: unknown): Array<{
     }
   }
   return nodes;
+}
+
+// ─── 源链接追尾 ──────────────────────────────────────────
+
+/** 在 body 末尾追加源文档链接 */
+export function appendSourceLink(
+  body: string,
+  sourceUrl: string,
+  sourceTitle: string,
+): string {
+  const footer = `\n\n---\n> 📋 源文档：[${sourceTitle}](${sourceUrl})`;
+  return body + footer;
 }
