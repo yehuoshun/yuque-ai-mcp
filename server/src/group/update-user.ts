@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPut, isErrorResult } from "../common/api-client.js";
+import { check, requiredString } from "../common/validate.js";
 import { formatGroupUser } from "../common/format.js";
 
 
@@ -26,6 +27,12 @@ export const groupUpdateUser: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.login, "login"),
+      requiredString(args?.id, "id"),
+    );
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const id = args?.id as string;

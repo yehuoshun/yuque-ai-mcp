@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { requiredString } from "../common/validate.js";
 import { apiDelete, isErrorResult } from "../common/api-client.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
@@ -26,6 +27,9 @@ export const repoDelete: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.book_id, "book_id");
+    if (__v) return __v;
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 

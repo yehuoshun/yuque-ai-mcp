@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatDocVersion, wrapResult } from "../common/format.js";
 
 
@@ -24,6 +25,9 @@ export const docVersions: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.id, "id");
+    if (__v) return __v;
     const docId = args?.doc_id as number;
     const raw = args?.raw as boolean | undefined;
 

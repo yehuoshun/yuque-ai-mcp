@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatNote, wrapResult } from "../common/format.js";
 
 
@@ -24,6 +25,9 @@ export const noteCreate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.body, "body");
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const body = args?.body as string;
 

@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { check, requiredString } from "../common/validate.js";
 import { apiPut, isErrorResult } from "../common/api-client.js";
 
 
@@ -34,6 +35,13 @@ export const tocUpdate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.book_id, "book_id"),
+      requiredString(args?.action, "action"),
+      requiredString(args?.action_mode, "action_mode"),
+    );
+    if (__v) return __v;
     const bookId = args?.book_id as string;
     const action = args?.action as string;
 

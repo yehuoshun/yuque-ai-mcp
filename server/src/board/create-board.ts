@@ -6,6 +6,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { handleApiError } from "../common/errors.js";
+import { requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 
 export const boardCreate: McpTool = {
@@ -25,6 +26,9 @@ export const boardCreate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.dsl, "dsl");
+    if (__v) return __v;
     const cfg = loadConfig();
     const docId = args?.doc_id as number | undefined;
     const url = args?.url as string | undefined;

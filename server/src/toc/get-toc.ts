@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatToc, wrapResult } from "../common/format.js";
 
 
@@ -24,6 +25,9 @@ export const tocGet: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.book_id, "book_id");
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 

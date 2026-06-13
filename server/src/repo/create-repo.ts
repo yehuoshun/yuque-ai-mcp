@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPostWithFallback, isErrorResult } from "../common/api-client.js";
+import { check, requiredString } from "../common/validate.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
@@ -29,6 +30,13 @@ export const repoCreate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.login, "login"),
+      requiredString(args?.name, "name"),
+      requiredString(args?.slug, "slug"),
+    );
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const name = args?.name as string;

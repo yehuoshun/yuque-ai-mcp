@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { check, requiredString } from "../common/validate.js";
 import { apiDelete, isErrorResult } from "../common/api-client.js";
 import { formatGroupUser } from "../common/format.js";
 
@@ -27,6 +28,12 @@ export const groupDeleteUser: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.login, "login"),
+      requiredString(args?.id, "id"),
+    );
+    if (__v) return __v;
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 

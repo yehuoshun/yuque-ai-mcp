@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatDoc, wrapResult } from "../common/format.js";
 
 
@@ -26,6 +27,9 @@ export const docGet: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.id, "id");
+    if (__v) return __v;
     const id = args?.id as string;
     const pageSize = (args?.page_size as number) ?? 100;
     const page = (args?.page as number) ?? 1;

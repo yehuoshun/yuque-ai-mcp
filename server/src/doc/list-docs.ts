@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatDocSummary, wrapResult } from "../common/format.js";
 
 
@@ -27,6 +28,9 @@ export const docList: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.book_id, "book_id");
+    if (__v) return __v;
     const bookId = args?.book_id as string;
     const offset = (args?.offset as number) ?? 0;
     const limit = (args?.limit as number) ?? 100;

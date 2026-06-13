@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 import { formatGroupUser } from "../common/format.js";
 
 
@@ -26,6 +27,9 @@ export const groupListUsers: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.login, "login");
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const role = args?.role as number | undefined;

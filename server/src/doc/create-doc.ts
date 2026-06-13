@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
+import { check, requiredString } from "../common/validate.js";
 import { formatDoc, wrapResult } from "../common/format.js";
 
 /** 创建文档后自动追加到 TOC 末尾 */
@@ -42,6 +43,12 @@ export const docCreate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.book_id, "book_id"),
+      requiredString(args?.body, "body"),
+    );
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
     const title = (args?.title as string) ?? "无标题";

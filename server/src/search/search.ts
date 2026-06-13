@@ -7,6 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 
 
 export const searchGeneral: McpTool = {
@@ -26,6 +27,9 @@ export const searchGeneral: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.q, "q");
+    if (__v) return __v;
     const q = args?.q as string;
     const type = args?.type as string;
     const scope = args?.scope as string | undefined;

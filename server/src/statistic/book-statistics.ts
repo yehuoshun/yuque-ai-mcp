@@ -6,6 +6,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
+import { requiredString } from "../common/validate.js";
 
 
 export const bookStatistics: McpTool = {
@@ -27,6 +28,9 @@ export const bookStatistics: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.login, "login");
+    if (__v) return __v;
     const login = args?.login as string;
     const name = args?.name as string | undefined;
     const range = (args?.range as number) ?? 0;
