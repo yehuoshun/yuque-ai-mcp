@@ -23,6 +23,36 @@ export function sanitizeContent(html: string): string {
   cleaned = cleaned.replace(/\s*(class|id)\s*=\s*["'][^"']*["']/gi, "");
   cleaned = cleaned.replace(/\s*data-[a-z0-9_-]+\s*=\s*["'][^"']*["']/gi, "");
 
+  // 内容级清洗：剪藏论坛垃圾文本
+  cleaned = cleaned.replace(/^您已选择 \*\*\d+\*\* 个帖子.?\s*/gm, "");
+  cleaned = cleaned.replace(/^\d+ 浏览量.*$/gm, "");
+  cleaned = cleaned.replace(/^\d+ 赞.*$/gm, "");
+  cleaned = cleaned.replace(/^\d+ 用户$/gm, "");
+  cleaned = cleaned.replace(/^全选\s*$/gm, "");
+  cleaned = cleaned.replace(/^取消选择\s*$/gm, "");
+  cleaned = cleaned.replace(/^总结\s*$/gm, "");
+  cleaned = cleaned.replace(/^\[View as nested\].*$/gm, "");
+  cleaned = cleaned.replace(/^查看回复楼层\s*$/gm, "");
+  cleaned = cleaned.replace(/^\[.*?\]\(\/t\/topic\/\d+\/\d+.*?\)\s*$/gm, "");
+  cleaned = cleaned.replace(/^\[.*?\]\(\/t\/topic\/\d+.*?\)\s*$/gm, "");
+  cleaned = cleaned.replace(/^\d+ \/ \d+\s*$/gm, "");
+  cleaned = cleaned.replace(/^由 .* 于 .* 发布\s*$/gm, "");
+  cleaned = cleaned.replace(/^---+\s*$/gm, "");
+  cleaned = cleaned.replace(/^楼主\s*$/gm, "");
+  cleaned = cleaned.replace(/^\[\d+ 小时\].*$/gm, "");
+  cleaned = cleaned.replace(/^\[.*?\]\(\/u\/\S+.*?\)\s*$/gm, "");
+  cleaned = cleaned.replace(/^\d+月 \d+ 日\s*$/gm, "");
+  cleaned = cleaned.replace(/^\d+ 小时\s*$/gm, "");
+  cleaned = cleaned.replace(/^\s*\[!\]\(https:\/\/cdn\.ldstatic\.com\/.*?\)\s*$/gm, "");
+  // LDStatic 头像 + 用户链接（论坛回复者头像行）
+  cleaned = cleaned.replace(/^\s*\[!\]\(https:\/\/cdn\.ldstatic\.com\/.*?\)\[\/u\/\S+\].*$/gm, "");
+  // 论坛 emoji 图片（纯装饰）
+  cleaned = cleaned.replace(/^!\[\]\(https:\/\/cdn\.ldstatic\.com\/images\/emoji\/.*?\)\s*$/gm, "");
+  // 残留的用户链接行（已被清洗掉头像但剩链接）
+  cleaned = cleaned.replace(/^\s*\[\/u\/\S+\]\s*$/gm, "");
+  // 残留的纯链接行
+  cleaned = cleaned.replace(/^\s*\[.*?\]\(\/u\/\S+.*?\)\s*$/gm, "");
+
   return cleaned.trim();
 }
 

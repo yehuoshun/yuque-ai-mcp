@@ -87,10 +87,13 @@ export const docCopySingle: McpTool = {
 
     const title = customTitle || (src.title as string) || "无标题";
     const body = (src.body as string) || (src.body_html as string) || "";
+    const bodyLake = src.body_lake as string | undefined;
     const format = (src.format as string) || "lake";
+    const isLake = format === "lake" && !!bodyLake;
 
-    // ── 2. 清洗 content ──
-    const cleanedBody = sanitizeContent(body);
+    // ── 2. 准备 content ──
+    const finalBody = isLake ? bodyLake : sanitizeContent(body);
+    const finalFormat = isLake ? "lake" : (format || "markdown");
 
     // ── 3. 逐路径创建副本 ──
     const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
@@ -107,8 +110,8 @@ export const docCopySingle: McpTool = {
         // 创建文档
         const payload: Record<string, unknown> = {
           title,
-          body: cleanedBody,
-          format,
+          body: finalBody,
+          format: finalFormat,
         };
 
         const data = await apiPost(`/repos/${targetBookId}/docs`, payload, `Copy doc to ${path}`);
