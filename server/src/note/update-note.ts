@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 import { formatNote, wrapResult } from "../common/format.js";
 
 
 export const noteUpdate: McpTool = {
   name: "yuque_update_note",
-  description: "Update or delete a note (body for content update, status=9 soft-deletes, status=0 restores)",
+  description: "Update or delete a note (body for content update, status=9 soft-deletes, status=0 restores). ⚠️ Deleting (status=9) requires confirmation: set confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -21,6 +21,7 @@ export const noteUpdate: McpTool = {
       note_id: { type: "number", description: "Note ID (required)" },
       body: { type: "string", description: "New content (plain text or Markdown, unchanged if omitted)" },
       status: { type: "number", description: "Status: 0=active, 9=deleted (unchanged if omitted)" },
+      confirm: confirmationParam.confirm,
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["note_id"],
@@ -32,6 +33,12 @@ export const noteUpdate: McpTool = {
     const noteId = args?.note_id as number;
     const body = args?.body as string | undefined;
     const status = args?.status as number | undefined;
+
+    // 删除操作需要确认
+    if (status === 9) {
+      const confirmed = checkConfirmation(args);
+      if (confirmed) return confirmed;
+    }
 
     const payload: Record<string, unknown> = {};
     if (body !== undefined) {

@@ -6,21 +6,26 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleDestroy: McpTool = {
   name: "yuque_destroy_recycle",
-  description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie + ctoken in config.json)",
+  description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie + ctoken in config.json). Requires confirmation: set confirm='DELETE'",
 
   inputSchema: {
     type: "object",
     properties: {
       recycle_id: { type: "number", description: "Recycle bin item ID (required)" },
+      confirm: confirmationParam.confirm,
     },
-    required: ["recycle_id"],
+    required: ["recycle_id", "confirm"],
   },
 
   async handler(args) {
+    const confirmed = checkConfirmation(args);
+    if (confirmed) return confirmed;
+
     const recycleId = args?.recycle_id as number;
 
     await webRequest(`${MINE_BASE}/${recycleId}`, { method: "DELETE" });

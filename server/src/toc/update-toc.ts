@@ -14,13 +14,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 
 
 export const tocUpdate: McpTool = {
   name: "yuque_update_toc",
-  description: "Update repository TOC: create/move/edit/delete nodes (different actions require different field combinations, see parameter docs)",
+  description: "Update repository TOC: create/move/edit/delete nodes (different actions require different field combinations, see parameter docs). ⚠️ Deleting (action=removeNode) requires confirmation: set confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -36,6 +36,7 @@ export const tocUpdate: McpTool = {
       visible: { type: "number", description: "Visible: 0=hidden, 1=visible (default 1)" },
       target_uuid: { type: "string", description: "Target node UUID, defaults to root if omitted" },
       node_uuid: { type: "string", description: "Target node UUID (required for move/edit/delete)" },
+      confirm: confirmationParam.confirm,
     },
     required: ["book_id", "action", "action_mode"],
   },
@@ -43,6 +44,13 @@ export const tocUpdate: McpTool = {
   async handler(args) {
     const cfg = loadConfig();
     const bookId = args?.book_id as string;
+    const action = args?.action as string;
+
+    // 删除操作需要确认
+    if (action === "removeNode") {
+      const confirmed = checkConfirmation(args);
+      if (confirmed) return confirmed;
+    }
 
     const payload: Record<string, unknown> = {
       action: args?.action,

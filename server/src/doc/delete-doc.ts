@@ -6,26 +6,30 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
 import { loadConfig } from "../common/config.js";
 import { formatDoc, wrapResult } from "../common/format.js";
 
 
 export const docDelete: McpTool = {
   name: "yuque_delete_doc",
-  description: "Delete a document (moves to recycle bin; book_id supports numeric ID or namespace, id supports numeric ID or slug)",
+  description: "Delete a document (moves to recycle bin; book_id supports numeric ID or namespace, id supports numeric ID or slug). ⚠️ Requires confirmation: set confirm='DELETE'",
 
   inputSchema: {
     type: "object",
     properties: {
       book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
       id: { type: "string", description: "Document ID or slug (required)" },
+      confirm: confirmationParam.confirm,
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
-    required: ["book_id", "id"],
+    required: ["book_id", "id", "confirm"],
   },
 
   async handler(args) {
+    const confirmed = checkConfirmation(args);
+    if (confirmed) return confirmed;
+
     const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
