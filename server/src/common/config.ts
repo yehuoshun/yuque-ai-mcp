@@ -34,7 +34,7 @@ export function loadConfig(): Config {
   }
 
   if (!_config.token || _config.token === "在此填入语雀 API Token") {
-    throw new Error("请在 config/config.json 中填入有效的语雀 API Token");
+    throw new Error("请在 config/config.json 中填入有效的语雀 API Token / Please fill in a valid Yuque API Token in config/config.json");
   }
 
   _config.api_base = _config.api_base || "https://www.yuque.com/api/v2";

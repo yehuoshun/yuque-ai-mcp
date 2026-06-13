@@ -19,7 +19,7 @@ export async function webRequest(
 
   if (!cookie || !ctoken) {
     throw new Error(
-      "回收站 API 需要 Cookie 登录态。请在 config/config.json 中配置 cookie 和 ctoken 字段。" +
+      "回收站 API 需要 Cookie 登录态，请在 config/config.json 中配置 cookie 和 ctoken 字段 / Recycle bin API requires Cookie auth. Please configure cookie and ctoken in config/config.json." +
       "获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
     );
   }

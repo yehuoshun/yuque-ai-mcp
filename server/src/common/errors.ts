@@ -17,7 +17,7 @@ const STATUS_MAP: Record<number, string> = {
 
 /** 语雀业务 code → 错误描述 */
 const YUQUE_CODE_MAP: Record<string, string> = {
-  invalid_params: "Invalid parameters — check required fields and formats",
+  invalid_params: "参数无效，请检查必填字段和格式 / Invalid parameters — check required fields and formats",
   not_found: "Entity not found — check the ID or slug",
   permission_denied: "Permission denied — check token scope or team membership",
   user_not_found: "User not found — check login or ID",
@@ -155,7 +155,7 @@ export function checkConfirmation(
       content: [
         {
           type: "text",
-          text: "⚠️ Destructive operation requires confirmation. Set parameter `confirm` to the exact string 'DELETE' to proceed.",
+          text: "⚠️ 危险操作需二次确认，请将参数 `confirm` 设为 'DELETE' 后重试 / Destructive operation requires confirmation. Set parameter `confirm` to the exact string 'DELETE' to proceed.",
         },
       ],
       isError: true,

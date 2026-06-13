@@ -19,6 +19,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("启动失败:", err);
+  console.error("启动失败 / Startup failed:", err);
   process.exit(1);
 });

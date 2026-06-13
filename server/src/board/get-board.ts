@@ -34,7 +34,7 @@ export const boardGet: McpTool = {
 
     if (!docId && !url) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "Provide doc_id or url" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "请提供 doc_id 或 url / Provide doc_id or url" }, null, 2) }],
         isError: true,
       };
     }

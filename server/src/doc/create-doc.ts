@@ -20,7 +20,7 @@ async function appendToToc(bookId: string, docId: number): Promise<string | null
     }
     return null;
   } catch {
-    return "文档创建成功，但自动追加到目录时网络异常。请手动在语雀网页端调整目录。";
+    return "文档创建成功，但自动追加到目录时网络异常，请手动在语雀网页端调整目录 / Document created but network error during TOC append. Please manually adjust TOC in Yuque web UI.";
   }
 }
 

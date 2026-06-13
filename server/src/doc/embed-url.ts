@@ -76,7 +76,7 @@ export const docEmbedUrl: McpTool = {
             type: "text" as const,
             text: JSON.stringify(
               {
-                error: "请提供 url 或 (doc_id + book_id)",
+                error: "请提供 url 或 (doc_id + book_id) / Provide url or (doc_id + book_id)",
                 usage: {
                   url: "https://www.yuque.com/yuque/developer/embed",
                   from: "your_appname",
@@ -120,7 +120,7 @@ export const docEmbedUrl: McpTool = {
                 outline: outline ?? "默认（显示）",
                 translate: translate ?? "无",
               },
-              note: "嵌入模式仅支持公开文档。私密文档请通过 API 获取内容后自行渲染。",
+              note: "嵌入模式仅支持公开文档，私密文档请通过 API 获取内容后自行渲染 / Embed mode only supports public documents. For private docs, fetch content via API and render yourself.",
               supported_languages: {
                 en: "英语",
                 zh: "中文",

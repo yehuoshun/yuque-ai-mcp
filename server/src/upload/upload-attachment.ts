@@ -102,7 +102,7 @@ export const uploadAttachment: McpTool = {
               {
                 error: "MISSING_COOKIE",
                 message:
-                  "文件上传需要 Cookie 登录态。请在 config/config.json 中配置 cookie 和 ctoken 字段。" +
+                  "文件上传需要 Cookie 登录态，请在 config/config.json 中配置 cookie 和 ctoken 字段 / File upload requires Cookie auth. Please configure cookie and ctoken in config/config.json." +
                   "获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
               },
               null,

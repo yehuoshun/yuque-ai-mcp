@@ -38,13 +38,13 @@ export const boardUpdate: McpTool = {
 
     if (!docId && !url) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "Provide doc_id or url" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "请提供 doc_id 或 url / Provide doc_id or url" }, null, 2) }],
         isError: true,
       };
     }
     if (!text && !dslRaw) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "Provide text or dsl (choose one)" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "请提供 text 或 dsl（二选一）/ Provide text or dsl (choose one)" }, null, 2) }],
         isError: true,
       };
     }
