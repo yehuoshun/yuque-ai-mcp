@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 43 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 45 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **43 个** |
+| 工具数量 | 19 个 | **45 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -49,7 +49,10 @@ server/
 │   │   ├── delete-doc.ts
 │   │   ├── versions.ts
 │   │   ├── version-detail.ts
-│   │   └── embed-url.ts
+│   │   ├── embed-url.ts
+│   │   ├── copy-common.ts
+│   │   ├── copy-doc.ts
+│   │   └── copy-repo.ts
 │   ├── repo/            # 知识库 CRUD（含 index.ts barrel）
 │   ├── group/           # 团队成员管理（含 index.ts barrel）
 │   ├── toc/             # 目录导航（含 index.ts barrel）
@@ -104,7 +107,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（43 个）
+## 工具列表（45 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -133,6 +136,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_get_doc_version_detail` | `GET /api/v2/doc_versions/:id` |
 | `yuque_embed_url` | 无（纯工具函数） |
 | `yuque_batch_get_docs` | 批量 GET（并发，max 20） |
+| `yuque_copy_doc` | 单文档跨库复制（LLM 分类 + 内容清洗） |
 
 ### repo — 知识库
 | 工具 | 端点 |
@@ -144,6 +148,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_delete_repo` | `DELETE /api/v2/repos/:id` |
 | `yuque_batch_get_repos` | 批量 GET（并发，max 20） |
 | `yuque_export_repo` | 批量导出 Markdown（含图片下载/降级） |
+| `yuque_copy_repo` | 批量跨库复制（LLM 分类 + 目录重建） |
 
 ### group — 团队
 | 工具 | 端点 |
