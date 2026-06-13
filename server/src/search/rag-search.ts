@@ -14,6 +14,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { apiGet } from "../common/api-client.js";
+import { isErrorResult } from "../common/api-client.js";
 import { loadConfig } from "../common/config.js";
 
 // ─── 关键词过滤 ──────────────────────────────────
@@ -60,26 +62,18 @@ async function searchYuque(
   q: string,
   scope: string | undefined,
   creator: string | undefined,
-  cfg: ReturnType<typeof loadConfig>,
 ): Promise<SearchResult[]> {
-  const params = new URLSearchParams();
-  params.set("q", q);
-  params.set("type", "doc");
-  params.set("page", "1");
-  if (scope) params.set("scope", scope);
-  if (creator) params.set("creator", creator);
+  const params: Record<string, string> = { q, type: "doc", page: "1" };
+  if (scope) params.scope = scope;
+  if (creator) params.creator = creator;
 
-  const url = `${cfg.api_base}/search?${params}`;
-  const res = await fetch(url, {
-    headers: { "X-Auth-Token": cfg.token },
-  });
+  const data = await apiGet("/search", params, `RAG search: ${q}`);
+  if (isErrorResult(data)) return [];
 
-  if (!res.ok) return [];
+  const typed = data as { data?: unknown[] };
+  if (!typed?.data) return [];
 
-  const data = await res.json();
-  if (!data?.data) return [];
-
-  return data.data.map((item: any) => ({
+  return typed.data.map((item: any) => ({
     id: item.id,
     doc_id: item.target?.id ?? item.id,
     title: item.title?.replace(/<em>|<\/em>/g, "") ?? "",
@@ -103,17 +97,13 @@ interface DocContent {
 
 async function fetchDoc(
   docId: number,
-  cfg: ReturnType<typeof loadConfig>,
 ): Promise<DocContent | null> {
-  const url = `${cfg.api_base}/repos/docs/${docId}`;
-  const res = await fetch(url, {
-    headers: { "X-Auth-Token": cfg.token },
-  });
+  const data = await apiGet(`/repos/docs/${docId}`, undefined, `RAG fetch doc: ${docId}`);
+  if (isErrorResult(data)) return null;
 
-  if (!res.ok) return null;
-
-  const data = await res.json();
-  const doc = data?.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typed = data as { data?: Record<string, any> };
+  const doc = typed?.data;
   if (!doc) return null;
 
   return {
@@ -189,7 +179,7 @@ export const searchRag: McpTool = {
 
     // 并发多路搜索
     const allResults = await Promise.all(
-      keywords.map((kw) => searchYuque(kw, scope, creator, cfg)),
+      keywords.map((kw) => searchYuque(kw, scope, creator)),
     );
 
     // 按 doc_id 去重合并
@@ -209,7 +199,7 @@ export const searchRag: McpTool = {
     // 获取前 N 篇文档的完整内容
     const docsToFetch = finalResults.slice(0, fetchDocs);
     const docs = (await Promise.all(
-      docsToFetch.map((r) => fetchDoc(r.doc_id, cfg)),
+      docsToFetch.map((r) => fetchDoc(r.doc_id)),
     )).filter(Boolean) as DocContent[];
 
     return {
