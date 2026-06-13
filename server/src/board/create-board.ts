@@ -5,9 +5,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { apiPost } from "../common/api-client.js";
+import { isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { loadConfig } from "../common/config.js";
 
 export const boardCreate: McpTool = {
   name: "yuque_create_board",
@@ -29,7 +29,6 @@ export const boardCreate: McpTool = {
     // @validate
     const __v = requiredString(args?.dsl, "dsl");
     if (__v) return __v;
-    const cfg = loadConfig();
     const docId = args?.doc_id as number | undefined;
     const url = args?.url as string | undefined;
     const type = args?.type as string;
@@ -48,13 +47,8 @@ export const boardCreate: McpTool = {
     if (url) payload.url = url;
     if (insertAfter) payload.insert_after_lake_id = insertAfter;
 
-    const res = await fetch(`${cfg.api_base}/yfm/boards`, {
-      method: "POST",
-      headers: { "X-Auth-Token": cfg.token, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return handleApiError(res, "Create board");
-    const data = await res.json();
+    const data = await apiPost("/yfm/boards", payload, "Create board");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };

@@ -5,9 +5,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { apiPut } from "../common/api-client.js";
+import { isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { loadConfig } from "../common/config.js";
 
 export const boardUpdate: McpTool = {
   name: "yuque_update_board",
@@ -29,7 +29,6 @@ export const boardUpdate: McpTool = {
     // @validate
     const __v = requiredString(args?.resource_id, "resource_id");
     if (__v) return __v;
-    const cfg = loadConfig();
     const docId = args?.doc_id as number | undefined;
     const url = args?.url as string | undefined;
     const resourceId = args?.resource_id as string;
@@ -58,13 +57,8 @@ export const boardUpdate: McpTool = {
       try { payload.dsl = JSON.parse(dslRaw); } catch { payload.dsl = dslRaw; }
     }
 
-    const res = await fetch(`${cfg.api_base}/yfm/boards`, {
-      method: "PUT",
-      headers: { "X-Auth-Token": cfg.token, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return handleApiError(res, "Update board");
-    const data = await res.json();
+    const data = await apiPut("/yfm/boards", payload, "Update board");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };

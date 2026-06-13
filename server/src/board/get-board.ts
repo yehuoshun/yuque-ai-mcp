@@ -5,9 +5,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
+import { apiGet } from "../common/api-client.js";
+import { isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { loadConfig } from "../common/config.js";
 
 export const boardGet: McpTool = {
   name: "yuque_get_board",
@@ -27,7 +27,6 @@ export const boardGet: McpTool = {
     // @validate
     const __v = requiredString(args?.resource_id, "resource_id");
     if (__v) return __v;
-    const cfg = loadConfig();
     const docId = args?.doc_id as number | undefined;
     const url = args?.url as string | undefined;
     const resourceId = args?.resource_id as string;
@@ -39,17 +38,12 @@ export const boardGet: McpTool = {
       };
     }
 
-    const params = new URLSearchParams();
-    params.set("resource_type", "board");
-    params.set("src", resourceId);
-    if (docId) params.set("doc_id", String(docId));
-    if (url) params.set("url", url);
+    const params: Record<string, string> = { resource_type: "board", src: resourceId };
+    if (docId) params.doc_id = String(docId);
+    if (url) params.url = url;
 
-    const res = await fetch(`${cfg.api_base}/yfm/boards?${params}`, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-    if (!res.ok) return handleApiError(res, "Get board");
-    const data = await res.json();
+    const data = await apiGet("/yfm/boards", params, "Get board");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };
