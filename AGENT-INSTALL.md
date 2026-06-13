@@ -143,9 +143,12 @@ Codex 通过 ACP 协议接入 MCP Server。在 Codex 配置中添加：
 
 ## 常见问题
 
-### 启动报错 "无法读取 config/config.json"
+### 报错 "config.json 未找到" 或 "请填入有效的 Token"
 
-检查 `cwd` 是否指向 `server/` 目录。config.json 路径为 `../config/config.json`（相对于 server 目录）。
+确保已完成前置步骤：
+1. `cp ../config/config.example.json ../config/config.json`
+2. 编辑 `../config/config.json` 填入真实 Token
+3. config.json 位于仓库根目录的 `config/` 下，server 启动时自动查找
 
 ### Token 无效
 
@@ -167,5 +170,5 @@ Codex 通过 ACP 协议接入 MCP Server。在 Codex 配置中添加：
 
 ## 配套资源
 
-- **Skill 层**：[yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) — 33 个工具使用指导、场景模式、最佳实践
-- **API 参考**：`references/api/` — 完整端点文档和错误码
+- **Skill 层**：[yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) — 38 个工具使用指导、场景模式、最佳实践
+- **API 参考**：[SKILL.md](https://github.com/yehuoshun/yuque-ai-skills/blob/main/SKILL.md) — 完整端点索引和错误码
