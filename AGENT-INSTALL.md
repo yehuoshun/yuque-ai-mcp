@@ -170,5 +170,5 @@ Codex 通过 ACP 协议接入 MCP Server。在 Codex 配置中添加：
 
 ## 配套资源
 
-- **Skill 层**：[yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) — 38 个工具使用指导、场景模式、最佳实践
+- **Skill 层**：[yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) — 40 个工具使用指导、场景模式、最佳实践
 - **API 参考**：[SKILL.md](https://github.com/yehuoshun/yuque-ai-skills/blob/main/SKILL.md) — 完整端点索引和错误码

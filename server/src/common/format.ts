@@ -4,12 +4,128 @@
  * 默认精简输出，传 raw=true 可获取全量原始 JSON
  */
 
-import type { McpTool } from "./types.js";
+// ── 类型定义 ──────────────────────────────────────────────────
+
+/** 语雀用户原始数据 */
+interface YuqueUserRaw {
+  id: number;
+  login: string;
+  name: string;
+  description?: string;
+  avatar_url?: string;
+  books_count?: number;
+  followers_count?: number;
+}
+
+/** 语雀团队原始数据 */
+interface YuqueGroupRaw {
+  id: number;
+  login: string;
+  name: string;
+  description?: string;
+  avatar_url?: string;
+}
+
+/** 语雀文档原始数据 */
+interface YuqueDocRaw {
+  id: number;
+  slug: string;
+  title: string;
+  format?: string;
+  public?: number;
+  word_count?: number;
+  body?: string;
+  body_html?: string;
+  description?: string;
+  book_id?: number;
+  user_id?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** 语雀文档版本原始数据 */
+interface YuqueDocVersionRaw {
+  id: number;
+  doc_id: number;
+  title: string;
+  version: number;
+  created_at?: string;
+  content_changed?: boolean;
+}
+
+/** 语雀知识库原始数据 */
+interface YuqueRepoRaw {
+  id: number;
+  slug: string;
+  name: string;
+  namespace?: string;
+  description?: string;
+  public?: number;
+  items_count?: number;
+  likes_count?: number;
+  user_id?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** 语雀团队成员原始数据 */
+interface YuqueGroupUserRaw {
+  id: number;
+  login: string;
+  name: string;
+  role?: number;
+  avatar_url?: string;
+  created_at?: string;
+  user?: YuqueUserRaw;
+}
+
+/** 语雀小记原始数据 */
+interface YuqueNoteRaw {
+  id: number;
+  slug: string;
+  title?: string;
+  content?: string | { abstract?: string };
+  word_count?: number;
+  public?: number;
+  book_id?: number;
+  created_at?: string;
+  updated_at?: string;
+  note_url?: string;
+}
+
+/** 语雀 TOC 节点原始数据 */
+interface YuqueTocNodeRaw {
+  title: string;
+  uuid: string;
+  doc_id?: number;
+  level?: number;
+  visible?: boolean;
+  url?: string;
+  child_uuid?: string;
+  parent_uuid?: string;
+}
+
+/** 语雀回收站项目原始数据 */
+interface YuqueRecycleRaw {
+  id: number;
+  title: string;
+  type?: string;
+  slug?: string;
+  deleted_at?: string;
+  user_id?: number;
+  book_id?: number;
+}
+
+/** 带 data 包装的 API 响应 */
+interface ApiResponse<T> {
+  data?: T;
+  meta?: unknown;
+}
 
 // ── User ──────────────────────────────────────────────────────
 
-export function formatUser(data: any) {
-  const d = data?.data ?? data;
+export function formatUser(data: ApiResponse<YuqueUserRaw> | YuqueUserRaw) {
+  const d = (data as ApiResponse<YuqueUserRaw>).data ?? (data as YuqueUserRaw);
   return {
     id: d.id,
     login: d.login,
@@ -21,7 +137,7 @@ export function formatUser(data: any) {
   };
 }
 
-export function formatUserGroup(data: any) {
+export function formatUserGroup(data: YuqueGroupRaw) {
   return {
     id: data.id,
     login: data.login,
@@ -33,8 +149,8 @@ export function formatUserGroup(data: any) {
 
 // ── Doc ───────────────────────────────────────────────────────
 
-export function formatDoc(data: any) {
-  const d = data?.data ?? data;
+export function formatDoc(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
+  const d = (data as ApiResponse<YuqueDocRaw>).data ?? (data as YuqueDocRaw);
   return {
     id: d.id,
     slug: d.slug,
@@ -49,12 +165,11 @@ export function formatDoc(data: any) {
     user_id: d.user_id,
     created_at: d.created_at,
     updated_at: d.updated_at,
-    ...(data?.data ? {} : {}), // 保持透传兼容
   };
 }
 
-export function formatDocSummary(data: any) {
-  const d = data?.data ?? data;
+export function formatDocSummary(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
+  const d = (data as ApiResponse<YuqueDocRaw>).data ?? (data as YuqueDocRaw);
   return {
     id: d.id,
     slug: d.slug,
@@ -66,7 +181,7 @@ export function formatDocSummary(data: any) {
   };
 }
 
-export function formatDocVersion(data: any) {
+export function formatDocVersion(data: YuqueDocVersionRaw) {
   return {
     id: data.id,
     doc_id: data.doc_id,
@@ -79,8 +194,8 @@ export function formatDocVersion(data: any) {
 
 // ── Repo ──────────────────────────────────────────────────────
 
-export function formatRepo(data: any) {
-  const d = data?.data ?? data;
+export function formatRepo(data: ApiResponse<YuqueRepoRaw> | YuqueRepoRaw) {
+  const d = (data as ApiResponse<YuqueRepoRaw>).data ?? (data as YuqueRepoRaw);
   return {
     id: d.id,
     slug: d.slug,
@@ -98,7 +213,7 @@ export function formatRepo(data: any) {
 
 // ── Group ─────────────────────────────────────────────────────
 
-export function formatGroupUser(data: any) {
+export function formatGroupUser(data: YuqueGroupUserRaw) {
   const u = data.user ?? data;
   return {
     id: u.id,
@@ -112,8 +227,8 @@ export function formatGroupUser(data: any) {
 
 // ── Note ──────────────────────────────────────────────────────
 
-export function formatNote(data: any) {
-  const d = data?.data ?? data;
+export function formatNote(data: ApiResponse<YuqueNoteRaw> | YuqueNoteRaw) {
+  const d = (data as ApiResponse<YuqueNoteRaw>).data ?? (data as YuqueNoteRaw);
   return {
     id: d.id,
     slug: d.slug,
@@ -128,21 +243,24 @@ export function formatNote(data: any) {
   };
 }
 
-export function formatNoteSummary(data: any) {
-  const d = data?.data ?? data;
+export function formatNoteSummary(data: ApiResponse<YuqueNoteRaw> | YuqueNoteRaw) {
+  const d = (data as ApiResponse<YuqueNoteRaw>).data ?? (data as YuqueNoteRaw);
+  const abstract = typeof d.content === "object" && d.content?.abstract
+    ? d.content.abstract.replace(/<[^>]*>/g, "").substring(0, 200)
+    : "";
   return {
     id: d.id,
     slug: d.slug,
     word_count: d.word_count,
     updated_at: d.updated_at,
-    abstract: (d.content?.abstract || "").replace(/<[^>]*>/g, "").substring(0, 200),
+    abstract,
   };
 }
 
 // ── TOC ───────────────────────────────────────────────────────
 
-export function formatToc(data: any[]) {
-  return data.map((item: any) => ({
+export function formatToc(data: YuqueTocNodeRaw[]) {
+  return data.map((item) => ({
     title: item.title,
     uuid: item.uuid,
     doc_id: item.doc_id,
@@ -156,7 +274,7 @@ export function formatToc(data: any[]) {
 
 // ── Recycle ───────────────────────────────────────────────────
 
-export function formatRecycle(data: any) {
+export function formatRecycle(data: YuqueRecycleRaw) {
   return {
     id: data.id,
     title: data.title,
@@ -175,9 +293,10 @@ export function formatRecycle(data: any) {
  * - 默认调 formatFn 裁剪
  * - 如果用户传了 raw=true，透传原始 JSON
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapResult(
   data: unknown,
-  formatFn?: (data: any) => unknown,
+  formatFn?: (item: any) => unknown,
   raw?: boolean,
 ): string {
   if (raw) {
@@ -187,7 +306,7 @@ export function wrapResult(
     return JSON.stringify(data, null, 2);
   }
   // 处理 { data: [...] } 列表结构
-  const obj = data as any;
+  const obj = data as Record<string, unknown>;
   if (obj?.data && Array.isArray(obj.data)) {
     const formatted = {
       ...(obj.meta ? { meta: obj.meta } : {}),
@@ -201,8 +320,6 @@ export function wrapResult(
   }
   // 处理纯数组（formatToc 等直接处理数组的 format 函数）
   if (Array.isArray(data)) {
-    // 判断数组元素结构：如果第一个元素有 user 字段（group user），用 map
-    // 否则让 formatFn 自己处理整个数组
     return JSON.stringify(formatFn(data), null, 2);
   }
   // 处理纯对象

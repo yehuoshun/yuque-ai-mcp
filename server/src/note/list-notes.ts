@@ -40,8 +40,8 @@ export const noteList: McpTool = {
 
     const notes = (data as { data?: { notes?: unknown[]; pin_notes?: unknown[] } })?.data;
     const formatted = {
-      pin_notes: notes?.pin_notes?.map(formatNoteSummary) ?? [],
-      notes: notes?.notes?.map(formatNoteSummary) ?? [],
+      pin_notes: (notes?.pin_notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
+      notes: (notes?.notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
     };
     const result = raw ? JSON.stringify(data, null, 2) : JSON.stringify(formatted, null, 2);
     return {
