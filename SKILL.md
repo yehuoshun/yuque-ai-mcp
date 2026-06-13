@@ -48,6 +48,12 @@
 | `PUT /api/mine/recycles/:id/restore` | recycle | 恢复回收站项目 |
 | `DELETE /api/mine/recycles/:id` | recycle | 彻底删除回收站项目 |
 | `POST /api/upload/attach` | upload | 上传文件到语雀 CDN |
+| `无（纯工具函数）` | doc | 生成文档嵌入阅读器 URL |
+| `GET /api/v2/yfm/boards` | board | 获取文档中的画板资源（思维导图/流程图/架构图） |
+| `POST /api/v2/yfm/boards` | board | 在文档中创建画板资源（思维导图/流程图/架构图） |
+| `PUT /api/v2/yfm/boards` | board | 更新文档中的画板资源（思维导图/流程图/架构图） |
+| 批量 GET（并发） | doc | 批量获取文档详情（只读，max 20） |
+| 批量 GET（并发） | repo | 批量获取知识库详情（只读，max 20） |
 
 ## 错误码
 

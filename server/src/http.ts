@@ -10,7 +10,7 @@ import { createServer } from "http";
 import { registerAllTools, ALL_TOOLS } from "./common/register-tools.js";
 
 function createMcpServer() {
-  const server = new McpServer({ name: "yuque-ai-mcp", version: "2.0.0" });
+  const server = new McpServer({ name: "yuque-ai-mcp", version: "2.1.0" });
   registerAllTools(server);
   return server;
 }
@@ -38,7 +38,7 @@ const httpServer = createServer(async (req, res) => {
   // Health check
   if (req.method === "GET" && url.pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", version: "2.0.0", tools: ALL_TOOLS.length }));
+    res.end(JSON.stringify({ status: "ok", version: "2.1.0", tools: ALL_TOOLS.length }));
     return;
   }
 
