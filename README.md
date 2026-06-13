@@ -131,7 +131,6 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_get_doc_version_detail` | `GET /api/v2/doc_versions/:id` |
 | `yuque_embed_url` | 无（纯工具函数） |
 | `yuque_batch_get_docs` | 批量 GET（并发，max 20） |
-| `yuque_export_docs` | 批量导出 Markdown（含图片下载/降级） |
 
 ### repo — 知识库
 | 工具 | 端点 |
@@ -142,6 +141,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_update_repo` | `PUT /api/v2/repos/:id` |
 | `yuque_delete_repo` | `DELETE /api/v2/repos/:id` |
 | `yuque_batch_get_repos` | 批量 GET（并发，max 20） |
+| `yuque_export_repo` | 批量导出 Markdown（含图片下载/降级） |
 
 ### group — 团队
 | 工具 | 端点 |

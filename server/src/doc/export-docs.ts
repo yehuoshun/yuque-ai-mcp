@@ -145,7 +145,7 @@ function formatFrontMatter(doc: {
 // ─── 主工具 ───────────────────────────────────────────
 
 export const docExport: McpTool = {
-  name: "yuque_export_docs",
+  name: "yuque_export_repo",
   description:
     "Export all documents in a repository as Markdown files with images/attachments downloaded. " +
     "Failed downloads fall back to original CDN URLs.",
