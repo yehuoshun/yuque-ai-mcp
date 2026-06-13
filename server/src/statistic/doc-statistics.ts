@@ -2,17 +2,15 @@
  * statistic/docs — 团队文档统计数据
  *
  * 端点：GET /api/v2/groups/:login/statistics/docs
- * 职责：返回团队文档维度的统计数据，支持 bookId/name 过滤和排序
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 
 
 export const docStatistics: McpTool = {
   name: "yuque_get_doc_statistics",
-  description: "Get group document statistics (supports bookId/name filter, date range, multi-field sorting, limit ≤ 20)",
+  description: "Get group document statistics",
 
   inputSchema: {
     type: "object",
@@ -30,7 +28,6 @@ export const docStatistics: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const login = args?.login as string;
     const bookId = args?.bookId as number | undefined;
     const name = args?.name as string | undefined;
@@ -40,23 +37,16 @@ export const docStatistics: McpTool = {
     const sortField = args?.sortField as string | undefined;
     const sortOrder = (args?.sortOrder as string) ?? "desc";
 
-    const params = new URLSearchParams();
-    params.set("range", String(range));
-    params.set("page", String(page));
-    params.set("limit", String(Math.min(limit, 20)));
-    params.set("sortOrder", sortOrder);
-    if (bookId !== undefined) params.set("bookId", String(bookId));
-    if (name) params.set("name", name);
-    if (sortField) params.set("sortField", sortField);
+    const params: Record<string, string> = {
+      range: String(range), page: String(page),
+      limit: String(Math.min(limit, 20)), sortOrder,
+    };
+    if (bookId !== undefined) params.bookId = String(bookId);
+    if (name) params.name = name;
+    if (sortField) params.sortField = sortField;
 
-    const url = `${cfg.api_base}/groups/${login}/statistics/docs?${params}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取文档统计");
-
-    const data = await res.json();
+    const data = await apiGet(`/groups/${login}/statistics/docs`, params, "Get doc stats");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };

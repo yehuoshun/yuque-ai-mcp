@@ -6,14 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatNote, wrapResult } from "../common/format.js";
 
 
 export const noteGet: McpTool = {
   name: "yuque_get_note",
-  description: "Get note detail (returns full content including content.text/content.html)",
+  description: "Get note detail",
 
   inputSchema: {
     type: "object",
@@ -25,18 +24,11 @@ export const noteGet: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const noteId = args?.note_id as number;
 
-    const url = `${cfg.api_base}/notes/${noteId}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取小记详情");
-
-    const data = await res.json();
+    const data = await apiGet(`/notes/${noteId}`, undefined, "Get note");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
     };

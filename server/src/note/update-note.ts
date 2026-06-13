@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { apiPut, isErrorResult } from "../common/api-client.js";
 import { formatNote, wrapResult } from "../common/format.js";
 
 
 export const noteUpdate: McpTool = {
   name: "yuque_update_note",
-  description: "Update or delete a note (body for content update, status=9 soft-deletes, status=0 restores). ⚠️ Deleting (status=9) requires confirmation: set confirm='DELETE'",
+  description: "Update or delete a note. ⚠️ Deleting (status=9) requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -28,13 +28,11 @@ export const noteUpdate: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const noteId = args?.note_id as number;
     const body = args?.body as string | undefined;
     const status = args?.status as number | undefined;
 
-    // 删除操作需要确认
     if (status === 9) {
       const confirmed = checkConfirmation(args);
       if (confirmed) return confirmed;
@@ -56,19 +54,8 @@ export const noteUpdate: McpTool = {
       };
     }
 
-    const url = `${cfg.api_base}/notes/${noteId}`;
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "X-Auth-Token": cfg.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) return handleApiError(res, "更新小记");
-
-    const data = await res.json();
+    const data = await apiPut(`/notes/${noteId}`, payload, "Update note");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
     };

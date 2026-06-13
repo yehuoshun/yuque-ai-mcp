@@ -2,18 +2,17 @@
  * repo/create — 创建知识库
  *
  * 端点：POST /api/v2/users/:login/repos 或 POST /api/v2/groups/:login/repos
- * 职责：在用户或团队下创建新知识库
+ * 职责：在用户或团队下创建新知识库，自动切换 user/group 端点
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiPostWithFallback, isErrorResult } from "../common/api-client.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoCreate: McpTool = {
   name: "yuque_create_repo",
-  description: "Create a repository (login supports login or ID, auto-detects user vs group endpoint, name and slug required)",
+  description: "Create a repository, auto-detects user vs group endpoint",
 
   inputSchema: {
     type: "object",
@@ -30,7 +29,6 @@ export const repoCreate: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const name = args?.name as string;
@@ -43,32 +41,13 @@ export const repoCreate: McpTool = {
     if (description) payload.description = description;
     if (enhancedPrivacy !== undefined) payload.enhancedPrivacy = enhancedPrivacy;
 
-    // 先试用户端点，404 再试团队端点
-    let url = `${cfg.api_base}/users/${login}/repos`;
-    let res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "X-Auth-Token": cfg.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.status === 404) {
-      url = `${cfg.api_base}/groups/${login}/repos`;
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "X-Auth-Token": cfg.token,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    if (!res.ok) return handleApiError(res, "创建知识库");
-
-    const data = await res.json();
+    const data = await apiPostWithFallback(
+      `/users/${login}/repos`,
+      `/groups/${login}/repos`,
+      payload,
+      "Create repo",
+    );
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };

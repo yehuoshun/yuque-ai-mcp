@@ -12,7 +12,7 @@ import type { McpTool } from "../common/types.js";
 export const docEmbedUrl: McpTool = {
   name: "yuque_embed_url",
   description:
-    "Generate a Yuque embed reader URL from a document link or doc_id + book_id, supports optional title/outline/translate params",
+    "Generate a Yuque embed reader URL from a document link or doc_id + book_id",
 
   inputSchema: {
     type: "object",

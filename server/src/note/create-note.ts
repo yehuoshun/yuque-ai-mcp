@@ -6,14 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiPost, isErrorResult } from "../common/api-client.js";
 import { formatNote, wrapResult } from "../common/format.js";
 
 
 export const noteCreate: McpTool = {
   name: "yuque_create_note",
-  description: "Create a note (body supports plain text or Markdown)",
+  description: "Create a note",
 
   inputSchema: {
     type: "object",
@@ -25,23 +24,11 @@ export const noteCreate: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const body = args?.body as string;
 
-    const url = `${cfg.api_base}/notes`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "X-Auth-Token": cfg.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ body }),
-    });
-
-    if (!res.ok) return handleApiError(res, "创建小记");
-
-    const data = await res.json();
+    const data = await apiPost("/notes", { body }, "Create note");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
     };

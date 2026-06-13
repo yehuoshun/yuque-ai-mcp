@@ -6,14 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatDocVersion, wrapResult } from "../common/format.js";
 
 
 export const docVersions: McpTool = {
   name: "yuque_get_doc_versions",
-  description: "List document version history (reverse chronological, up to 100 published versions)",
+  description: "List document version history",
 
   inputSchema: {
     type: "object",
@@ -25,18 +24,11 @@ export const docVersions: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
-    const raw = args?.raw as boolean | undefined;
     const docId = args?.doc_id as number;
+    const raw = args?.raw as boolean | undefined;
 
-    const url = `${cfg.api_base}/doc_versions?doc_id=${docId}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取文档历史版本");
-
-    const data = await res.json();
+    const data = await apiGet("/doc_versions", { doc_id: String(docId) }, "Get doc versions");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatDocVersion, raw) }],
     };

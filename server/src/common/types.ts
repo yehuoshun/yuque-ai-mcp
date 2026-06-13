@@ -9,7 +9,7 @@ export interface McpTool {
     required?: string[];
   };
   handler(args?: Record<string, unknown>): Promise<{
-    content: Array<{ type: "text"; text: string }>;
+    content?: Array<{ type: "text"; text: string }>;
     isError?: boolean;
-  }>;
+  }> | Promise<unknown>;
 }

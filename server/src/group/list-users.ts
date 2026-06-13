@@ -6,52 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
-import { formatGroupUser, wrapResult } from "../common/format.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
+import { formatGroupUser } from "../common/format.js";
 
-
-interface GroupUser {
-  id: number;
-  group_id: number;
-  user_id: number;
-  role: number;
-  created_at: string;
-  updated_at: string;
-  group: {
-    id: number;
-    type: string;
-    login: string;
-    name: string;
-    avatar_url: string;
-    books_count: number;
-    public_books_count: number;
-    members_count: number;
-    public: number;
-    description: string;
-    created_at: string;
-    updated_at: string;
-  };
-  user: {
-    id: number;
-    type: string;
-    login: string;
-    name: string;
-    avatar_url: string;
-    books_count: number;
-    public_books_count: number;
-    followers_count: number;
-    following_count: number;
-    public: number;
-    description: string;
-    created_at: string;
-    updated_at: string;
-  };
-}
 
 export const groupListUsers: McpTool = {
   name: "yuque_get_group_users",
-  description: "List group members (login supports group login or ID, role filter: admin/member/readonly, PageSize fixed 100)",
+  description: "List group members",
 
   inputSchema: {
     type: "object",
@@ -65,27 +26,21 @@ export const groupListUsers: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
 
-    const params = new URLSearchParams();
-    params.set("offset", String(offset));
-    if (role !== undefined) params.set("role", String(role));
+    const params: Record<string, string> = { offset: String(offset) };
+    if (role !== undefined) params.role = String(role);
 
-    const url = `${cfg.api_base}/groups/${login}/users?${params}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
+    const data = await apiGet(`/groups/${login}/users`, params, "Get group users");
+    if (isErrorResult(data)) return data;
 
-    if (!res.ok) return handleApiError(res, "获取团队成员");
-
-    const { data } = (await res.json()) as { data: GroupUser[] };
+    const items = (data as { data?: Record<string, unknown>[] })?.data ?? data;
     const result = raw
       ? JSON.stringify(data, null, 2)
-      : JSON.stringify(data.map(formatGroupUser), null, 2);
+      : JSON.stringify(Array.isArray(items) ? items.map(formatGroupUser) : items, null, 2);
     return {
       content: [{ type: "text" as const, text: result }],
     };

@@ -6,13 +6,12 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatUser, wrapResult } from "../common/format.js";
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
-  description: "Get current user profile (id, login, name, avatar_url, books_count, description, etc.)",
+  description: "Get current user profile",
 
   inputSchema: {
     type: "object",
@@ -22,16 +21,9 @@ export const userGet: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
-
-    const res = await fetch(`${cfg.api_base}/user`, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取用户信息");
-
-    const data = await res.json();
+    const data = await apiGet("/user", undefined, "Get user");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatUser, raw) }],
     };

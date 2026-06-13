@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { apiDelete, isErrorResult } from "../common/api-client.js";
 import { formatDoc, wrapResult } from "../common/format.js";
 
 
 export const docDelete: McpTool = {
   name: "yuque_delete_doc",
-  description: "Delete a document (moves to recycle bin; book_id supports numeric ID or namespace, id supports numeric ID or slug). ⚠️ Requires confirmation: set confirm='DELETE'",
+  description: "Delete a document (moves to recycle bin). ⚠️ Requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -30,20 +30,12 @@ export const docDelete: McpTool = {
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
     const id = args?.id as string;
 
-    const url = `${cfg.api_base}/repos/${bookId}/docs/${id}`;
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "删除文档");
-
-    const data = await res.json();
+    const data = await apiDelete(`/repos/${bookId}/docs/${id}`, "Delete doc");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatDoc, raw) }],
     };

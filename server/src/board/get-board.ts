@@ -1,8 +1,7 @@
 /**
- * resource/get — 获取文档中的结构化资源（画板）
+ * board/get — 获取文档中的画板资源
  *
  * 端点：GET /api/v2/yfm/boards
- * 职责：读取文档中已有的思维导图/流程图/架构图的 JSON DSL 数据
  */
 
 import type { McpTool } from "../common/types.js";
@@ -11,23 +10,14 @@ import { loadConfig } from "../common/config.js";
 
 export const boardGet: McpTool = {
   name: "yuque_get_board",
-  description: "Get a board resource (mindmap/flowchart/architecture diagram) from a document, returns JSON DSL and summary stats",
+  description: "Get a board resource from a document, returns JSON DSL and summary stats",
 
   inputSchema: {
     type: "object",
     properties: {
-      doc_id: {
-        type: "number",
-        description: "Document ID (mutually exclusive with url)",
-      },
-      url: {
-        type: "string",
-        description: "Document URL (mutually exclusive with doc_id)",
-      },
-      resource_id: {
-        type: "string",
-        description: "Board resource ID (required, extract the ID part from board://<resource_id>)",
-      },
+      doc_id: { type: "number", description: "Document ID (mutually exclusive with url)" },
+      url: { type: "string", description: "Document URL (mutually exclusive with doc_id)" },
+      resource_id: { type: "string", description: "Board resource ID (required, extract the ID part from board://<resource_id>)" },
     },
     required: ["resource_id"],
   },
@@ -40,9 +30,7 @@ export const boardGet: McpTool = {
 
     if (!docId && !url) {
       return {
-        content: [
-          { type: "text" as const, text: JSON.stringify({ error: "请提供 doc_id 或 url" }, null, 2) },
-        ],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Provide doc_id or url" }, null, 2) }],
         isError: true,
       };
     }
@@ -53,13 +41,10 @@ export const boardGet: McpTool = {
     if (docId) params.set("doc_id", String(docId));
     if (url) params.set("url", url);
 
-    const apiUrl = `${cfg.api_base}/yfm/boards?${params}`;
-    const res = await fetch(apiUrl, {
+    const res = await fetch(`${cfg.api_base}/yfm/boards?${params}`, {
       headers: { "X-Auth-Token": cfg.token },
     });
-
-    if (!res.ok) return handleApiError(res, "获取画板资源");
-
+    if (!res.ok) return handleApiError(res, "Get board");
     const data = await res.json();
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],

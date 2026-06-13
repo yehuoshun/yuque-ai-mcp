@@ -6,14 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatToc, wrapResult } from "../common/format.js";
 
 
 export const tocGet: McpTool = {
   name: "yuque_get_toc",
-  description: "Get repository TOC tree (book_id supports numeric ID or namespace, returns flat array navigable via uuid/parent_uuid/child_uuid)",
+  description: "Get repository TOC tree (flat array, navigable via uuid/parent_uuid/child_uuid)",
 
   inputSchema: {
     type: "object",
@@ -25,19 +24,12 @@ export const tocGet: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 
-    const url = `${cfg.api_base}/repos/${bookId}/toc`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取目录");
-
-    const data = await res.json();
-    const items = data?.data ?? data;
+    const data = await apiGet(`/repos/${bookId}/toc`, undefined, "Get TOC");
+    if (isErrorResult(data)) return data;
+    const items = (data as { data?: unknown })?.data ?? data;
     return {
       content: [{ type: "text" as const, text: wrapResult(items, formatToc, raw) }],
     };

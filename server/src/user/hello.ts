@@ -6,25 +6,19 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 
 
 export const userHello: McpTool = {
   name: "yuque_hello",
-  description: "Health check — verify Yuque API token validity, returns welcome message with user info",
+  description: "Health check — verify Yuque API token validity",
 
   async handler() {
-    const cfg = loadConfig();
-    const res = await fetch(`${cfg.api_base}/hello`, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "心跳检测");
-
-    const { data } = (await res.json()) as { data: { message: string } };
+    const data = await apiGet("/hello");
+    if (isErrorResult(data)) return data;
+    const result = (data as { data?: { message: string } })?.data ?? data;
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
     };
   },
 };

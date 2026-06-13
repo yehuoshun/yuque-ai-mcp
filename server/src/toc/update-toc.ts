@@ -3,24 +3,16 @@
  *
  * 端点：PUT /api/v2/repos/:book_id/toc
  * 职责：创建/移动/编辑/删除目录节点
- *
- * 场景说明：
- *   创建文档节点 → action=appendNode, type=DOC, doc_ids=[...]
- *   创建分组节点 → action=appendNode, type=TITLE, title=...
- *   创建外链节点 → action=appendNode, type=LINK, title=..., url=...
- *   移动节点     → action=appendNode/prependNode, node_uuid=..., target_uuid=...
- *   编辑节点     → action=editNode, node_uuid=...
- *   删除节点     → action=removeNode, node_uuid=... (action_mode=sibling 删当前, child 删含子节点)
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { apiPut, isErrorResult } from "../common/api-client.js";
 
 
 export const tocUpdate: McpTool = {
   name: "yuque_update_toc",
-  description: "Update repository TOC: create/move/edit/delete nodes (different actions require different field combinations, see parameter docs). ⚠️ Deleting (action=removeNode) requires confirmation: set confirm='DELETE'",
+  description: "Update repository TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -42,11 +34,9 @@ export const tocUpdate: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const bookId = args?.book_id as string;
     const action = args?.action as string;
 
-    // 删除操作需要确认
     if (action === "removeNode") {
       const confirmed = checkConfirmation(args);
       if (confirmed) return confirmed;
@@ -65,27 +55,12 @@ export const tocUpdate: McpTool = {
     if (args?.target_uuid !== undefined) payload.target_uuid = args.target_uuid;
     if (args?.node_uuid !== undefined) payload.node_uuid = args.node_uuid;
     if (args?.doc_ids !== undefined) {
-      try {
-        payload.doc_ids = JSON.parse(args.doc_ids as string);
-      } catch {
-        // 如果解析失败，直接传字符串
-        payload.doc_ids = args.doc_ids;
-      }
+      try { payload.doc_ids = JSON.parse(args.doc_ids as string); }
+      catch { payload.doc_ids = args.doc_ids; }
     }
 
-    const url = `${cfg.api_base}/repos/${bookId}/toc`;
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "X-Auth-Token": cfg.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) return handleApiError(res, "更新目录");
-
-    const data = await res.json();
+    const data = await apiPut(`/repos/${bookId}/toc`, payload, "Update TOC");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };

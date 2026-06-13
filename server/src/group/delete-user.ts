@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
-import { formatGroupUser, wrapResult } from "../common/format.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { apiDelete, isErrorResult } from "../common/api-client.js";
+import { formatGroupUser } from "../common/format.js";
 
 
 export const groupDeleteUser: McpTool = {
   name: "yuque_delete_group_user",
-  description: "Remove a member from a group (login supports group login or ID, id supports user login or ID). ⚠️ Requires confirmation: set confirm='DELETE'",
+  description: "Remove a member from a group. ⚠️ Requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -30,22 +30,14 @@ export const groupDeleteUser: McpTool = {
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const id = args?.id as string;
 
-    const url = `${cfg.api_base}/groups/${login}/users/${id}`;
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "删除团队成员");
-
-    const data = await res.json();
+    const data = await apiDelete(`/groups/${login}/users/${id}`, "Delete group user");
+    if (isErrorResult(data)) return data;
     return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatGroupUser, raw) }],
+      content: [{ type: "text" as const, text: raw ? JSON.stringify(data, null, 2) : JSON.stringify(formatGroupUser(data as any), null, 2) }],
     };
   },
 };

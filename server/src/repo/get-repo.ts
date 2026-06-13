@@ -6,14 +6,13 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoGet: McpTool = {
   name: "yuque_get_repo",
-  description: "Get repository detail (book_id supports numeric ID or namespace, returns name/description/public/items_count/likes_count/toc_yml)",
+  description: "Get repository detail",
 
   inputSchema: {
     type: "object",
@@ -25,18 +24,11 @@ export const repoGet: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 
-    const url = `${cfg.api_base}/repos/${bookId}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "获取知识库详情");
-
-    const data = await res.json();
+    const data = await apiGet(`/repos/${bookId}`, undefined, "Get repo");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };

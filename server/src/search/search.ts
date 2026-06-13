@@ -6,13 +6,12 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 
 
 export const searchGeneral: McpTool = {
   name: "yuque_search",
-  description: "General search across Yuque documents and repositories (PageSize fixed 20, returns title/summary/url/book_name, supports scope filter)",
+  description: "General search across Yuque documents and repositories",
 
   inputSchema: {
     type: "object",
@@ -27,28 +26,18 @@ export const searchGeneral: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const q = args?.q as string;
     const type = args?.type as string;
     const scope = args?.scope as string | undefined;
     const page = (args?.page as number) ?? 1;
     const creator = args?.creator as string | undefined;
 
-    const params = new URLSearchParams();
-    params.set("q", q);
-    params.set("type", type);
-    params.set("page", String(page));
-    if (scope) params.set("scope", scope);
-    if (creator) params.set("creator", creator);
+    const params: Record<string, string> = { q, type, page: String(page) };
+    if (scope) params.scope = scope;
+    if (creator) params.creator = creator;
 
-    const url = `${cfg.api_base}/search?${params}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "搜索");
-
-    const data = await res.json();
+    const data = await apiGet("/search", params, "Search");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };

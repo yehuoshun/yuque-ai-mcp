@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError, confirmationParam, checkConfirmation } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { confirmationParam, checkConfirmation } from "../common/errors.js";
+import { apiDelete, isErrorResult } from "../common/api-client.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoDelete: McpTool = {
   name: "yuque_delete_repo",
-  description: "Delete a repository (book_id supports numeric ID or namespace, ⚠️ irreversible). Requires confirmation: set confirm='DELETE'",
+  description: "Delete a repository (⚠️ irreversible). Requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",
@@ -29,19 +29,11 @@ export const repoDelete: McpTool = {
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 
-    const url = `${cfg.api_base}/repos/${bookId}`;
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: { "X-Auth-Token": cfg.token },
-    });
-
-    if (!res.ok) return handleApiError(res, "删除知识库");
-
-    const data = await res.json();
+    const data = await apiDelete(`/repos/${bookId}`, "Delete repo");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };

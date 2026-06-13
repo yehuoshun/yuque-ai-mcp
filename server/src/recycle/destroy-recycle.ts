@@ -11,7 +11,7 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleDestroy: McpTool = {
   name: "yuque_destroy_recycle",
-  description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie + ctoken in config.json). Requires confirmation: set confirm='DELETE'",
+  description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie + ctoken). Requires confirm='DELETE'",
 
   inputSchema: {
     type: "object",

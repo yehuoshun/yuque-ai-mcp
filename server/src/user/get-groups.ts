@@ -6,13 +6,12 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
 import { formatUserGroup, wrapResult } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
   name: "yuque_get_user_groups",
-  description: "List groups the user belongs to (id supports login or user ID, optional role filter: admin/member)",
+  description: "List groups the user belongs to",
 
   inputSchema: {
     type: "object",
@@ -26,25 +25,18 @@ export const userGetGroups: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const id = args?.id as string;
     const role = args?.role as number | undefined;
     const offset = (args?.offset as number) ?? 0;
     const raw = args?.raw as boolean | undefined;
 
-    const params = new URLSearchParams();
-    params.set("offset", String(offset));
-    if (role !== undefined) params.set("role", String(role));
+    const params: Record<string, string> = { offset: String(offset) };
+    if (role !== undefined) params.role = String(role);
 
-    const url = `${cfg.api_base}/users/${id}/groups?${params}`;
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": cfg.token },
-    });
+    const data = await apiGet(`/users/${id}/groups`, params, "Get user groups");
+    if (isErrorResult(data)) return data;
 
-    if (!res.ok) return handleApiError(res, "获取用户团队");
-
-    const data = await res.json();
-    const items = (data?.data ?? data) as Record<string, unknown>[];
+    const items = (data as { data?: unknown[] })?.data ?? data;
     const formatted = Array.isArray(items) ? items.map(formatUserGroup) : items;
     return {
       content: [{ type: "text" as const, text: wrapResult(raw ? data : formatted, undefined, raw) }],

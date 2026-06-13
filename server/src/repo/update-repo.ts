@@ -3,19 +3,16 @@
  *
  * 端点：PUT /api/v2/repos/:book_id
  * 职责：更新知识库名称/路径/简介/公开性，支持通过 toc 字段批量更新目录
- *
- * toc 字段格式为 Markdown 目录：[名称](文档路径)
  */
 
 import type { McpTool } from "../common/types.js";
-import { handleApiError } from "../common/errors.js";
-import { loadConfig } from "../common/config.js";
+import { apiPut, isErrorResult } from "../common/api-client.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoUpdate: McpTool = {
   name: "yuque_update_repo",
-  description: "Update repository info (book_id supports numeric ID or namespace, all body fields optional, toc field supports batch TOC update)",
+  description: "Update repository info",
 
   inputSchema: {
     type: "object",
@@ -32,7 +29,6 @@ export const repoUpdate: McpTool = {
   },
 
   async handler(args) {
-    const cfg = loadConfig();
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
 
@@ -43,19 +39,8 @@ export const repoUpdate: McpTool = {
     if (args?.public !== undefined) payload.public = args.public;
     if (args?.toc !== undefined) payload.toc = args.toc;
 
-    const url = `${cfg.api_base}/repos/${bookId}`;
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "X-Auth-Token": cfg.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) return handleApiError(res, "更新知识库");
-
-    const data = await res.json();
+    const data = await apiPut(`/repos/${bookId}`, payload, "Update repo");
+    if (isErrorResult(data)) return data;
     return {
       content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
     };
