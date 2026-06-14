@@ -15,7 +15,6 @@ function createMcpServer() {
   return server;
 }
 
-const mcpServer = createMcpServer();
 const PORT = parseInt(process.env.PORT || "3099", 10);
 
 // Session 管理：sessionId → transport
@@ -45,9 +44,10 @@ const httpServer = createServer(async (req, res) => {
   // SSE: GET /sse → 建立 SSE 长连接
   if (req.method === "GET" && url.pathname === "/sse") {
     const transport = new SSEServerTransport("/message", res);
+    const sessionServer = createMcpServer();
     transports.set(transport.sessionId, transport);
     res.on("close", () => transports.delete(transport.sessionId));
-    await mcpServer.connect(transport);
+    await sessionServer.connect(transport);
     return;
   }
 
