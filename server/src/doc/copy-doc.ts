@@ -3,9 +3,8 @@
  *
  * 两种模式：
  * 1. Agent 传入 title/body/format/paths → 工具建目录+创建文档
- * 2. Agent 传入 doc_id（target_book_id 可选，默认同库）→ 工具内部拉取源文档，清洗后创建
- *
- * 模式 2 解决大文档（>30KB）通过 mcporter CLI 传 body 不稳定的问题。
+ * 2. Agent 传入 doc_id + source_book_id → 工具拉取源文档，返回原始内容给 Agent
+ *    Agent 清洗后再调模式1创建。解决大文档（>30KB）通过 mcporter CLI 传 body 不稳定的问题。
  */
 
 import type { McpTool } from "../common/types.js";
@@ -16,7 +15,7 @@ import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",
   description:
-    "Copy a single document to another repository. Two modes: (1) Agent provides cleaned content (title/body/format/paths); (2) Agent provides doc_id, tool fetches source doc internally. Mode 2 solves the issue of large documents (>30KB) being unstable through mcporter CLI.",
+    "Copy a single document to another repository. Two modes: (1) Agent provides cleaned content (title/body/format/paths) for creation; (2) Agent provides doc_id+source_book_id, tool fetches source doc and returns raw content for Agent to clean, then Agent calls mode 1. Mode 2 solves large doc (>30KB) instability through mcporter CLI.",
 
   inputSchema: {
     type: "object",
@@ -41,7 +40,7 @@ export const docCopySingle: McpTool = {
       // ─── 模式 2：工具内部拉取 ───
       doc_id: {
         type: "number",
-        description: "Source document ID. When provided, tool fetches the doc internally and ignores title/body/format. Uses source doc's repo as source book unless source_book_id is set.",
+        description: "Source document ID. When provided, tool fetches the doc and returns raw content (title/body/format) for Agent to clean and create via mode 1. Requires source_book_id.",
       },
       source_book_id: {
         type: "string",
@@ -135,18 +134,20 @@ export const docCopySingle: McpTool = {
         sourceUrl = `https://www.yuque.com/${data.book?.namespace || sourceBookId}/${data.slug}`;
       }
 
-      // 排除同库同文档的复制
-      if (sourceBookId === targetBookId) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({
-            error: "SAME_BOOK",
-            message: "源库与目标库相同，不允许复制到自身",
-            source_book_id: sourceBookId,
-            target_book_id: targetBookId,
-          }, null, 2) }],
-          isError: true,
-        };
-      }
+      // 返回原始内容给 Agent，Agent 清洗后调手动模式创建
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          mode: "fetch-only",
+          source_doc_id: docId,
+          source_book_id: sourceBookId,
+          title,
+          body,
+          format,
+          source_url: sourceUrl,
+          source_title: sourceTitle,
+          hint: "Agent 清洗内容后，调用 yuque_copy_doc 手动模式（title/body/format/paths）创建文档",
+        }, null, 2) }],
+      };
     }
 
     // 校验模式1必填
