@@ -85,42 +85,20 @@ export const docCopySingle: McpTool = {
 
     // ─── 模式 2：工具内部拉取源文档 ───
     if (docId) {
-      // 先查源文档所属库
-      let actualSourceBookId = sourceBookId;
-      if (!actualSourceBookId) {
-        const docDetail = await apiGet(`/repos/-/docs/${docId}`, undefined, "Fetch doc detail for source book");
-        if (isErrorResult(docDetail)) {
-          return {
-            content: [{ type: "text" as const, text: JSON.stringify({
-              error: "FETCH_DOC_FAILED",
-              message: "无法获取源文档信息，请提供 source_book_id 参数",
-              doc_id: docId,
-            }, null, 2) }],
-            isError: true,
-          };
-        }
-        const book = (docDetail as { data?: { book?: { id: number; namespace: string }; title: string; slug: string } }).data?.book;
-        if (!book?.id) {
-          return {
-            content: [{ type: "text" as const, text: JSON.stringify({
-              error: "FETCH_DOC_FAILED",
-              message: "源文档未关联知识库，请提供 source_book_id 参数",
-              doc_id: docId,
-            }, null, 2) }],
-            isError: true,
-          };
-        }
-        actualSourceBookId = String(book.id);
-        // 用源文档的实际标题
-        if (!sourceTitle) sourceTitle = (docDetail as { data?: { title: string } }).data?.title;
-        if (!sourceUrl) {
-          const slug = (docDetail as { data?: { slug: string } }).data?.slug;
-          sourceUrl = `https://www.yuque.com/${book.namespace}/${slug}`;
-        }
+      // source_book_id 必填（语雀 API 无全局文档查询端点）
+      if (!sourceBookId) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            error: "MISSING_SOURCE_BOOK_ID",
+            message: "doc_id 模式下 source_book_id 为必填参数（语雀 API 无全局文档查询端点，无法自动推断所属知识库）",
+            doc_id: docId,
+          }, null, 2) }],
+          isError: true,
+        };
       }
 
       // 拉取源文档完整内容（markdown 格式）
-      const srcDoc = await apiGet(`/repos/${actualSourceBookId}/docs/${docId}`, {
+      const srcDoc = await apiGet(`/repos/${sourceBookId}/docs/${docId}`, {
         raw: "1",
       }, `Fetch source doc ${docId}`);
 
@@ -130,7 +108,7 @@ export const docCopySingle: McpTool = {
             error: "FETCH_DOC_FAILED",
             message: "拉取源文档内容失败",
             doc_id: docId,
-            source_book_id: actualSourceBookId,
+            source_book_id: sourceBookId,
           }, null, 2) }],
           isError: true,
         };
@@ -154,16 +132,16 @@ export const docCopySingle: McpTool = {
 
       if (!sourceTitle) sourceTitle = data.title;
       if (!sourceUrl) {
-        sourceUrl = `https://www.yuque.com/${data.book?.namespace || actualSourceBookId}/${data.slug}`;
+        sourceUrl = `https://www.yuque.com/${data.book?.namespace || sourceBookId}/${data.slug}`;
       }
 
       // 排除同库同文档的复制
-      if (actualSourceBookId === targetBookId) {
+      if (sourceBookId === targetBookId) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({
             error: "SAME_BOOK",
             message: "源库与目标库相同，不允许复制到自身",
-            source_book_id: actualSourceBookId,
+            source_book_id: sourceBookId,
             target_book_id: targetBookId,
           }, null, 2) }],
           isError: true,
