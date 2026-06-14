@@ -135,13 +135,15 @@ export const docCopySingle: McpTool = {
       }
 
       // 返回原始内容给 Agent，Agent 清洗后调手动模式创建
+      // 清理控制字符（JSON.stringify 不处理 \x00-\x1f，会导致解析失败）
+      const safeBody = body.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           mode: "fetch-only",
           source_doc_id: docId,
           source_book_id: sourceBookId,
           title,
-          body,
+          body: safeBody,
           format,
           source_url: sourceUrl,
           source_title: sourceTitle,
