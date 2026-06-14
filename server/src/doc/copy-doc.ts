@@ -1,18 +1,22 @@
 /**
  * doc/copy-doc — 单文档跨知识库复制
  *
- * Agent 清洗内容后传入 title/body/format/paths，工具建目录+创建文档
+ * 两种模式：
+ * 1. Agent 传入 title/body/format/paths → 工具建目录+创建文档
+ * 2. Agent 传入 doc_id（target_book_id 可选，默认同库）→ 工具内部拉取源文档，清洗后创建
+ *
+ * 模式 2 解决大文档（>30KB）通过 mcporter CLI 传 body 不稳定的问题。
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
 import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
 
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",
   description:
-    "Copy a single document to another repository. Agent provides cleaned content (title/body/format/paths). Tool creates TOC directories and copies under each path.",
+    "Copy a single document to another repository. Two modes: (1) Agent provides cleaned content (title/body/format/paths); (2) Agent provides doc_id, tool fetches source doc internally. Mode 2 solves the issue of large documents (>30KB) being unstable through mcporter CLI.",
 
   inputSchema: {
     type: "object",
@@ -21,54 +25,164 @@ export const docCopySingle: McpTool = {
         type: "string",
         description: "Target repository ID or namespace (required)",
       },
+      // ─── 模式 1：Agent 传入内容 ───
       title: {
         type: "string",
-        description: "Document title (required)",
+        description: "Document title (required for mode 1: manual content)",
       },
       body: {
         type: "string",
-        description: "Document body, cleaned by Agent (required)",
+        description: "Document body, cleaned by Agent (required for mode 1: manual content)",
       },
       format: {
         type: "string",
-        description: "Content format: markdown / lake / html (required)",
+        description: "Content format: markdown / lake / html (required for mode 1)",
       },
+      // ─── 模式 2：工具内部拉取 ───
+      doc_id: {
+        type: "number",
+        description: "Source document ID. When provided, tool fetches the doc internally and ignores title/body/format. Uses source doc's repo as source book unless source_book_id is set.",
+      },
+      source_book_id: {
+        type: "string",
+        description: "Source repository ID or namespace (optional, defaults to doc's own repo when doc_id is provided)",
+      },
+      // ─── 公共参数 ───
       paths: {
         type: "string",
         description: "JSON array of directory paths, e.g. '[\"Java/Spring\",\"Database/MySQL\"]'. 1-5 paths (required)",
       },
       source_url: {
         type: "string",
-        description: "Source document URL, appended as footer link",
+        description: "Source document URL, appended as footer link. In mode 2, auto-generated from doc slug if not provided.",
       },
       source_title: {
         type: "string",
-        description: "Source document title for the footer link",
+        description: "Source document title for the footer link. In mode 2, uses source doc title if not provided.",
       },
       raw: {
         type: "boolean",
         description: "Return raw full JSON",
       },
     },
-    required: ["target_book_id", "title", "body", "format", "paths"],
+    required: ["target_book_id", "paths"],
   },
 
   async handler(args) {
     const targetBookId = args?.target_book_id as string;
-    const title = args?.title as string;
-    let body = args?.body as string;
-    const format = args?.format as string;
-    const sourceUrl = args?.source_url as string | undefined;
-    const sourceTitle = args?.source_title as string | undefined;
+    const docId = args?.doc_id as number | undefined;
+    const sourceBookId = args?.source_book_id as string | undefined;
+    let title = args?.title as string | undefined;
+    let body = args?.body as string | undefined;
+    let format = args?.format as string | undefined;
+    let sourceUrl = args?.source_url as string | undefined;
+    let sourceTitle = args?.source_title as string | undefined;
     const raw = args?.raw as boolean | undefined;
 
     // 校验必填
-    for (const [val, name] of [[targetBookId, "target_book_id"], [title, "title"], [body, "body"], [format, "format"], [args?.paths, "paths"]] as const) {
-      const err = requiredString(val as string, name);
-      if (err) return err;
+    const err = requiredString(targetBookId, "target_book_id");
+    if (err) return err;
+
+    // ─── 模式 2：工具内部拉取源文档 ───
+    if (docId) {
+      // 先查源文档所属库
+      let actualSourceBookId = sourceBookId;
+      if (!actualSourceBookId) {
+        const docDetail = await apiGet(`/repos/-/docs/${docId}`, undefined, "Fetch doc detail for source book");
+        if (isErrorResult(docDetail)) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              error: "FETCH_DOC_FAILED",
+              message: "无法获取源文档信息，请提供 source_book_id 参数",
+              doc_id: docId,
+            }, null, 2) }],
+            isError: true,
+          };
+        }
+        const book = (docDetail as { data?: { book?: { id: number; namespace: string }; title: string; slug: string } }).data?.book;
+        if (!book?.id) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              error: "FETCH_DOC_FAILED",
+              message: "源文档未关联知识库，请提供 source_book_id 参数",
+              doc_id: docId,
+            }, null, 2) }],
+            isError: true,
+          };
+        }
+        actualSourceBookId = String(book.id);
+        // 用源文档的实际标题
+        if (!sourceTitle) sourceTitle = (docDetail as { data?: { title: string } }).data?.title;
+        if (!sourceUrl) {
+          const slug = (docDetail as { data?: { slug: string } }).data?.slug;
+          sourceUrl = `https://www.yuque.com/${book.namespace}/${slug}`;
+        }
+      }
+
+      // 拉取源文档完整内容（markdown 格式）
+      const srcDoc = await apiGet(`/repos/${actualSourceBookId}/docs/${docId}`, {
+        raw: "1",
+      }, `Fetch source doc ${docId}`);
+
+      if (isErrorResult(srcDoc)) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            error: "FETCH_DOC_FAILED",
+            message: "拉取源文档内容失败",
+            doc_id: docId,
+            source_book_id: actualSourceBookId,
+          }, null, 2) }],
+          isError: true,
+        };
+      }
+
+      const data = (srcDoc as { data?: { title: string; body: string; slug: string; book?: { namespace: string } } }).data;
+      if (!data) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            error: "FETCH_DOC_FAILED",
+            message: "源文档内容为空",
+            doc_id: docId,
+          }, null, 2) }],
+          isError: true,
+        };
+      }
+
+      title = data.title;
+      body = data.body;
+      format = "markdown"; // 语雀 API raw=1 返回 markdown
+
+      if (!sourceTitle) sourceTitle = data.title;
+      if (!sourceUrl) {
+        sourceUrl = `https://www.yuque.com/${data.book?.namespace || actualSourceBookId}/${data.slug}`;
+      }
+
+      // 排除同库同文档的复制
+      if (actualSourceBookId === targetBookId) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            error: "SAME_BOOK",
+            message: "源库与目标库相同，不允许复制到自身",
+            source_book_id: actualSourceBookId,
+            target_book_id: targetBookId,
+          }, null, 2) }],
+          isError: true,
+        };
+      }
+    }
+
+    // 校验模式1必填
+    if (!docId) {
+      for (const [val, name] of [[title, "title"], [body, "body"], [format, "format"]] as const) {
+        const err2 = requiredString(val as string, name);
+        if (err2) return err2;
+      }
     }
 
     // 解析 paths
+    const pathsErr = requiredString(args?.paths as string, "paths");
+    if (pathsErr) return pathsErr;
+
     let paths: string[];
     try {
       paths = JSON.parse(args?.paths as string) as string[];
@@ -82,6 +196,17 @@ export const docCopySingle: McpTool = {
     } catch {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是有效的 JSON 数组" }, null, 2) }],
+        isError: true,
+      };
+    }
+
+    // 确保 title/body 已填充（编译期保证，运行时兜底）
+    if (!title || !body || !format) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "MISSING_CONTENT",
+          message: docId ? "工具内部拉取失败，title/body 为空" : "manual 模式缺少 title/body/format 参数",
+        }, null, 2) }],
         isError: true,
       };
     }
@@ -132,6 +257,9 @@ export const docCopySingle: McpTool = {
     }
 
     const summary = {
+      mode: docId ? "auto-fetch" : "manual",
+      source_doc_id: docId || null,
+      source_book_id: sourceBookId || null,
       title,
       target_book_id: targetBookId,
       paths,

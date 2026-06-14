@@ -73,9 +73,45 @@ const httpServer = createServer(async (req, res) => {
   res.end("Not Found");
 });
 
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.error(`yuque-ai-mcp HTTP Server 已启动: http://localhost:${PORT}`);
   console.error(`  SSE: GET http://localhost:${PORT}/sse`);
   console.error(`  Message: POST http://localhost:${PORT}/message?sessionId=xxx`);
   console.error(`  Health: GET http://localhost:${PORT}/health`);
 });
+
+// ─── 优雅关闭 ────────────────────────────────────────────
+let shuttingDown = false;
+
+async function gracefulShutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.error(`\n收到 ${signal}，正在优雅关闭...`);
+
+  // 关闭所有活跃 SSE 连接
+  for (const [sessionId, transport] of transports) {
+    try {
+      console.error(`  关闭 session: ${sessionId}`);
+      // SSEServerTransport.close() 在运行时存在但类型声明可能不完整
+      (transport as unknown as { close: () => Promise<void> }).close();
+    } catch {
+      // transport 可能已经关闭
+    }
+  }
+  transports.clear();
+
+  // 停止接受新连接
+  server.close(() => {
+    console.error("HTTP Server 已关闭");
+    process.exit(0);
+  });
+
+  // 5 秒强制退出
+  setTimeout(() => {
+    console.error("强制退出");
+    process.exit(1);
+  }, 5000);
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
