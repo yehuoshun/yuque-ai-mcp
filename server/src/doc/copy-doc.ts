@@ -11,7 +11,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendSourceLink, cleanClipperNoise } from "./copy-common.js";
+import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
 
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",
@@ -127,7 +127,7 @@ export const docCopySingle: McpTool = {
       }
 
       title = data.title;
-      body = cleanClipperNoise(data.body);
+      body = data.body;
       format = "markdown"; // 语雀 API raw=1 返回 markdown
 
       if (!sourceTitle) sourceTitle = data.title;
