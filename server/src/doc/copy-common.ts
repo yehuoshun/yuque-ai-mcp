@@ -151,18 +151,12 @@ function extractTocNodes(data: unknown): Array<{
 
 // ─── 源链接追尾 ──────────────────────────────────────────
 
-/** 在 body 末尾追加源文档链接，根据 format 生成对应格式 */
+/** 在 body 末尾追加源文档链接（markdown 格式） */
 export function appendSourceLink(
   body: string,
   sourceUrl: string,
   sourceTitle: string,
-  format?: string,
 ): string {
-  let footer: string;
-  if (format === "html" || format === "lake") {
-    footer = `\n<p>---</p>\n<blockquote><p>📋 源文档：<a href="${sourceUrl}" target="_blank">${sourceTitle}</a></p></blockquote>`;
-  } else {
-    footer = `\n\n---\n> 📋 源文档：[${sourceTitle}](${sourceUrl})`;
-  }
+  const footer = `\n\n---\n> 📋 源文档：[${sourceTitle}](${sourceUrl})`;
   return body + footer;
 }

@@ -88,7 +88,7 @@ export const docCopySingle: McpTool = {
 
     // 追尾源链接
     if (sourceUrl) {
-      body = appendSourceLink(body, sourceUrl, sourceTitle || "原文档", format);
+      body = appendSourceLink(body, sourceUrl, sourceTitle || "原文档");
     }
 
     // 逐路径创建副本
