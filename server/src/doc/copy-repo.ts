@@ -90,7 +90,7 @@ export const docCopyRepo: McpTool = {
 
       // 追尾源链接
       if (doc.source_url) {
-        body = appendSourceLink(body, doc.source_url, doc.source_title || "原文档");
+        body = appendSourceLink(body, doc.source_url, doc.source_title || "原文档", format);
       }
 
       const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
