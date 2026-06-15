@@ -134,7 +134,7 @@ export const docExportSingle: McpTool = {
       word_count: wordCount, description,
     });
 
-    const fileName = sanitizeFilename(slug) + ".md";
+    const fileName = sanitizeFilename(title) + ".md";
     const filePath = join(outputDir, fileName);
     await writeFile(filePath, frontmatter + markdown, "utf-8");
 

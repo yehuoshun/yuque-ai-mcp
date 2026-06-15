@@ -165,7 +165,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_update_repo` | `PUT /api/v2/repos/:id` |
 | `yuque_delete_repo` | `DELETE /api/v2/repos/:id` |
 | `yuque_batch_get_repos` | 批量 GET（并发，max 20） |
-| `yuque_export_repo` | 批量导出 Markdown（含图片下载/降级） |
+| `yuque_export_repo` | 批量导出 Markdown（按TOC目录结构 + 标题命名 + INDEX/GRAPH） |
 | `yuque_copy_repo` | 批量跨库复制（LLM 分类 + 目录重建） |
 
 ### group — 团队
