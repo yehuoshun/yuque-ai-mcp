@@ -1,8 +1,8 @@
 /**
- * rss/fetch-feed — 通用 RSS 抓取 → 解析 → 去重 → 写入语雀
+ * rss/fetch-feed — 通用 RSS 抓取 → 解析 → 去重（语雀 KV）→ 写入语雀
  *
  * 端点到语雀：无（工具内部调用语雀 API 创建文档）
- * 职责：抓取 RSS/Atom Feed，解析条目，去重后写入目标知识库
+ * 职责：抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入目标知识库
  */
 
 import type { McpTool } from "../common/types.js";
@@ -11,7 +11,7 @@ import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
-import { buildDedupSet, isDuplicate, type DedupResult } from "./dedup.js";
+import { buildSlug, checkDuplicates } from "./dedup.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -36,36 +36,37 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
 }
 
 /**
- * 解析目标知识库标识
- * 优先级：tool 参数 → rss.{source}.book_id → rss.{source}.namespace → default_repo → 报错
+ * 解析知识库标识（rss 和 kv 共用）
+ * 优先级：tool 参数 → config.{domain}.{source}.book_id → .namespace → config.{domain}.default_repo → 报错
  */
-function resolveTargetRepo(source: string, paramRepo?: string): string {
-  // 1. tool 参数优先
+function resolveRepo(
+  domain: "rss" | "kv",
+  source: string,
+  paramRepo?: string,
+): string {
   if (paramRepo) return paramRepo;
 
   const cfg = loadConfig();
-  const rssCfg = cfg.rss;
-  if (!rssCfg) {
+  const domainCfg = cfg[domain];
+  if (!domainCfg) {
     throw new Error(
-      "未配置 RSS 目标知识库。请在 config.json 中设置 rss.default_repo 或 rss.{source}.book_id/namespace，或在 tool 参数中传 target_repo"
+      `未配置 ${domain} 目标知识库。请在 config.json 中设置 ${domain}.default_repo 或 ${domain}.{source}.book_id/namespace`
     );
   }
 
-  // 2. source 级别配置
-  const sourceCfg = rssCfg[source];
+  const sourceCfg = domainCfg[source];
   if (sourceCfg && typeof sourceCfg === "object") {
     if (sourceCfg.book_id) return sourceCfg.book_id;
     if (sourceCfg.namespace) return sourceCfg.namespace;
   }
 
-  // 3. default_repo
-  if (rssCfg.default_repo) {
-    if (rssCfg.default_repo.book_id) return rssCfg.default_repo.book_id;
-    if (rssCfg.default_repo.namespace) return rssCfg.default_repo.namespace;
+  if (domainCfg.default_repo) {
+    if (domainCfg.default_repo.book_id) return domainCfg.default_repo.book_id;
+    if (domainCfg.default_repo.namespace) return domainCfg.default_repo.namespace;
   }
 
   throw new Error(
-    `无法确定 RSS 目标知识库。数据源 "${source}" 未配置，default_repo 也未配置。请在 config.json 中设置 rss.default_repo 或 rss.${source}.book_id/namespace`
+    `无法确定 ${domain} 目标知识库。数据源 "${source}" 未配置，default_repo 也未配置。`
   );
 }
 
@@ -88,11 +89,18 @@ function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
   return lines.join("\n");
 }
 
-/** 创建一篇语雀文档，原文链接写入 description 用于后续去重 */
-async function createDoc(bookId: string, title: string, body: string, link: string): Promise<{ ok: boolean; id?: number; error?: string }> {
+/** 创建一篇语雀文档（指定 slug 用于 KV 去重） */
+async function createDoc(
+  bookId: string,
+  title: string,
+  body: string,
+  link: string,
+  slug: string,
+): Promise<{ ok: boolean; id?: number; error?: string }> {
   const payload: Record<string, unknown> = {
     title,
     body,
+    slug,
     description: `原文链接: ${link}`,
     format: "markdown",
     public: 0,
@@ -109,7 +117,7 @@ async function createDoc(bookId: string, title: string, body: string, link: stri
 
 export const rssFetch: McpTool = {
   name: "yuque_rss_fetch",
-  description: "Fetch RSS/Atom feed, parse entries, deduplicate, and save to Yuque repo. Use yuque_rss_list_sources first to see available sources.",
+  description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (slug-based), and save to Yuque repo. Use yuque_rss_list_sources first to see available sources.",
 
   inputSchema: {
     type: "object",
@@ -117,9 +125,10 @@ export const rssFetch: McpTool = {
       source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "object", description: "Template params for feeds with url_template, e.g. { username: 'hsewr333' }" },
-      target_repo: { type: "string", description: "Yuque repo ID or namespace. Optional — falls back to config.json rss config." },
+      target_repo: { type: "string", description: "RSS target repo ID or namespace. Optional — falls back to config.json rss config." },
+      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv config." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
-      mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'update' (update existing) | 'dry_run' (preview only, no save)" },
+      mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'dry_run' (preview only, no save)" },
       title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[博客园] '" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
@@ -138,25 +147,28 @@ export const rssFetch: McpTool = {
     const feedType = args?.feed_type as string;
     const feedParams = args?.feed_params as Record<string, unknown> | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
+    const kvRepoParam = args?.kv_repo as string | undefined;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
     const mode = (args?.mode as string) ?? "append";
     const titlePrefix = (args?.title_prefix as string) ?? "";
 
     // 解析目标知识库
     let targetRepo: string;
+    let kvRepo: string;
     try {
-      targetRepo = resolveTargetRepo(source, targetRepoParam);
+      targetRepo = resolveRepo("rss", source, targetRepoParam);
+      kvRepo = resolveRepo("kv", source, kvRepoParam);
     } catch (err) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "MISSING_TARGET_REPO",
+          error: "MISSING_REPO",
           message: err instanceof Error ? err.message : String(err),
         }, null, 2) }],
         isError: true,
       };
     }
 
-    // 1. 查配置
+    // 1. 查数据源配置
     const src = RSS_SOURCES[source];
     if (!src) {
       return {
@@ -181,7 +193,7 @@ export const rssFetch: McpTool = {
       };
     }
 
-    // 2. 构建 URL
+    // 2. 构建 feed URL
     const feedUrl = buildFeedUrl(source, feedType, feedParams);
     if (!feedUrl) {
       return {
@@ -223,20 +235,21 @@ export const rssFetch: McpTool = {
     const parsed = parseFeed(xml);
     const entries = parsed.entries.slice(0, maxItems);
 
-    // 5. 去重（dry_run 模式跳过，节省 API 调用）
-    let dedup: DedupResult = { linkSet: new Set(), titleSet: new Set(), total: 0 };
-    if (mode !== "dry_run") {
-      dedup = await buildDedupSet(targetRepo);
-    }
+    // 5. 去重（dry_run 模式跳过）
+    let newEntries: Array<{ title: string; link: string; slug: string }> = [];
+    let skippedCount = 0;
 
-    const newEntries: FeedEntry[] = [];
-    const skippedEntries: FeedEntry[] = [];
-    for (const entry of entries) {
-      if (isDuplicate(entry, dedup)) {
-        skippedEntries.push(entry);
-      } else {
-        newEntries.push(entry);
-      }
+    if (mode === "dry_run") {
+      // dry_run: 只生成 slug 预览，不查 API
+      newEntries = entries.map((e) => ({
+        title: e.title,
+        link: e.link,
+        slug: buildSlug(source, e.link),
+      }));
+    } else {
+      const result = await checkDuplicates(kvRepo, source, entries);
+      newEntries = result.newEntries;
+      skippedCount = result.skippedCount;
     }
 
     // 6. dry_run 模式：只预览不写入
@@ -250,11 +263,12 @@ export const rssFetch: McpTool = {
             feed_url: feedUrl,
             feed_title: parsed.feedTitle,
             total: entries.length,
-            entries: entries.map((e) => ({
+            entries: newEntries.map((e) => ({
               title: e.title,
               link: e.link,
-              author: e.author,
-              published: e.published,
+              slug: e.slug,
+              author: entries.find((x) => x.link === e.link)?.author,
+              published: entries.find((x) => x.link === e.link)?.published,
             })),
           }, null, 2),
         }],
@@ -262,15 +276,19 @@ export const rssFetch: McpTool = {
     }
 
     // 7. 写入语雀
-    const results: Array<{ title: string; link: string; doc_id?: number; status: string; error?: string }> = [];
+    const results: Array<{ title: string; link: string; slug: string; doc_id?: number; status: string; error?: string }> = [];
     for (const entry of newEntries) {
       const docTitle = `${titlePrefix}${entry.title}`;
-      const body = entryToMarkdown(entry, src.name);
+      const body = entryToMarkdown(
+        { title: entry.title, link: entry.link, summary: "", author: "", published: "", guid: entry.link },
+        src.name,
+      );
 
-      const result = await createDoc(targetRepo, docTitle, body, entry.link);
+      const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
       results.push({
         title: entry.title,
         link: entry.link,
+        slug: entry.slug,
         doc_id: result.id,
         status: result.ok ? "created" : "failed",
         error: result.error,
@@ -284,10 +302,11 @@ export const rssFetch: McpTool = {
           source: `${src.name} / ${feed.label}`,
           feed_url: feedUrl,
           target_repo: targetRepo,
+          kv_repo: kvRepo,
           fetched: entries.length,
           new: newEntries.length,
-          skipped: skippedEntries.length,
-          dedup: { strategy: "link+title", existing_docs: dedup.total },
+          skipped: skippedCount,
+          dedup: { strategy: "yuque-kv-slug" },
           results,
         }, null, 2),
       }],

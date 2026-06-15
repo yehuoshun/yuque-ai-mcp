@@ -20,6 +20,11 @@ interface RssConfig {
   [source: string]: RssSourceConfig | undefined;
 }
 
+interface KvConfig {
+  default_repo?: RssSourceConfig;
+  [source: string]: RssSourceConfig | undefined;
+}
+
 interface Config {
   token: string;
   api_base: string;
@@ -27,6 +32,7 @@ interface Config {
   cookie?: string;
   ctoken?: string;
   rss?: RssConfig;
+  kv?: KvConfig;
 }
 
 let _config: Config | null = null;

@@ -23,12 +23,18 @@ export interface RssSource {
   name: string;
   description?: string;
   feeds: Record<string, RssFeed>;
+  /** 从文章链接提取站点文章 ID，生成 slug 用于去重。返回 null 则 fallback 到 md5(link) */
+  slugResolver?: (link: string) => string | null;
 }
 
 export const RSS_SOURCES: Record<string, RssSource> = {
   cnblogs: {
     name: "博客园",
     description: "开发者的网上家园，技术博客聚合平台",
+    slugResolver: (link: string) => {
+      const m = link.match(/\/p\/(\d+)/);
+      return m ? `cnblogs-${m[1]}` : null;
+    },
     feeds: {
       sitehome: {
         label: "首页最新",
