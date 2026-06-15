@@ -10,7 +10,7 @@ import { isErrorResult, apiPost } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
-import { buildDedupSet, isDuplicate } from "./dedup.js";
+import { buildDedupSet, isDuplicate, type DedupResult } from "./dedup.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -53,11 +53,12 @@ function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
   return lines.join("\n");
 }
 
-/** 创建一篇语雀文档 */
+/** 创建一篇语雀文档，原文链接写入 description 用于后续去重 */
 async function createDoc(bookId: string, title: string, body: string, link: string): Promise<{ ok: boolean; id?: number; error?: string }> {
   const payload: Record<string, unknown> = {
     title,
     body,
+    description: `原文链接: ${link}`,
     format: "markdown",
     public: 0,
   };
@@ -84,7 +85,7 @@ export const rssFetch: McpTool = {
       target_repo: { type: "string", description: "Yuque repo ID (numeric) or namespace like group/book_slug" },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'update' (update existing) | 'dry_run' (preview only, no save)" },
-      dedup_field: { type: "string", description: "Dedup key: 'title' (default) | 'link' | 'guid'" },
+
       title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[博客园] '" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
@@ -106,7 +107,6 @@ export const rssFetch: McpTool = {
     const targetRepo = args?.target_repo as string;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
     const mode = (args?.mode as string) ?? "append";
-    const dedupField = (args?.dedup_field as string) ?? "title";
     const titlePrefix = (args?.title_prefix as string) ?? "";
 
     // 1. 查配置
@@ -177,7 +177,7 @@ export const rssFetch: McpTool = {
     const entries = parsed.entries.slice(0, maxItems);
 
     // 5. 去重（dry_run 模式跳过，节省 API 调用）
-    let dedup = { existing: new Set<string>(), existingLinks: new Set<string>(), total: 0 };
+    let dedup: DedupResult = { linkSet: new Set(), titleSet: new Set(), total: 0 };
     if (mode !== "dry_run") {
       dedup = await buildDedupSet(targetRepo);
     }
@@ -185,7 +185,7 @@ export const rssFetch: McpTool = {
     const newEntries: FeedEntry[] = [];
     const skippedEntries: FeedEntry[] = [];
     for (const entry of entries) {
-      if (isDuplicate(entry, dedup, dedupField as "link" | "title" | "guid")) {
+      if (isDuplicate(entry, dedup)) {
         skippedEntries.push(entry);
       } else {
         newEntries.push(entry);
@@ -239,7 +239,7 @@ export const rssFetch: McpTool = {
           fetched: entries.length,
           new: newEntries.length,
           skipped: skippedEntries.length,
-          dedup: { field: dedupField, existing_docs: dedup.total },
+          dedup: { strategy: "link+title", existing_docs: dedup.total },
           results,
         }, null, 2),
       }],
