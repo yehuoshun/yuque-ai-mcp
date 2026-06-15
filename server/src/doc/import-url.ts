@@ -108,8 +108,8 @@ export const docImportUrl: McpTool = {
         ? titleMatch[1].trim().replace(/\s+/g, " ")
         : new URL(url).hostname;
 
-      // 提取正文
-      pageBody = extractAndCleanContent(html);
+      // 提取正文（按 format 分支）
+      pageBody = extractAndCleanContent(html, format);
     } catch (err) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
@@ -123,8 +123,8 @@ export const docImportUrl: McpTool = {
 
     const title = (args?.title as string) || pageTitle;
 
-    // ── 2. 追尾源链接 ──
-    const finalBody = appendSourceLink(pageBody, url, "原文");
+    // ── 2. 追尾源链接（按 format 输出 markdown 或 html） ──
+    const finalBody = appendSourceLinkByFormat(pageBody, url, "原文", format);
 
     // ── 3. 逐路径创建文档 ──
     const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
@@ -184,8 +184,30 @@ export const docImportUrl: McpTool = {
 
 // ─── 网页内容提取与清洗 ───────────────────────────────
 
-function extractAndCleanContent(html: string): string {
-  // 1. 移除噪音标签
+/** 按 format 追尾源链接：markdown 用 appendSourceLink，html 用 HTML 格式 */
+function appendSourceLinkByFormat(
+  body: string,
+  sourceUrl: string,
+  sourceTitle: string,
+  format: string,
+): string {
+  if (format === "html") {
+    const footer = `<hr>\n<blockquote>📋 源文档：<a href="${escapeHtml(sourceUrl)}">${escapeHtml(sourceTitle)}</a></blockquote>`;
+    return body + "\n" + footer;
+  }
+  return appendSourceLink(body, sourceUrl, sourceTitle);
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function extractAndCleanContent(html: string, format: string): string {
+  // 1. 移除噪音标签（script/style/nav/footer/header/aside/noscript/iframe）
   let cleaned = html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -202,7 +224,30 @@ function extractAndCleanContent(html: string): string {
   if (articleMatch) cleaned = articleMatch[1];
   else if (mainMatch) cleaned = mainMatch[1];
 
-  // 3. 移除 HTML 标签，保留文本
+  // 3. format=html：保留 HTML 结构，只做噪音清理
+  if (format === "html") {
+    // 移除注释
+    cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, "");
+    // 限制长度
+    if (cleaned.length > 100000) {
+      cleaned = cleaned.substring(0, 100000) + "\n<p>... (内容过长，已截断)</p>";
+    }
+    return cleaned.trim();
+  }
+
+  // 4. format=markdown：转为纯文本（保留链接并转 Markdown）
+  // 4a. 保留 <a href> 转为 [text](href)
+  cleaned = cleaned.replace(/<a[^>]*href\s*=\s*["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => {
+    const cleanText = text.replace(/<[^>]+>/g, "").trim();
+    return cleanText ? `[${cleanText}](${href})` : "";
+  });
+
+  // 4b. 保留 <img> 转为 ![alt](src)
+  cleaned = cleaned.replace(/<img[^>]*alt\s*=\s*["']([^"']*)["'][^>]*src\s*=\s*["']([^"']*)["'][^>]*\/?>/gi, "![$1]($2)");
+  cleaned = cleaned.replace(/<img[^>]*src\s*=\s*["']([^"']*)["'][^>]*alt\s*=\s*["']([^"']*)["'][^>]*\/?>/gi, "![$2]($1)");
+  cleaned = cleaned.replace(/<img[^>]*src\s*=\s*["']([^"']*)["'][^>]*\/?>/gi, "![]($1)");
+
+  // 4c. 块级标签 → 换行
   let text = cleaned
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
@@ -212,7 +257,7 @@ function extractAndCleanContent(html: string): string {
     .replace(/<\/tr>/gi, "\n")
     .replace(/<[^>]+>/g, "");
 
-  // 4. HTML 实体解码
+  // 5. HTML 实体解码
   text = text
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -221,17 +266,17 @@ function extractAndCleanContent(html: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ");
 
-  // 5. 清理空白
+  // 6. 清理空白
   text = text
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .join("\n");
 
-  // 6. 合并连续空行
+  // 7. 合并连续空行
   text = text.replace(/\n{3,}/g, "\n\n");
 
-  // 7. 限制长度
+  // 8. 限制长度
   if (text.length > 100000) {
     text = text.substring(0, 100000) + "\n\n... (内容过长，已截断)";
   }

@@ -12,6 +12,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname, basename } from "node:path";
+import { execSync } from "node:child_process";
 import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf } from "../common/validate.js";
@@ -157,7 +158,6 @@ function parseAttachmentContent(filePath: string, ext: string): string {
   // PDF: 尝试用 pdftotext
   if (ext === ".pdf") {
     try {
-      const { execSync } = require("node:child_process");
       const text = execSync(`pdftotext -layout "${filePath}" -`, {
         encoding: "utf-8",
         timeout: 30_000,
@@ -172,7 +172,6 @@ function parseAttachmentContent(filePath: string, ext: string): string {
   // docx: 尝试用 python-docx 或 pandoc
   if (ext === ".docx") {
     try {
-      const { execSync } = require("node:child_process");
       const text = execSync(`pandoc "${filePath}" -t markdown --wrap=none 2>/dev/null`, {
         encoding: "utf-8",
         timeout: 30_000,
@@ -187,7 +186,6 @@ function parseAttachmentContent(filePath: string, ext: string): string {
   // xlsx: 尝试用 python 解析
   if (ext === ".xlsx") {
     try {
-      const { execSync } = require("node:child_process");
       const script = `
 import openpyxl, sys
 wb = openpyxl.load_workbook("${filePath}", data_only=True)
@@ -211,7 +209,6 @@ for name in wb.sheetnames:
   // pptx: 尝试用 python-pptx
   if (ext === ".pptx") {
     try {
-      const { execSync } = require("node:child_process");
       const script = `
 from pptx import Presentation
 prs = Presentation("${filePath}")
@@ -241,7 +238,6 @@ for i, slide in enumerate(prs.slides, 1):
 
   // 通用降级：pandoc
   try {
-    const { execSync } = require("node:child_process");
     const text = execSync(`pandoc "${filePath}" -t markdown --wrap=none 2>/dev/null`, {
       encoding: "utf-8",
       timeout: 30_000,
