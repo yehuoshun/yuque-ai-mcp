@@ -155,9 +155,20 @@ export const rssFetch: McpTool = {
     // 解析目标知识库
     let targetRepo: string;
     let kvRepo: string;
+    let enableKv = true;
     try {
       targetRepo = resolveRepo("rss", source, targetRepoParam);
-      kvRepo = resolveRepo("kv", source, kvRepoParam);
+      // kv 配置：如果 rss.{source}.enable_kv 明确为 false 则关闭
+      const cfg = loadConfig();
+      const rssSourceCfg = cfg.rss?.[source];
+      if (rssSourceCfg && typeof rssSourceCfg === "object" && rssSourceCfg.enable_kv === false) {
+        enableKv = false;
+      }
+      if (enableKv) {
+        kvRepo = resolveRepo("kv", source, kvRepoParam);
+      } else {
+        kvRepo = "";
+      }
     } catch (err) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
@@ -235,12 +246,12 @@ export const rssFetch: McpTool = {
     const parsed = parseFeed(xml);
     const entries = parsed.entries.slice(0, maxItems);
 
-    // 5. 去重（dry_run 模式跳过）
+    // 5. 去重（dry_run 或 enable_kv=false 跳过）
     let newEntries: Array<{ title: string; link: string; slug: string }> = [];
     let skippedCount = 0;
 
-    if (mode === "dry_run") {
-      // dry_run: 只生成 slug 预览，不查 API
+    if (mode === "dry_run" || !enableKv) {
+      // dry_run 或关闭 kv: 全部当新条目
       newEntries = entries.map((e) => ({
         title: e.title,
         link: e.link,
@@ -306,7 +317,7 @@ export const rssFetch: McpTool = {
           fetched: entries.length,
           new: newEntries.length,
           skipped: skippedCount,
-          dedup: { strategy: "yuque-kv-slug" },
+          dedup: { strategy: enableKv ? "yuque-kv-slug" : "disabled", kv_repo: kvRepo || null },
           results,
         }, null, 2),
       }],

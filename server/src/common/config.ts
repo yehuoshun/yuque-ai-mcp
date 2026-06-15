@@ -13,6 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 interface RssSourceConfig {
   book_id?: string;
   namespace?: string;
+  enable_kv?: boolean;
 }
 
 interface RssConfig {
