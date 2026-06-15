@@ -172,12 +172,12 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_get_member_statistics` | `GET /api/v2/groups/:login/statistics/members` |
 
 ### note — 小记
-| 工具 | 端点 |
-|------|------|
-| `yuque_list_notes` | `GET /api/v2/notes` |
-| `yuque_get_note` | `GET /api/v2/notes/:id` |
-| `yuque_create_note` | `POST /api/v2/notes` |
-| `yuque_update_note` | `PUT /api/v2/notes/:id` |
+| 工具 | 端点 | 说明 |
+|------|------|------|
+| `yuque_list_notes` | `GET /api/v2/notes` | 获取小记列表 |
+| `yuque_get_note` | `GET /api/v2/notes/:id` | 获取小记详情 |
+| `yuque_create_note` | `POST /api/v2/notes` | 创建小记 |
+| `yuque_update_note` | `PUT /api/v2/notes/:id` | 更新小记，也支持软删除（`status=9`）和恢复（`status=0`）。删除需 `confirm='DELETE'` |
 
 ### recycle — 回收站
 | 工具 | 端点 | 认证 |
