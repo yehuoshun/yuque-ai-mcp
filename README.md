@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 46 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 47 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **46 个** |
+| 工具数量 | 19 个 | **47 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |

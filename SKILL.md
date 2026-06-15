@@ -52,7 +52,8 @@
 | `POST /api/upload/attach` | upload | 上传文件到语雀 CDN |
 | `无（纯工具函数）` | doc | 生成文档嵌入阅读器 URL |
 | 无（跨库操作） | doc | 单文档跨库复制（LLM 分类 + 内容清洗） |
-| 无（跨库操作） | doc | 从网页 URL 导入文档（工具抓取 + Agent 清洗） |
+| 无（跨库操作） | doc | 从网页 URL 导入文档（工具抓取 + 清洗 + 创建） |
+| 无（跨库操作） | doc | 从本地文件导入文档（direct/upload_assets/embed_assets 三种模式） |
 | 无（跨库操作） | repo | 批量跨库复制（LLM 分类 + 目录重建） |
 | `GET /api/v2/yfm/boards` | board | 获取文档中的画板资源（思维导图/流程图/架构图） |
 | `POST /api/v2/yfm/boards` | board | 在文档中创建画板资源（思维导图/流程图/架构图） |
