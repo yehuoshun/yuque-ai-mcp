@@ -15,7 +15,7 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，12 个域 50+ 个文件） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，12 个域 60+ 个文件） |
 | 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie + 会员等级） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
 | HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
@@ -51,14 +51,21 @@ server/
 │   │   ├── version-detail.ts
 │   │   ├── diff-doc.ts
 │   │   ├── batch-get-docs.ts
-│   │   ├── export-common.ts
 │   │   ├── export-doc.ts
 │   │   ├── embed-url.ts
 │   │   ├── import-url.ts
 │   │   ├── import-file.ts
+│   │   └── copy-doc.ts
+│   ├── common/          # 公共模块：配置、错误处理、类型定义、工具注册、复制/导出公共逻辑
+│   │   ├── config.ts
+│   │   ├── errors.ts
+│   │   ├── types.ts
+│   │   ├── format.ts
+│   │   ├── validate.ts
+│   │   ├── api-client.ts
+│   │   ├── register-tools.ts
 │   │   ├── copy-common.ts
-│   │   ├── copy-doc.ts
-│   │   └── copy-repo.ts
+│   │   └── export-common.ts
 │   ├── repo/            # 知识库 CRUD（含 index.ts barrel）
 │   │   ├── index.ts
 │   │   ├── list-repos.ts

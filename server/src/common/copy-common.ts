@@ -1,11 +1,11 @@
 /**
- * copy-common — 跨知识库文档复制公共逻辑
+ * common/copy-common — 跨知识库文档复制公共逻辑
  *
  * 职责：目录缓存与创建（TOC TITLE 节点）
  * 清洗由 Agent 负责，工具只做搬运
  */
 
-import { apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPut, isErrorResult } from "./api-client.js";
 
 // ─── 目录缓存（带 TTL） ──────────────────────────────────
 

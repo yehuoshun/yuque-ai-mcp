@@ -17,7 +17,7 @@ import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { ensureDirectoryPath } from "./copy-common.js";
+import { ensureDirectoryPath } from "../common/copy-common.js";
 
 // ─── 类型 ──────────────────────────────────────────────
 

@@ -102,7 +102,7 @@ curl http://localhost:3099/health
 正常返回：
 
 ```json
-{"status":"ok","version":"2.1.0","tools":49}
+{"status":"ok","version":"2.1.0","tools":49,"domains":{"user":3,"search":2,"group":3,"doc":14,"toc":2,"repo":8,"statistic":4,"note":4,"recycle":3,"upload":1,"board":3,"rss":2}}
 ```
 
 ### 工具列表验证

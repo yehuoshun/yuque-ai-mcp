@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
+import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
 
 export const docImportUrl: McpTool = {
   name: "yuque_import_url",

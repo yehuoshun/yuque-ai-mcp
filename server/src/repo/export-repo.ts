@@ -24,7 +24,7 @@ import {
   formatFrontMatter,
   sanitizeFilename,
   htmlToMarkdown,
-} from "../doc/export-common.js";
+} from "../common/export-common.js";
 
 // ─── TOC 类型 ──────────────────────────────────────────
 
@@ -40,7 +40,7 @@ interface TocNode {
 
 // ─── 主工具 ────────────────────────────────────────────
 
-export const docExportRepo: McpTool = {
+export const repoExport: McpTool = {
   name: "yuque_export_repo",
   description:
     "Export all documents in a repository as Markdown files organized by TOC directory structure, " +

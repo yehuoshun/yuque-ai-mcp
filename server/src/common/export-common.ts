@@ -1,7 +1,7 @@
 /**
- * export-common — 导出工具公共函数
+ * common/export-common — 导出工具公共函数
  *
- * 被 export-docs.ts（批量导出）和 export-doc.ts（单篇导出）共享。
+ * 被 export-repo.ts（批量导出）和 export-doc.ts（单篇导出）共享。
  */
 
 import { writeFile } from "node:fs/promises";

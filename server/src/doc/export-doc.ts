@@ -20,7 +20,7 @@ import {
   formatFrontMatter,
   sanitizeFilename,
   htmlToMarkdown,
-} from "./export-common.js";
+} from "../common/export-common.js";
 
 export const docExportSingle: McpTool = {
   name: "yuque_export_doc",

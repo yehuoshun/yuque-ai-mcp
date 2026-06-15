@@ -1,5 +1,5 @@
 /**
- * doc/copy-repo — 批量跨知识库文档复制
+ * repo/copy-repo — 批量跨知识库文档复制
  *
  * Agent 清洗内容后传入 documents 数组，工具串行建目录+创建文档
  */
@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendSourceLink } from "./copy-common.js";
+import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
 
 interface CopyDocument {
   title: string;
@@ -18,7 +18,7 @@ interface CopyDocument {
   source_title?: string;
 }
 
-export const docCopyRepo: McpTool = {
+export const repoCopy: McpTool = {
   name: "yuque_copy_repo",
   description:
     "Batch copy documents to another repository. Agent provides cleaned documents array (title/body/format/paths for each). Tool creates TOC directories and copies.",
