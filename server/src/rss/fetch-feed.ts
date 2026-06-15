@@ -13,9 +13,6 @@ import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug, checkDuplicates } from "./dedup.js";
 
-/** 语雀知识库文档上限 */
-const DOC_LIMIT = 5000;
-
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
   const src = RSS_SOURCES[source];
@@ -249,13 +246,12 @@ export const rssFetch: McpTool = {
     const entries = parsed.entries.slice(0, maxItems);
 
     // 5. 去重（dry_run 或 enable_kv=false 跳过）
-    let newEntries: Array<{ title: string; link: string; slug: string }> = [];
+    let newEntries: Array<FeedEntry & { slug: string }> = [];
     let skippedCount = 0;
 
     if (mode === "dry_run" || !enableKv) {
       newEntries = entries.map((e) => ({
-        title: e.title,
-        link: e.link,
+        ...e,
         slug: buildSlug(source, e.link),
       }));
     } else {
@@ -291,10 +287,7 @@ export const rssFetch: McpTool = {
     const results: Array<{ title: string; link: string; slug: string; doc_id?: number; status: string; error?: string }> = [];
     for (const entry of newEntries) {
       const docTitle = `${titlePrefix}${entry.title}`;
-      const body = entryToMarkdown(
-        { title: entry.title, link: entry.link, summary: "", author: "", published: "", guid: entry.link },
-        src.name,
-      );
+      const body = entryToMarkdown(entry, src.name);
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
       results.push({

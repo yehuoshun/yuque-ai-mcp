@@ -12,6 +12,7 @@
 import { createHash } from "crypto";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { RSS_SOURCES } from "./sources.js";
+import type { FeedEntry } from "./parser.js";
 
 /** 生成去重 slug */
 export function buildSlug(source: string, link: string): string {
@@ -44,24 +45,35 @@ export async function checkSlug(bookId: string, slug: string): Promise<boolean> 
 }
 
 /**
- * 批量检查条目去重
- * 逐条查语雀 API（无批量端点，但每个 O(1)）
+ * 批量检查条目去重（并发）
  */
 export async function checkDuplicates(
   kvRepo: string,
   source: string,
-  entries: Array<{ title: string; link: string }>,
-): Promise<{ newEntries: Array<{ title: string; link: string; slug: string }>; skippedCount: number }> {
-  const newEntries: Array<{ title: string; link: string; slug: string }> = [];
+  entries: FeedEntry[],
+): Promise<{ newEntries: Array<FeedEntry & { slug: string }>; skippedCount: number }> {
+  // 先生成所有 slug
+  const withSlugs = entries.map((entry) => ({
+    ...entry,
+    slug: buildSlug(source, entry.link),
+  }));
+
+  // 并发检查
+  const checks = await Promise.all(
+    withSlugs.map(async (entry) => {
+      const exists = await checkSlug(kvRepo, entry.slug);
+      return { entry, exists };
+    }),
+  );
+
+  const newEntries: Array<FeedEntry & { slug: string }> = [];
   let skippedCount = 0;
 
-  for (const entry of entries) {
-    const slug = buildSlug(source, entry.link);
-    const exists = await checkSlug(kvRepo, slug);
+  for (const { entry, exists } of checks) {
     if (exists) {
       skippedCount++;
     } else {
-      newEntries.push({ title: entry.title, link: entry.link, slug });
+      newEntries.push(entry);
     }
   }
 
