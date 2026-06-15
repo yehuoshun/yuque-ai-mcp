@@ -107,7 +107,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（45 个）
+## 工具列表（47 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -129,7 +129,7 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_get_doc` | `GET /api/v2/repos/docs/:id` |
 | `yuque_export_doc` | 单篇导出 Markdown（含图片下载/降级） |
 | `yuque_create_doc` | `POST /api/v2/repos/:id/docs` |
-| `yuque_import_doc` | 从本地文件导入（含图片上传/降级） |
+
 | `yuque_update_doc` | `PUT /api/v2/repos/:id/docs/:id` |
 | `yuque_delete_doc` | `DELETE /api/v2/repos/:id/docs/:id` |
 | `yuque_get_doc_versions` | `GET /api/v2/doc_versions` |
@@ -137,6 +137,9 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_embed_url` | 无（纯工具函数） |
 | `yuque_batch_get_docs` | 批量 GET（并发，max 20） |
 | `yuque_copy_doc` | 单文档跨库复制（LLM 分类 + 内容清洗） |
+| `yuque_import_url` | 从网页 URL 导入（抓取+清洗+创建） |
+| `yuque_import_file` | 从本地文件导入（direct/upload_assets/embed_assets） |
+| `yuque_diff_doc_versions` | 版本内容 Diff（逐行对比，本地计算） |
 
 ### repo — 知识库
 | 工具 | 端点 |
