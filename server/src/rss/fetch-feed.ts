@@ -39,6 +39,11 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
  * 解析知识库标识（rss 和 kv 共用）
  * 优先级：tool 参数 → config.{domain}.{source}.book_id → .namespace → config.{domain}.default_repo → 报错
  */
+/**
+ * 解析知识库标识（rss 和 kv 共用）
+ * 优先级：tool 参数 → config.{domain}.{source}.book_id → .namespace → config.{domain}.default_repo
+ * 兜底：全部未配置则返回空字符串（调用方自行处理）
+ */
 function resolveRepo(
   domain: "rss" | "kv",
   source: string,
@@ -48,11 +53,7 @@ function resolveRepo(
 
   const cfg = loadConfig();
   const domainCfg = cfg[domain];
-  if (!domainCfg) {
-    throw new Error(
-      `未配置 ${domain} 目标知识库。请在 config.json 中设置 ${domain}.default_repo 或 ${domain}.{source}.book_id/namespace`
-    );
-  }
+  if (!domainCfg) return "";
 
   const sourceCfg = domainCfg[source];
   if (sourceCfg && typeof sourceCfg === "object") {
@@ -65,9 +66,7 @@ function resolveRepo(
     if (domainCfg.default_repo.namespace) return domainCfg.default_repo.namespace;
   }
 
-  throw new Error(
-    `无法确定 ${domain} 目标知识库。数据源 "${source}" 未配置，default_repo 也未配置。`
-  );
+  return "";
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */

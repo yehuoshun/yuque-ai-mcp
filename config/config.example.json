@@ -6,8 +6,8 @@
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
     "default_repo": {
-      "book_id": "在此填入默认 RSS 知识库 ID",
-      "namespace": "在此填入默认 RSS 知识库 namespace，如 my-group/my-repo"
+      "book_id": "可选，默认 RSS 知识库 ID（不配时 fallback 到工具参数）",
+      "namespace": "可选，默认 RSS 知识库 namespace，如 my-group/my-repo"
     },
     "cnblogs": {
       "book_id": "可选，博客园专用 RSS 知识库 ID",
@@ -16,12 +16,12 @@
   },
   "kv": {
     "default_repo": {
-      "book_id": "在此填入默认 KV 知识库 ID（可与 rss 相同）",
-      "namespace": "在此填入默认 KV 知识库 namespace"
+      "book_id": "可选，默认 KV 去重知识库 ID（可与 rss 相同；不配时不启用去重）",
+      "namespace": "可选，默认 KV 去重知识库 namespace"
     },
     "cnblogs": {
-      "book_id": "可选，博客园专用 KV 知识库 ID",
-      "namespace": "可选，博客园专用 KV 知识库 namespace"
+      "book_id": "可选，博客园专用 KV 去重知识库 ID",
+      "namespace": "可选，博客园专用 KV 去重知识库 namespace"
     }
   }
 }
