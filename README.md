@@ -49,18 +49,33 @@ server/
 │   │   ├── delete-doc.ts
 │   │   ├── versions.ts
 │   │   ├── version-detail.ts
+│   │   ├── diff-doc.ts
+│   │   ├── batch-get-docs.ts
+│   │   ├── export-common.ts
+│   │   ├── export-doc.ts
 │   │   ├── embed-url.ts
+│   │   ├── import-url.ts
+│   │   ├── import-file.ts
 │   │   ├── copy-common.ts
 │   │   ├── copy-doc.ts
 │   │   └── copy-repo.ts
 │   ├── repo/            # 知识库 CRUD（含 index.ts barrel）
+│   │   ├── index.ts
+│   │   ├── list-repos.ts
+│   │   ├── get-repo.ts
+│   │   ├── create-repo.ts
+│   │   ├── update-repo.ts
+│   │   ├── delete-repo.ts
+│   │   ├── batch-get-repos.ts
+│   │   ├── export-repo.ts
+│   │   └── copy-repo.ts
 │   ├── group/           # 团队成员管理（含 index.ts barrel）
 │   ├── toc/             # 目录导航（含 index.ts barrel）
 │   ├── statistic/       # 统计数据（含 index.ts barrel）
 │   ├── note/            # 小记（含 index.ts barrel）
 │   ├── recycle/         # 回收站（含 index.ts barrel）
 │   ├── upload/          # 文件上传（含 index.ts barrel）
-│   └── board/        # 画板资源（含 index.ts barrel）
+│   └── board/           # 画板资源（含 index.ts barrel）
 │   ├── index.ts         # MCP Server 入口（stdio）
 │   └── http.ts           # HTTP Server 入口（SSE）
 ├── references/api/      # API 文档参考（11 个域）
