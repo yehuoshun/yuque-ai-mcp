@@ -494,33 +494,47 @@ export const docImportFile: McpTool = {
 
     if (mode === "embed_assets") {
       for (const ref of refs) {
-        if (!existsSync(ref.absolutePath)) {
-          assetResults.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
-          continue;
-        }
-
-        if (ref.type === "image") {
-          // 图片不转义，保留原路径
-          assetResults.push({ original: ref.originalPath, type: "image" });
-          continue;
-        }
-
-        // 附件：判断是否可转义
-        if (!isEmbeddable(ref.ext)) {
-          assetResults.push({
-            original: ref.originalPath,
-            type: "attachment",
-            error: `不支持转义的格式: ${ref.ext}`,
-          });
-          continue;
-        }
-
-        // 解析附件内容
-        const content = parseAttachmentContent(ref.absolutePath, ref.ext);
-        const assetTitle = basename(ref.absolutePath).replace(/\.[^.]+$/, "");
-
-        // 创建子文档
+        // 单个附件处理失败不影响其他附件和整体导入
         try {
+          if (!existsSync(ref.absolutePath)) {
+            assetResults.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
+            continue;
+          }
+
+          if (ref.type === "image") {
+            // 图片不转义，保留原路径
+            assetResults.push({ original: ref.originalPath, type: "image" });
+            continue;
+          }
+
+          // 附件：判断是否可转义
+          if (!isEmbeddable(ref.ext)) {
+            assetResults.push({
+              original: ref.originalPath,
+              type: "attachment",
+              error: `不支持转义的格式: ${ref.ext}`,
+            });
+            continue;
+          }
+
+          // 解析附件内容（自带降级兜底，但外层再兜一次防止边界异常）
+          let content: string;
+          try {
+            content = parseAttachmentContent(ref.absolutePath, ref.ext);
+          } catch (parseErr) {
+            const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+            content = `*（${basename(ref.absolutePath)} 解析异常: ${errMsg}，请手动查看附件）*`;
+            assetResults.push({
+              original: ref.originalPath,
+              type: "attachment",
+              error: `解析异常: ${errMsg}`,
+            });
+            continue;
+          }
+
+          const assetTitle = basename(ref.absolutePath).replace(/\.[^.]+$/, "");
+
+          // 创建子文档
           const payload: Record<string, unknown> = {
             title: assetTitle,
             body: content,
@@ -553,9 +567,10 @@ export const docImportFile: McpTool = {
             embedDocSlug: newDoc.slug,
           });
         } catch (err) {
+          // 兜底：单个附件处理任何未预期异常，记录后继续
           assetResults.push({
             original: ref.originalPath,
-            type: "attachment",
+            type: ref.type,
             error: err instanceof Error ? err.message : String(err),
           });
         }
