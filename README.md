@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 49 个细粒度工具，覆盖语雀 OpenAPI 的全部能力（不含已废弃的索引/图谱功能）。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 49 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 

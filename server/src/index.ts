@@ -15,7 +15,7 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("yuque-ai-mcp v2.0.0 已启动");
+  console.error("yuque-ai-mcp v2.1.0 已启动");
 }
 
 main().catch((err) => {
