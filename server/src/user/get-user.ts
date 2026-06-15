@@ -11,7 +11,7 @@ import { formatUser, wrapResult } from "../common/format.js";
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
-  description: "Get current user profile",
+  description: "Get current user profile (id, login, name, avatar_url, books_count, description, created_at, etc.).",
 
   inputSchema: {
     type: "object",

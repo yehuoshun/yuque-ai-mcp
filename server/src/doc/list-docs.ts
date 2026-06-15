@@ -13,7 +13,7 @@ import { formatDocSummary, wrapResult } from "../common/format.js";
 
 export const docList: McpTool = {
   name: "yuque_list_docs",
-  description: "List documents in a repository",
+  description: "List documents in a repository, sorted by updated_at descending. limit ≤ 100.",
 
   inputSchema: {
     type: "object",

@@ -13,7 +13,7 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteCreate: McpTool = {
   name: "yuque_create_note",
-  description: "Create a note",
+  description: "Create a note (short memo). Returns id, slug, and note_url.",
 
   inputSchema: {
     type: "object",

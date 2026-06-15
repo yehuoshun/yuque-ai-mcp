@@ -1,13 +1,59 @@
 /**
  * api-client — 公共 HTTP 请求层
  *
- * 封装 fetch + 错误处理（含网络异常）+ 响应格式化，减少工具文件中的重复代码。
+ * 封装 fetch + 错误处理（含网络异常）+ 自动重试（429/5xx）+ 响应格式化，
+ * 减少工具文件中的重复代码。
+ * 重试策略：指数退避 1s → 2s → 4s，最多 3 次。
  */
 
 import { loadConfig } from "./config.js";
 import { handleApiError } from "./errors.js";
 
 const cfg = loadConfig();
+
+/** 最大重试次数 */
+const MAX_RETRIES = 3;
+
+/** 基延迟（ms） */
+const BASE_DELAY = 1000;
+
+/** 是否应该重试：网络异常、429、5xx */
+function shouldRetry(res: Response | null): boolean {
+  if (!res) return true; // 网络异常
+  return res.status === 429 || (res.status >= 500 && res.status < 600);
+}
+
+/** 等待 N ms */
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** 执行 fetch 并自动重试 */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  context: string,
+  attempt = 1,
+): Promise<Response> {
+  try {
+    const res = await fetch(url, options);
+    if (shouldRetry(res) && attempt <= MAX_RETRIES) {
+      const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+      console.error(`[RETRY] ${context} 第 ${attempt} 次失败 (${res.status})，${delay}ms 后重试`);
+      await sleep(delay);
+      return fetchWithRetry(url, options, context, attempt + 1);
+    }
+    return res;
+  } catch (err) {
+    if (attempt <= MAX_RETRIES) {
+      const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+      console.error(`[RETRY] ${context} 第 ${attempt} 次网络异常，${delay}ms 后重试`);
+      await sleep(delay);
+      return fetchWithRetry(url, options, context, attempt + 1);
+    }
+    throw err;
+  }
+}
 
 /** API 调用结果的类型 guard：检查是否是 MCP error */
 export function isErrorResult(
@@ -55,7 +101,7 @@ export async function apiGet(
   const ctx = context ?? `GET ${path}`;
   try {
     const url = buildUrl(path, params);
-    const res = await fetch(url, { headers: authHeaders() });
+    const res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
     return res.json();
   } catch (err) {
@@ -72,11 +118,11 @@ export async function apiPost(
   const ctx = context ?? `POST ${path}`;
   try {
     const url = `${cfg.api_base}${path}`;
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
-    });
+    }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
     return res.json();
   } catch (err) {
@@ -93,11 +139,11 @@ export async function apiPut(
   const ctx = context ?? `PUT ${path}`;
   try {
     const url = `${cfg.api_base}${path}`;
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "PUT",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
-    });
+    }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
     return res.json();
   } catch (err) {
@@ -113,10 +159,10 @@ export async function apiDelete(
   const ctx = context ?? `DELETE ${path}`;
   try {
     const url = `${cfg.api_base}${path}`;
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "DELETE",
       headers: authHeaders(),
-    });
+    }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
     return res.json();
   } catch (err) {
@@ -135,19 +181,19 @@ export async function apiPostWithFallback(
   try {
     const cfg = loadConfig();
     let url = `${cfg.api_base}${path}`;
-    let res = await fetch(url, {
+    let res = await fetchWithRetry(url, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
-    });
+    }, ctx);
 
     if (res.status === 404) {
       url = `${cfg.api_base}${fallbackPath}`;
-      res = await fetch(url, {
+      res = await fetchWithRetry(url, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
-      });
+      }, ctx);
     }
 
     if (!res.ok) return handleApiError(res, ctx);
@@ -172,11 +218,11 @@ export async function apiGetWithFallback(
       : "";
 
     let url = `${cfg.api_base}${path}${qs}`;
-    let res = await fetch(url, { headers: authHeaders() });
+    let res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
 
     if (res.status === 404) {
       url = `${cfg.api_base}${fallbackPath}${qs}`;
-      res = await fetch(url, { headers: authHeaders() });
+      res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
     }
 
     if (!res.ok) return handleApiError(res, ctx);

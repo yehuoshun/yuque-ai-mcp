@@ -36,6 +36,22 @@ export const ALL_TOOLS = [
   ...rssTools,
 ];
 
+/** 按域统计工具数 */
+export const DOMAIN_COUNTS = {
+  user: userTools.length,
+  search: searchTools.length,
+  group: groupTools.length,
+  doc: docTools.length,
+  toc: tocTools.length,
+  repo: repoTools.length,
+  statistic: statisticTools.length,
+  note: noteTools.length,
+  recycle: recycleTools.length,
+  upload: uploadTools.length,
+  board: boardTools.length,
+  rss: rssTools.length,
+};
+
 /** 将 JSON Schema 转为 Zod raw shape 并注册到 McpServer */
 export function registerAllTools(server: McpServer): void {
   for (const tool of ALL_TOOLS) {

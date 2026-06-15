@@ -26,7 +26,7 @@ async function appendToToc(bookId: string, docId: number): Promise<string | null
 
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
-  description: "Create a document, auto-appended to TOC",
+  description: "Create a document in a repository. The doc is auto-appended to the TOC root; use yuque_update_toc to reposition it.",
 
   inputSchema: {
     type: "object",
