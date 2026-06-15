@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
+import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildDedupSet, isDuplicate, type DedupResult } from "./dedup.js";
@@ -32,6 +33,40 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
   }
 
   return null;
+}
+
+/**
+ * 解析目标知识库标识
+ * 优先级：tool 参数 → rss.{source}.book_id → rss.{source}.namespace → default_repo → 报错
+ */
+function resolveTargetRepo(source: string, paramRepo?: string): string {
+  // 1. tool 参数优先
+  if (paramRepo) return paramRepo;
+
+  const cfg = loadConfig();
+  const rssCfg = cfg.rss;
+  if (!rssCfg) {
+    throw new Error(
+      "未配置 RSS 目标知识库。请在 config.json 中设置 rss.default_repo 或 rss.{source}.book_id/namespace，或在 tool 参数中传 target_repo"
+    );
+  }
+
+  // 2. source 级别配置
+  const sourceCfg = rssCfg[source];
+  if (sourceCfg && typeof sourceCfg === "object") {
+    if (sourceCfg.book_id) return sourceCfg.book_id;
+    if (sourceCfg.namespace) return sourceCfg.namespace;
+  }
+
+  // 3. default_repo
+  if (rssCfg.default_repo) {
+    if (rssCfg.default_repo.book_id) return rssCfg.default_repo.book_id;
+    if (rssCfg.default_repo.namespace) return rssCfg.default_repo.namespace;
+  }
+
+  throw new Error(
+    `无法确定 RSS 目标知识库。数据源 "${source}" 未配置，default_repo 也未配置。请在 config.json 中设置 rss.default_repo 或 rss.${source}.book_id/namespace`
+  );
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */
@@ -82,14 +117,13 @@ export const rssFetch: McpTool = {
       source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "object", description: "Template params for feeds with url_template, e.g. { username: 'hsewr333' }" },
-      target_repo: { type: "string", description: "Yuque repo ID (numeric) or namespace like group/book_slug" },
+      target_repo: { type: "string", description: "Yuque repo ID or namespace. Optional — falls back to config.json rss config." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'update' (update existing) | 'dry_run' (preview only, no save)" },
-
       title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[博客园] '" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
-    required: ["source", "feed_type", "target_repo"],
+    required: ["source", "feed_type"],
   },
 
   async handler(args) {
@@ -97,17 +131,30 @@ export const rssFetch: McpTool = {
     const __v = check(
       requiredString(args?.source, "source"),
       requiredString(args?.feed_type, "feed_type"),
-      requiredString(args?.target_repo, "target_repo"),
     );
     if (__v) return __v;
 
     const source = args?.source as string;
     const feedType = args?.feed_type as string;
     const feedParams = args?.feed_params as Record<string, unknown> | undefined;
-    const targetRepo = args?.target_repo as string;
+    const targetRepoParam = args?.target_repo as string | undefined;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
     const mode = (args?.mode as string) ?? "append";
     const titlePrefix = (args?.title_prefix as string) ?? "";
+
+    // 解析目标知识库
+    let targetRepo: string;
+    try {
+      targetRepo = resolveTargetRepo(source, targetRepoParam);
+    } catch (err) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "MISSING_TARGET_REPO",
+          message: err instanceof Error ? err.message : String(err),
+        }, null, 2) }],
+        isError: true,
+      };
+    }
 
     // 1. 查配置
     const src = RSS_SOURCES[source];
@@ -236,6 +283,7 @@ export const rssFetch: McpTool = {
         text: JSON.stringify({
           source: `${src.name} / ${feed.label}`,
           feed_url: feedUrl,
+          target_repo: targetRepo,
           fetched: entries.length,
           new: newEntries.length,
           skipped: skippedEntries.length,

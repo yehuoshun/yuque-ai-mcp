@@ -3,5 +3,15 @@
   "api_base": "https://www.yuque.com/api/v2",
   "membership": "pro",
   "cookie": "可选，回收站/上传功能需要。浏览器登录后 F12 → Application → Cookies → 复制完整 Cookie 字符串",
-  "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值"
+  "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
+  "rss": {
+    "default_repo": {
+      "book_id": "在此填入默认知识库 ID",
+      "namespace": "在此填入默认知识库 namespace，如 my-group/my-repo"
+    },
+    "cnblogs": {
+      "book_id": "可选，博客园专用知识库 ID",
+      "namespace": "可选，博客园专用知识库 namespace"
+    }
+  }
 }

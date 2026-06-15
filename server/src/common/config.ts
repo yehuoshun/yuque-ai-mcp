@@ -10,12 +10,23 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+interface RssSourceConfig {
+  book_id?: string;
+  namespace?: string;
+}
+
+interface RssConfig {
+  default_repo?: RssSourceConfig;
+  [source: string]: RssSourceConfig | undefined;
+}
+
 interface Config {
   token: string;
   api_base: string;
   membership?: "pro" | "super";
   cookie?: string;
   ctoken?: string;
+  rss?: RssConfig;
 }
 
 let _config: Config | null = null;
