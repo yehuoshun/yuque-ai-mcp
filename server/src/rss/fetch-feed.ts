@@ -6,12 +6,15 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPost } from "../common/api-client.js";
+import { isErrorResult, apiPost, apiGet } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug, checkDuplicates } from "./dedup.js";
+
+/** 语雀知识库文档上限 */
+const DOC_LIMIT = 5000;
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -115,6 +118,24 @@ async function createDoc(
   return { ok: true, id: docId };
 }
 
+/** 检查知识库文档数是否超限 */
+async function checkDocLimit(bookId: string, incoming: number): Promise<string | null> {
+  const data = await apiGet(`/repos/${bookId}`, undefined, "Check doc limit");
+  if (isErrorResult(data)) return null;
+
+  const repo = (data as { data?: { items_count?: number; name?: string } })?.data;
+  if (!repo) return null;
+
+  const current = repo.items_count ?? 0;
+  const after = current + incoming;
+
+  if (after > DOC_LIMIT) {
+    return `知识库「${repo.name || bookId}」当前 ${current} 篇 + 本次 ${incoming} 篇 = ${after} 篇，超过上限 ${DOC_LIMIT} 篇。请创建新知识库或清理旧文档。`;
+  }
+
+  return null;
+}
+
 export const rssFetch: McpTool = {
   name: "yuque_rss_fetch",
   description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (slug-based), and save to Yuque repo. Use yuque_rss_list_sources first to see available sources.",
@@ -158,7 +179,6 @@ export const rssFetch: McpTool = {
     let enableKv = true;
     try {
       targetRepo = resolveRepo("rss", source, targetRepoParam);
-      // kv 配置：如果 rss.{source}.enable_kv 明确为 false 则关闭
       const cfg = loadConfig();
       const rssSourceCfg = cfg.rss?.[source];
       if (rssSourceCfg && typeof rssSourceCfg === "object" && rssSourceCfg.enable_kv === false) {
@@ -251,7 +271,6 @@ export const rssFetch: McpTool = {
     let skippedCount = 0;
 
     if (mode === "dry_run" || !enableKv) {
-      // dry_run 或关闭 kv: 全部当新条目
       newEntries = entries.map((e) => ({
         title: e.title,
         link: e.link,
@@ -286,7 +305,20 @@ export const rssFetch: McpTool = {
       };
     }
 
-    // 7. 写入语雀
+    // 7. 写入前检查文档上限
+    const limitWarning = await checkDocLimit(targetRepo, newEntries.length);
+    if (limitWarning) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          warning: "DOC_LIMIT",
+          message: limitWarning,
+          new_count: newEntries.length,
+          limit: DOC_LIMIT,
+        }, null, 2) }],
+      };
+    }
+
+    // 8. 写入语雀
     const results: Array<{ title: string; link: string; slug: string; doc_id?: number; status: string; error?: string }> = [];
     for (const entry of newEntries) {
       const docTitle = `${titlePrefix}${entry.title}`;
