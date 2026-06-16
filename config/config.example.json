@@ -6,20 +6,24 @@
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
     "default_repo": {
+      "id": "可选，默认 RSS 知识库数字 ID（优先级最高）",
       "book_id": "可选，默认 RSS 知识库 ID（不配时 fallback 到工具参数）",
       "namespace": "可选，默认 RSS 知识库 namespace，如 my-group/my-repo"
     },
     "cnblogs": {
+      "id": "可选，博客园专用 RSS 知识库数字 ID",
       "book_id": "可选，博客园专用 RSS 知识库 ID",
       "namespace": "可选，博客园专用 RSS 知识库 namespace"
     }
   },
   "kv": {
     "default_repo": {
+      "id": "可选，默认 KV 去重知识库数字 ID（优先级最高）",
       "book_id": "可选，默认 KV 去重知识库 ID（可与 rss 相同；不配时不启用去重）",
       "namespace": "可选，默认 KV 去重知识库 namespace"
     },
     "cnblogs": {
+      "id": "可选，博客园专用 KV 去重知识库数字 ID",
       "book_id": "可选，博客园专用 KV 去重知识库 ID",
       "namespace": "可选，博客园专用 KV 去重知识库 namespace"
     }

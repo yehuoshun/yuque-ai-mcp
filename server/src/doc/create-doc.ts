@@ -9,6 +9,7 @@ import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatDoc, wrapResult } from "../common/format.js";
+import { generateSlug } from "../common/slug.js";
 
 /** 创建文档后自动追加到 TOC 末尾 */
 async function appendToToc(bookId: string, docId: number): Promise<string | null> {
@@ -33,7 +34,7 @@ export const docCreate: McpTool = {
     properties: {
       book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
       title: { type: "string", description: "Title, defaults to 'Untitled'" },
-      slug: { type: "string", description: "Document slug, auto-generated if omitted" },
+      slug: { type: "string", description: "Document slug, auto-generated from title if omitted. Rule: Chinese→pinyin initials, English→kebab-case, plus timestamp last 4 digits for uniqueness." },
       format: { type: "string", description: "Content format: markdown / html / lake, defaults to markdown" },
       body: { type: "string", description: "Document body content (required)" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public, defaults to repo setting" },
@@ -52,7 +53,7 @@ export const docCreate: McpTool = {
     const raw = args?.raw as boolean | undefined;
     const bookId = args?.book_id as string;
     const title = (args?.title as string) ?? "无标题";
-    const slug = args?.slug as string | undefined;
+    const slug = (args?.slug as string) || generateSlug(title);
     const format = (args?.format as string) ?? "markdown";
     const body = args?.body as string;
     const isPublic = args?.public as number | undefined;

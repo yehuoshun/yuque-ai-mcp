@@ -9,6 +9,7 @@ import type { McpTool } from "../common/types.js";
 import { apiPostWithFallback, isErrorResult } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatRepo, wrapResult } from "../common/format.js";
+import { generateSlug } from "../common/slug.js";
 
 
 export const repoCreate: McpTool = {
@@ -20,13 +21,13 @@ export const repoCreate: McpTool = {
     properties: {
       login: { type: "string", description: "User or group login / ID (required)" },
       name: { type: "string", description: "Repository name (required)" },
-      slug: { type: "string", description: "Repository slug (required)" },
+      slug: { type: "string", description: "Repository slug, auto-generated from name if omitted. Rule: Chinese→pinyin initials, English→kebab-case, plus timestamp last 4 digits for uniqueness." },
       description: { type: "string", description: "Description" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public (default 0)" },
       enhancedPrivacy: { type: "boolean", description: "Enhanced privacy: non-admin members get no access by default" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
-    required: ["login", "name", "slug"],
+    required: ["login", "name"],
   },
 
   async handler(args) {
@@ -40,7 +41,7 @@ export const repoCreate: McpTool = {
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const name = args?.name as string;
-    const slug = args?.slug as string;
+    const slug = (args?.slug as string) || generateSlug(name);
     const description = args?.description as string | undefined;
     const isPublic = (args?.public as number) ?? 0;
     const enhancedPrivacy = args?.enhancedPrivacy as boolean | undefined;

@@ -6,7 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPost } from "../common/api-client.js";
+import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
@@ -57,11 +57,13 @@ function resolveRepo(
 
   const sourceCfg = domainCfg[source];
   if (sourceCfg && typeof sourceCfg === "object") {
+    if (sourceCfg.id) return String(sourceCfg.id);
     if (sourceCfg.book_id) return sourceCfg.book_id;
     if (sourceCfg.namespace) return sourceCfg.namespace;
   }
 
   if (domainCfg.default_repo) {
+    if (domainCfg.default_repo.id) return String(domainCfg.default_repo.id);
     if (domainCfg.default_repo.book_id) return domainCfg.default_repo.book_id;
     if (domainCfg.default_repo.namespace) return domainCfg.default_repo.namespace;
   }
@@ -111,7 +113,38 @@ async function createDoc(
   }
 
   const docId = (data as { data?: { id: number } })?.data?.id;
+
+  // 加入目录
+  if (docId) {
+    try {
+      await apiPut(`/repos/${bookId}/toc`, {
+        action: "appendNode",
+        action_mode: "sibling",
+        type: "DOC",
+        doc_ids: [docId],
+      }, `Add to TOC: ${title}`);
+    } catch { /* TOC 失败不影响主流程 */ }
+  }
+
   return { ok: true, id: docId };
+}
+
+/** 在 KV 库创建去重标记文档（轻量文档，仅存链接） */
+async function createKvMark(
+  kvRepo: string,
+  slug: string,
+  link: string,
+  title: string,
+): Promise<void> {
+  try {
+    await apiPost(`/repos/${kvRepo}/docs`, {
+      title: slug,
+      slug,
+      body: link,
+      format: "markdown",
+      public: 0,
+    }, `Create KV mark: ${slug}`);
+  } catch { /* KV 标记失败不影响主流程 */ }
 }
 
 export const rssFetch: McpTool = {
@@ -123,7 +156,7 @@ export const rssFetch: McpTool = {
     properties: {
       source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
-      feed_params: { type: "object", description: "Template params for feeds with url_template, e.g. { username: 'hsewr333' }" },
+      feed_params: { type: "string", description: "Template params for feeds with url_template. JSON string, e.g. '{\"username\":\"hsewr333\"}'" },
       target_repo: { type: "string", description: "RSS target repo ID or namespace. Optional — falls back to config.json rss config." },
       kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv config." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
@@ -144,7 +177,11 @@ export const rssFetch: McpTool = {
 
     const source = args?.source as string;
     const feedType = args?.feed_type as string;
-    const feedParams = args?.feed_params as Record<string, unknown> | undefined;
+    let feedParams = args?.feed_params as Record<string, unknown> | string | undefined;
+    if (typeof feedParams === "string") {
+      try { feedParams = JSON.parse(feedParams); } catch { /* keep as-is */ }
+    }
+    feedParams = feedParams as Record<string, unknown> | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
     const kvRepoParam = args?.kv_repo as string | undefined;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
@@ -289,6 +326,9 @@ export const rssFetch: McpTool = {
       const body = entryToMarkdown(entry, src.name);
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
+      if (result.ok && enableKv && kvRepo) {
+        await createKvMark(kvRepo, entry.slug, entry.link, entry.title);
+      }
       results.push({
         title: entry.title,
         link: entry.link,
