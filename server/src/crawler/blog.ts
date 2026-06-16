@@ -4,7 +4,7 @@ import * as cheerio from "cheerio";
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPost, apiPut, apiDelete, isErrorResult } from "../common/api-client.js";
 
 // 从 save.ts 复用
 function resolveRepo(source?: string, paramRepo?: string): string {
@@ -120,7 +120,14 @@ function htmlToMarkdown(html: string, sourceUrl: string, title: string): string 
         case "pre": {
           const codeEl = $el.find("code");
           const code = codeEl.length ? codeEl.text() : $el.text();
-          result += `\n\n\`\`\`\n${code}\n\`\`\`\n\n`;
+          // 从 <code class="language-python"> 提取语言标识
+          let lang = "";
+          if (codeEl.length) {
+            const cls = codeEl.attr("class") || "";
+            const m = cls.match(/language-(\w+)/);
+            if (m) lang = m[1];
+          }
+          result += `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
           break;
         }
 
@@ -345,6 +352,12 @@ export const crawlBlog: McpTool = {
     }
 
     const slug = buildSlug(finalUrl);
+
+    // 如果 slug 已存在，先删除旧文档（避免更新不重新解析 Markdown 格式）
+    try {
+      await apiDelete(`/repos/${targetRepo}/docs/${slug}`, `Delete old doc: ${slug}`);
+    } catch { /* 不存在则忽略 */ }
+
     const createResult = await apiPost(`/repos/${targetRepo}/docs`, {
       title: docTitle,
       body: markdown,
