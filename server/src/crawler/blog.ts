@@ -1,6 +1,5 @@
-import crypto from "crypto";
-
 import * as cheerio from "cheerio";
+import crypto from "crypto";
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
@@ -21,38 +20,40 @@ function buildSlug(url: string): string {
   return crypto.createHash("md5").update(url).digest("hex").substring(0, 12);
 }
 
-/**
- * HTML → Markdown 转换（基于 cheerio，非正则）
- * 处理：标题、代码块、表格、列表、链接、图片、粗斜体、引用、删除线
- */
-function htmlToMarkdown(html: string, sourceUrl: string, title: string): string {
-  const $ = cheerio.load(html);
+let nodeIdCounter = 0;
+function nextId(): string {
+  return "u" + (++nodeIdCounter).toString(36);
+}
 
-  // 1. 移除 script/style/noscript/零宽字符
+/**
+ * HTML → 语雀 Lake 格式
+ * 输出完整的 Lake HTML（<div class="lake-content">...</div>）
+ */
+function htmlToLake(html: string, sourceUrl: string, title: string): string {
+  const $ = cheerio.load(html);
+  nodeIdCounter = 0;
+
+  // 1. 清理
   $("script, style, noscript").remove();
 
-  // 2. 处理 data-src 懒加载图片
+  // 2. 处理 data-src
   $("img[data-src]").each((_, el) => {
     const dataSrc = $(el).attr("data-src");
     if (dataSrc) $(el).attr("src", dataSrc);
   });
 
-  // 3. 递归转换节点
+  // 3. 递归转换
   function convert(node: cheerio.Cheerio<any>): string {
     let result = "";
 
     node.contents().each((_, child) => {
       if (child.type === "text") {
-        let text = $(child).text();
-        // 解码实体
-        text = text
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&nbsp;/g, " ");
-        result += text;
+        const text = $(child).text();
+        if (text.trim()) {
+          result += `<span class="ne-text">${escapeLake(text)}</span>`;
+        } else {
+          result += text;
+        }
         return;
       }
 
@@ -62,124 +63,105 @@ function htmlToMarkdown(html: string, sourceUrl: string, title: string): string 
       const $el = $(child);
 
       switch (tag) {
-        case "h1": result += `\n\n# ${convert($el)}\n\n`; break;
-        case "h2": result += `\n\n## ${convert($el)}\n\n`; break;
-        case "h3": result += `\n\n### ${convert($el)}\n\n`; break;
-        case "h4": result += `\n\n#### ${convert($el)}\n\n`; break;
-        case "h5": result += `\n\n##### ${convert($el)}\n\n`; break;
-        case "h6": result += `\n\n###### ${convert($el)}\n\n`; break;
+        case "h1": result += `<h1 id="${nextId()}">${convert($el)}</h1>`; break;
+        case "h2": result += `<h2 id="${nextId()}">${convert($el)}</h2>`; break;
+        case "h3": result += `<h3 id="${nextId()}">${convert($el)}</h3>`; break;
+        case "h4": result += `<h4 id="${nextId()}">${convert($el)}</h4>`; break;
+        case "h5": result += `<h5 id="${nextId()}">${convert($el)}</h5>`; break;
+        case "h6": result += `<h6 id="${nextId()}">${convert($el)}</h6>`; break;
 
         case "p":
-          result += `\n\n${convert($el)}\n\n`;
+          result += `<p id="${nextId()}" class="ne-p">${convert($el)}</p>`;
           break;
 
         case "br":
-          result += "\n";
+          result += "<br/>";
           break;
 
         case "strong":
         case "b":
-          result += `**${convert($el)}**`;
+          result += `<strong>${convert($el)}</strong>`;
           break;
 
         case "em":
         case "i":
-          result += `*${convert($el)}*`;
+          result += `<em>${convert($el)}</em>`;
           break;
 
         case "del":
         case "s":
         case "strike":
-          result += `~~${convert($el)}~~`;
+          result += `<s>${convert($el)}</s>`;
           break;
 
         case "a": {
           const href = $el.attr("href") || "";
           const text = convert($el) || href;
-          result += `[${text}](${href})`;
+          result += `<a href="${escapeAttr(href)}">${text}</a>`;
           break;
         }
 
         case "img": {
           const src = $el.attr("src") || $el.attr("data-src") || "";
           const alt = $el.attr("alt") || "";
-          result += `![${alt}](${src})`;
+          result += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"/>`;
           break;
         }
 
         case "code": {
           const parentTag = $el.parent().get(0)?.tagName?.toLowerCase();
-          if (parentTag === "pre") {
-            // 由 pre 统一处理
-            return;
-          }
-          result += `\`${$el.text()}\``;
+          if (parentTag === "pre") return; // 由 pre 统一处理
+          result += `<code>${escapeLake($el.text())}</code>`;
           break;
         }
 
         case "pre": {
           const codeEl = $el.find("code");
           const code = codeEl.length ? codeEl.text() : $el.text();
-          // 从 <code class="language-python"> 提取语言标识
-          let lang = "";
+          let lang = "plain";
           if (codeEl.length) {
             const cls = codeEl.attr("class") || "";
             const m = cls.match(/language-(\w+)/);
             if (m) lang = m[1];
           }
-          result += `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+          result += `<pre data-language="${lang}" id="${nextId()}" class="ne-codeblock language-${lang}"><code>${escapeLake(code)}</code></pre>`;
           break;
         }
 
         case "blockquote":
-          result += `\n\n> ${convert($el).replace(/\n/g, "\n> ")}\n\n`;
+          result += `<blockquote id="${nextId()}">${convert($el)}</blockquote>`;
           break;
 
         case "ul":
-        case "ol": {
-          const isOrdered = tag === "ol";
-          let idx = 1;
-          result += "\n";
-          $el.children("li").each((_, li) => {
-            const prefix = isOrdered ? `${idx++}. ` : "- ";
-            result += `${prefix}${convert($(li))}\n`;
-          });
-          result += "\n";
+          result += `<ul id="${nextId()}">${convert($el)}</ul>`;
           break;
-        }
+
+        case "ol":
+          result += `<ol id="${nextId()}">${convert($el)}</ol>`;
+          break;
 
         case "li":
-          // 嵌套列表由 ul/ol 处理
-          result += convert($el);
+          result += `<li id="${nextId()}">${convert($el)}</li>`;
           break;
 
         case "table": {
-          result += "\n\n";
-          const rows: string[][] = [];
+          result += `<table>`;
+          let isHeader = true;
           $el.find("tr").each((_, tr) => {
-            const cells: string[] = [];
+            result += "<tr>";
             $(tr).find("th, td").each((__, td) => {
-              cells.push(convert($(td)).replace(/\n/g, " ").trim());
+              const cellTag = $(td).prop("tagName")?.toLowerCase() === "th" || isHeader ? "th" : "td";
+              result += `<${cellTag}>${convert($(td))}</${cellTag}>`;
             });
-            if (cells.length > 0) rows.push(cells);
+            result += "</tr>";
+            isHeader = false;
           });
-          if (rows.length > 0) {
-            const colCount = Math.max(...rows.map(r => r.length));
-            const padRow = (r: string[]) => r.concat(Array(colCount - r.length).fill(""));
-            const header = padRow(rows[0]);
-            const sep = header.map(() => "---");
-            result += "|" + header.join("|") + "|\n";
-            result += "|" + sep.join("|") + "|\n";
-            for (let i = 1; i < rows.length; i++) {
-              result += "|" + padRow(rows[i]).join("|") + "|\n";
-            }
-          }
-          result += "\n";
+          result += `</table>`;
           break;
         }
 
         case "hr":
-          result += "\n\n---\n\n";
+          result += "<hr/>";
           break;
 
         case "div":
@@ -188,12 +170,10 @@ function htmlToMarkdown(html: string, sourceUrl: string, title: string): string 
         case "span":
         case "figure":
         case "figcaption":
-          // 块级/行内容器，递归处理
           result += convert($el);
           break;
 
         default:
-          // 其他标签递归处理内容
           result += convert($el);
       }
     });
@@ -201,24 +181,30 @@ function htmlToMarkdown(html: string, sourceUrl: string, title: string): string 
     return result;
   }
 
-  let body = convert($.root());
+  const body = convert($.root());
 
-  // 后处理
-  body = body
-    // 清理多余空行
-    .replace(/\n{3,}/g, "\n\n")
-    // 清理行首行尾空白
-    .split("\n").map(l => l.trimEnd()).join("\n")
-    .trim();
+  return `<!doctype html><div class="lake-content" typography="classic"><blockquote id="${nextId()}"><p id="${nextId()}" class="ne-p"><span class="ne-text">原文链接：</span><a href="${escapeAttr(sourceUrl)}">${escapeLake(title)}</a></p></blockquote>${body}</div>`;
+}
 
-  // 组装最终文档
-  const md = `> 原文链接：[${title}](${sourceUrl})\n\n${body}`;
-  return md;
+function escapeLake(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export const crawlBlog: McpTool = {
   name: "yuque_crawl_blog",
-  description: "博客园文章抓取+清洗+写入。一站式：fetch → cheerio HTML→Markdown → save to Yuque。自动处理 data-src 图片、代码块、表格、链接等。",
+  description: "博客园文章抓取+清洗+写入。一站式：fetch → cheerio HTML→Lake → save to Yuque。代码块带语法高亮/行号/主题。",
 
   inputSchema: {
     type: "object",
@@ -308,7 +294,6 @@ export const crawlBlog: McpTool = {
 
     // 3. 提取标题
     let title = $("title").text().trim();
-    // 解码实体
     title = title
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
@@ -318,9 +303,8 @@ export const crawlBlog: McpTool = {
 
     const docTitle = `${titlePrefix}${title || finalUrl}`;
 
-    // 4. HTML → Markdown（cheerio）
-    const markdown = htmlToMarkdown(bodyHtml, finalUrl, title);
-
+    // 4. HTML → Lake
+    const lake = htmlToLake(bodyHtml, finalUrl, title);
     const elapsed = Date.now() - startedAt;
 
     // 5. preview 模式
@@ -332,8 +316,8 @@ export const crawlBlog: McpTool = {
             mode: "preview",
             url: finalUrl,
             title: docTitle,
-            body_size: markdown.length,
-            body_preview: markdown.substring(0, 500),
+            body_size: lake.length,
+            body_preview: lake.substring(0, 500),
             elapsed_ms: elapsed,
           }, null, 2),
         }],
@@ -353,17 +337,17 @@ export const crawlBlog: McpTool = {
 
     const slug = buildSlug(finalUrl);
 
-    // 如果 slug 已存在，先删除旧文档（避免更新不重新解析 Markdown 格式）
+    // 如果 slug 已存在，先删除旧文档
     try {
       await apiDelete(`/repos/${targetRepo}/docs/${slug}`, `Delete old doc: ${slug}`);
     } catch { /* 不存在则忽略 */ }
 
     const createResult = await apiPost(`/repos/${targetRepo}/docs`, {
       title: docTitle,
-      body: markdown,
+      body: lake,
       slug,
       description: `原文链接: ${finalUrl}`,
-      format: "markdown",
+      format: "lake",
       public: 0,
     }, `Create doc: ${docTitle}`);
 
@@ -403,7 +387,7 @@ export const crawlBlog: McpTool = {
           slug,
           doc_id: docId,
           target_repo: targetRepo,
-          body_size: markdown.length,
+          body_size: lake.length,
           elapsed_ms: elapsed,
         }, null, 2),
       }],
