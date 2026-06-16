@@ -71,13 +71,18 @@ function extractContent(html: string, contentSelector?: string): { title: string
     const parts = contentSelector.split(/\s+/).filter(Boolean);
     if (parts.length > 0) {
       const lastPart = parts[parts.length - 1];
+      const idMatch = lastPart.match(/#([\w-]+)/);
       const tagMatch = lastPart.match(/^([\w-]+)/);
-      const tag = tagMatch ? tagMatch[1] : "\\w+";
       const clsMatch = lastPart.match(/\.([\w-]+)/);
+      const id = idMatch ? idMatch[1] : "";
+      const tag = tagMatch ? tagMatch[1] : "\\w+";
       const cls = clsMatch ? clsMatch[1] : "";
 
       let tagRe: RegExp;
-      if (cls) {
+      if (id) {
+        // #id 选择器：匹配 id="xxx" 的元素
+        tagRe = new RegExp(`<(${tag})[^>]*id="${id}"[^>]*>([\\s\\S]*?)</\\1>`, "i");
+      } else if (cls) {
         tagRe = new RegExp(`<(${tag})[^>]*class="[^"]*\\b${cls}\\b[^"]*"[^>]*>([\\s\\S]*?)</\\1>`, "i");
       } else {
         tagRe = new RegExp(`<(${tag})[^>]*>([\\s\\S]*?)</\\1>`, "i");
