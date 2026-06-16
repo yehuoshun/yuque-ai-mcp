@@ -19,6 +19,7 @@ import { recycleTools } from "../recycle/index.js";
 import { uploadTools } from "../upload/index.js";
 import { boardTools } from "../board/index.js";
 import { rssTools } from "../rss/index.js";
+import { crawlerTools } from "../crawler/index.js";
 
 /** 所有工具（按域展开，唯一真实来源） */
 export const ALL_TOOLS = [
@@ -34,6 +35,7 @@ export const ALL_TOOLS = [
   ...uploadTools,
   ...boardTools,
   ...rssTools,
+  ...crawlerTools,
 ];
 
 /** 按域统计工具数 */
@@ -50,6 +52,7 @@ export const DOMAIN_COUNTS = {
   upload: uploadTools.length,
   board: boardTools.length,
   rss: rssTools.length,
+  crawler: crawlerTools.length,
 };
 
 /** 将 JSON Schema 转为 Zod raw shape 并注册到 McpServer */

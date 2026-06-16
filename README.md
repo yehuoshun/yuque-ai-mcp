@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 49 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 52 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **49 个** |
+| 工具数量 | 19 个 | **52 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -15,8 +15,8 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，12 个域 60+ 个文件） |
-| 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie + 会员等级） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，13 个域 60+ 个文件） |
+| 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
 | HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
 | 配套 Skill 层 | ❌ 无 | ✅ [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)（33 个使用指导） |
@@ -83,10 +83,11 @@ server/
 │   ├── recycle/         # 回收站（含 index.ts barrel）
 │   ├── upload/          # 文件上传（含 index.ts barrel）
 │   ├── board/           # 画板资源（含 index.ts barrel）
-│   └── rss/             # RSS 抓取（含 index.ts barrel）
+│   ├── rss/             # RSS 抓取（含 index.ts barrel）
+│   └── crawler/         # 网页爬虫（含 index.ts barrel）
 │   ├── index.ts         # MCP Server 入口（stdio）
 │   └── http.ts           # HTTP Server 入口（SSE）
-├── references/api/      # API 文档参考（11 个域）
+├── references/api/      # API 文档参考（12 个域）
 ├── config/              # 配置文件
 └── package.json
 ```
@@ -113,7 +114,6 @@ cp config/config.example.json config/config.json
 {
   "token": "你的语雀 API Token",
   "api_base": "https://www.yuque.com/api/v2",
-  "membership": "pro",
   "cookie": "可选，回收站/上传功能需要",
   "ctoken": "可选，从 Cookie 中提取"
 }
@@ -130,7 +130,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（49 个）
+## 工具列表（52 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -235,16 +235,45 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 ```json
 {
   "rss": {
-    "cnblogs": { "id": 80197497 }
+    "enabled": true,
+    "default_repo": { "id": 80197497 },
+    "sources": {
+      "cnblogs": { "id": 80197497 }
+    }
   },
   "kv": {
-    "cnblogs": { "id": 80197550 }
+    "enabled": false,
+    "default_repo": { "id": 80197550 }
   }
 }
 ```
 
-知识库标识支持三种格式（优先级从高到低）：`id`（数字ID）> `book_id` > `namespace`。
-去重策略：每次抓取后自动在 KV 库创建 slug 标记文档，后续重复文章自动跳过。
+知识库标识支持三种格式：`id`（数字ID）> `book_id` > `namespace`。
+去重策略：`kv.enabled=true` 时，每次抓取后自动在 KV 库创建 slug 标记文档，后续重复文章自动跳过。
+
+### crawler — 网页爬虫
+| 工具 | 说明 |
+|------|------|
+| `yuque_crawl_fetch` | 抓取网页原始 HTML，返回响应头+状态码 |
+| `yuque_crawl_extract` | CSS 选择器从 HTML 提取内容/属性 |
+| `yuque_crawl_save` | 抓取→提取→去重→写入语雀一站式管道 |
+
+爬虫需在 `config.json` 中配置 `crawler` 段：
+
+```json
+{
+  "crawler": {
+    "enabled": true,
+    "default_repo": { "id": 80197497 },
+    "sources": {
+      "cnblogs": { "id": 80197497 }
+    }
+  }
+}
+```
+
+目标知识库优先级：`target_repo` 参数 → `crawler.sources.{source}` → `crawler.default_repo`。
+去重依赖 `kv.enabled=true`，slug = URL 的 md5 前 12 位。
 
 ## 错误处理
 

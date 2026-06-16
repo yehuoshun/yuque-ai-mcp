@@ -10,31 +10,37 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface RssSourceConfig {
+interface RepoRef {
   book_id?: string;
   namespace?: string;
   id?: number;
-  enable_kv?: boolean;
 }
 
 interface RssConfig {
-  default_repo?: RssSourceConfig;
-  [source: string]: RssSourceConfig | undefined;
+  enabled: boolean;
+  default_repo?: RepoRef;
+  sources?: Record<string, RepoRef>;
 }
 
 interface KvConfig {
-  default_repo?: RssSourceConfig;
-  [source: string]: RssSourceConfig | undefined;
+  enabled: boolean;
+  default_repo?: RepoRef;
+}
+
+interface CrawlerConfig {
+  enabled: boolean;
+  default_repo?: RepoRef;
+  sources?: Record<string, RepoRef>;
 }
 
 interface Config {
   token: string;
   api_base: string;
-  membership?: "pro" | "super";
   cookie?: string;
   ctoken?: string;
   rss?: RssConfig;
   kv?: KvConfig;
+  crawler?: CrawlerConfig;
 }
 
 let _config: Config | null = null;

@@ -51,7 +51,6 @@ cp ../config/config.example.json ../config/config.json
 {
   "token": "你的语雀 API Token",
   "api_base": "https://www.yuque.com/api/v2",
-  "membership": "pro",
   "cookie": "可选，回收站/上传功能需要",
   "ctoken": "可选，从 Cookie 中提取"
 }
@@ -165,16 +164,18 @@ curl http://localhost:3099/health
 {
   "token": "语雀 API Token（必填）",
   "api_base": "API 基地址（默认 https://www.yuque.com/api/v2）",
-  "membership": "会员等级：community / pro / vip（调整上传限制用）",
   "cookie": "浏览器 Cookie 字符串（回收站/上传需要）",
   "ctoken": "CSRF Token（回收站/上传需要）",
   "rss": {
+    "enabled": true,
     "default_repo": { "book_id": "...", "namespace": "..." },
-    "cnblogs": { "book_id": "...", "namespace": "..." }
+    "sources": {
+      "cnblogs": { "book_id": "...", "namespace": "..." }
+    }
   },
   "kv": {
-    "default_repo": { "book_id": "...", "namespace": "..." },
-    "cnblogs": { "book_id": "...", "namespace": "..." }
+    "enabled": false,
+    "default_repo": { "book_id": "...", "namespace": "..." }
   }
 }
 ```

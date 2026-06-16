@@ -35,40 +35,34 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
   return null;
 }
 
-/**
- * 解析知识库标识（rss 和 kv 共用）
- * 优先级：tool 参数 → config.{domain}.{source}.book_id → .namespace → config.{domain}.default_repo → 报错
- */
-/**
- * 解析知识库标识（rss 和 kv 共用）
- * 优先级：tool 参数 → config.{domain}.{source}.book_id → .namespace → config.{domain}.default_repo
- * 兜底：全部未配置则返回空字符串（调用方自行处理）
- */
-function resolveRepo(
-  domain: "rss" | "kv",
-  source: string,
-  paramRepo?: string,
-): string {
-  if (paramRepo) return paramRepo;
-
-  const cfg = loadConfig();
-  const domainCfg = cfg[domain];
-  if (!domainCfg) return "";
-
-  const sourceCfg = domainCfg[source];
-  if (sourceCfg && typeof sourceCfg === "object") {
-    if (sourceCfg.id) return String(sourceCfg.id);
-    if (sourceCfg.book_id) return sourceCfg.book_id;
-    if (sourceCfg.namespace) return sourceCfg.namespace;
-  }
-
-  if (domainCfg.default_repo) {
-    if (domainCfg.default_repo.id) return String(domainCfg.default_repo.id);
-    if (domainCfg.default_repo.book_id) return domainCfg.default_repo.book_id;
-    if (domainCfg.default_repo.namespace) return domainCfg.default_repo.namespace;
-  }
-
+/** 从 RepoRef 提取知识库标识 */
+function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
+  if (!ref) return "";
+  if (ref.id) return String(ref.id);
+  if (ref.book_id) return ref.book_id;
+  if (ref.namespace) return ref.namespace;
   return "";
+}
+
+/**
+ * 解析 RSS 目标知识库
+ * 优先级：tool 参数 → config.rss.{source} → config.rss.default_repo
+ */
+function resolveRssRepo(source: string, paramRepo?: string): string {
+  if (paramRepo) return paramRepo;
+  const cfg = loadConfig();
+  if (!cfg.rss) return "";
+  return repoRefToString(cfg.rss?.sources?.[source]) || repoRefToString(cfg.rss?.default_repo);
+}
+
+/**
+ * 解析 KV 去重知识库
+ * 优先级：tool 参数 → config.kv.repo
+ */
+function resolveKvRepo(paramRepo?: string): string {
+  if (paramRepo) return paramRepo;
+  const cfg = loadConfig();
+  return repoRefToString(cfg.kv?.default_repo);
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */
@@ -189,30 +183,10 @@ export const rssFetch: McpTool = {
     const titlePrefix = (args?.title_prefix as string) ?? "";
 
     // 解析目标知识库
-    let targetRepo: string;
-    let kvRepo: string;
-    let enableKv = true;
-    try {
-      targetRepo = resolveRepo("rss", source, targetRepoParam);
-      const cfg = loadConfig();
-      const rssSourceCfg = cfg.rss?.[source];
-      if (rssSourceCfg && typeof rssSourceCfg === "object" && rssSourceCfg.enable_kv === false) {
-        enableKv = false;
-      }
-      if (enableKv) {
-        kvRepo = resolveRepo("kv", source, kvRepoParam);
-      } else {
-        kvRepo = "";
-      }
-    } catch (err) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({
-          error: "MISSING_REPO",
-          message: err instanceof Error ? err.message : String(err),
-        }, null, 2) }],
-        isError: true,
-      };
-    }
+    const targetRepo = resolveRssRepo(source, targetRepoParam);
+    const cfg = loadConfig();
+    const enableKv = !!(cfg.kv?.enabled);
+    const kvRepo = enableKv ? resolveKvRepo(kvRepoParam) : "";
 
     // 1. 查数据源配置
     const src = RSS_SOURCES[source];
