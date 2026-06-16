@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 import * as cheerio from "cheerio";
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
@@ -16,7 +18,6 @@ function resolveRepo(source?: string, paramRepo?: string): string {
 }
 
 function buildSlug(url: string): string {
-  const crypto = require("crypto");
   return crypto.createHash("md5").update(url).digest("hex").substring(0, 12);
 }
 
