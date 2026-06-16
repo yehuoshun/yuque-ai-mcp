@@ -71,6 +71,7 @@ export const kvSet: McpTool = {
           value,
           action: existed ? "updated" : "created",
           total_keys: Object.keys(map).length,
+          shards: result.shards,
         }, null, 2),
       }],
     };

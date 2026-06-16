@@ -79,6 +79,7 @@ export const kvDelete: McpTool = {
           key,
           action: "deleted",
           total_keys: Object.keys(map).length,
+          shards: result.shards,
         }, null, 2),
       }],
     };
