@@ -370,35 +370,41 @@
 
 ### 存储方案
 
-单文档 JSON map：一个 namespace 对应语雀知识库里的一篇文档。
+增量分片 JSON map，配置记录在 config.json 的 kv.namespaces 中。
 
-- 文档 slug = namespace
-- 文档 body = `{"key1": "value1", "key2": "value2", ...}`
-- 一次 get 读取全量 map，一次 set 更新全量 map
+```json
+{
+  "kv": {
+    "enabled": true,
+    "namespaces": {
+      "cnblogs": {
+        "book_id": 80197550,
+        "docs": [274164064, 274164065]
+      }
+    }
+  }
+}
+```
 
-### 设计优势
-
-相比旧方案（每个去重标记 = 一篇独立文档），新方案：
-- **API 调用大幅减少**：RSS 抓取 10 篇 → 去重只需 1 次 GET（读 map）+ 1 次 PUT（写 map），而非 10 次 GET + 10 次 POST
-- **KV 知识库整洁**：一个主题一篇文档，而非几百篇标记文档
-- **天然支持批量操作**：一次加载全量 map，内存中过滤，一次写回
+- `book_id`：该 namespace 使用的语雀知识库 ID
+- `docs`：分片文档的 doc_id 数组，按顺序读取合并
+- 单文档 body 上限 250KB，超出自动创建新分片
 
 ### yuque_kv_get
 
-**流程**：`GET /repos/{repo}/docs/{namespace}` → 解析 body 为 JSON
+**流程**：按 docs 数组顺序逐个 `GET /repos/{book_id}/docs/{doc_id}` → 合并 JSON map
 
 **参数**：
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `namespace` | string | ✅ | KV 命名空间，如 `cnblogs` |
-| `repo` | string | ❌ | KV 知识库，默认 config.json 中 kv.default_repo |
 
-**返回**：`{namespace, repo, count, data: {key: value}}`
+**返回**：`{namespace, book_id, shards, count, data: {key: value}}`
 
 ### yuque_kv_set
 
-**流程**：GET 读 map → 更新 key → PUT 写回（文档存在）或 POST 创建（文档不存在）
+**流程**：取 docs 最后一个 doc_id → GET 读 body → 判断 JSON.stringify 后大小 → PUT 更新或 POST 创建新分片 → 更新 config
 
 **参数**：
 
@@ -407,13 +413,12 @@
 | `namespace` | string | ✅ | KV 命名空间 |
 | `key` | string | ✅ | 键 |
 | `value` | string | ✅ | 值 |
-| `repo` | string | ❌ | KV 知识库 |
 
-**返回**：`{namespace, key, value, action: "created"|"updated", total_keys}`
+**返回**：`{namespace, key, value, shards}`
 
 ### yuque_kv_delete
 
-**流程**：GET 读 map → 删除 key → PUT 写回
+**流程**：遍历 docs 逐个 GET → 找到 key → delete → PUT 更新该分片
 
 **参数**：
 
@@ -421,18 +426,13 @@
 |------|------|------|------|
 | `namespace` | string | ✅ | KV 命名空间 |
 | `key` | string | ✅ | 要删除的键 |
-| `repo` | string | ❌ | KV 知识库 |
 
-**返回**：`{namespace, key, action: "deleted"|"not_found", total_keys}`
+**返回**：`{namespace, key, action: "deleted"|"not_found", shards}`
 
 ### yuque_kv_list
 
-**流程**：`GET /repos/{repo}/docs` → 列出所有文档（每个文档即一个 namespace）
+**流程**：直接从 config.json 读取，不调 API
 
-**参数**：
+**参数**：无
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `repo` | string | ❌ | KV 知识库 |
-
-**返回**：`{repo, count, namespaces: [{namespace, title, updated_at}]}`
+**返回**：`{count, namespaces: [{namespace, book_id, shards, doc_ids}]}`

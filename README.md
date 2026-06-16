@@ -243,14 +243,16 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
     }
   },
   "kv": {
-    "enabled": false,
-    "default_repo": { "id": 80197550 }
+    "enabled": true,
+    "namespaces": {
+      "cnblogs": { "book_id": 80197550, "docs": [] }
+    }
   }
 }
 ```
 
 知识库标识支持三种格式：`id`（数字ID）> `book_id` > `namespace`。
-去重策略：`kv.enabled=true` 时，使用 KV 域的单文档 JSON map 去重（一个 namespace 一篇文档，存储 `{slug: url}` 映射）。
+去重策略：`kv.enabled=true` 时，使用 KV 域增量分片去重（config 记录 book_id + docs 数组，单文档上限 250KB）。
 
 ### crawler — 网页爬虫
 | 工具 | 说明 |
@@ -275,18 +277,18 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 ```
 
 目标知识库优先级：`target_repo` 参数 → `crawler.sources.{source}` → `crawler.default_repo`。
-去重依赖 `kv.enabled=true`，使用 KV 域的单文档 JSON map 去重（namespace 默认为 source 或 'crawler'）。
+去重依赖 `kv.enabled=true`，使用 KV 域增量分片去重（namespace 默认为 source 或 'crawler'，config 记录 book_id + docs 数组）。
 
 ### kv — KV 键值存储
 | 工具 | 说明 |
 |------|------|
-| `yuque_kv_get` | 读取命名空间的完整 JSON key-value map |
-| `yuque_kv_set` | 设置命名空间中的一个 key-value 对（读→改→写） |
-| `yuque_kv_delete` | 删除命名空间中的一个 key |
-| `yuque_kv_list` | 列出 KV 知识库中所有命名空间 |
+| `yuque_kv_get` | 读取命名空间的完整 JSON key-value map（分片合并） |
+| `yuque_kv_set` | 增量设置 key-value，超 250KB 自动分片 |
+| `yuque_kv_delete` | 遍历分片查找并删除 key |
+| `yuque_kv_list` | 列出 config.json 中已配置的命名空间 |
 
-KV 存储方案：单文档 JSON map，一个 namespace 对应语雀知识库里的一篇文档（slug = namespace，body = `{"key": "value", ...}`）。
-RSS 和 crawler 的去重都依赖此域。
+KV 存储方案：增量分片，config.json 记录 `{book_id, docs:[doc_id]}`。
+单文档 body 上限 250KB，超出自动创建新分片。RSS 和 crawler 的去重都依赖此域。
 
 ## 错误处理
 
