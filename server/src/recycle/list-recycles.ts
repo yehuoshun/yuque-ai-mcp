@@ -10,7 +10,7 @@ import { webRequest, MINE_BASE } from "./common.js";
 
 export const recycleList: McpTool = {
   name: "yuque_list_recycles",
-  description: "List recycle bin items (requires cookie + ctoken)",
+  description: "List recycle bin items (requires cookie+ctoken). GET /mine/recycles. 详见 references/api/recycle_api.md",
 
   inputSchema: {
     type: "object",

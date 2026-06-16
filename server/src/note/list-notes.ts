@@ -12,7 +12,7 @@ import { formatNoteSummary } from "../common/format.js";
 
 export const noteList: McpTool = {
   name: "yuque_list_notes",
-  description: "List current user's notes",
+  description: "List current user's notes. GET /notes. 详见 references/api/note_api.md",
 
   inputSchema: {
     type: "object",

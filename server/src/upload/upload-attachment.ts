@@ -73,8 +73,7 @@ async function doUpload(
 
 export const uploadAttachment: McpTool = {
   name: "yuque_upload_attachment",
-  description:
-    "Upload a file to Yuque CDN (image ≤ 50MB, attachment/video ≤ 2GB, requires cookie + ctoken)",
+  description: "Upload a file to Yuque CDN (image≤50MB, attachment/video≤2GB, requires cookie+ctoken). POST /upload/attach. 详见 references/api/upload_api.md",
 
   inputSchema: {
     type: "object",

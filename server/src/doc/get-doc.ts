@@ -13,7 +13,7 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docGet: McpTool = {
   name: "yuque_get_doc",
-  description: "Get document detail (body/body_html/body_lake)",
+  description: "Get document detail (body/body_html/body_lake). Supports id or slug. GET /repos/docs/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",

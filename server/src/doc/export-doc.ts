@@ -24,8 +24,7 @@ import {
 
 export const docExportSingle: McpTool = {
   name: "yuque_export_doc",
-  description:
-    "Export a single document as Markdown with images/attachments downloaded. Failed downloads fall back to original CDN URLs.",
+  description: "Export a single document as Markdown with images/attachments downloaded. Failed downloads fall back to CDN URLs. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

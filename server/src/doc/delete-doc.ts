@@ -14,7 +14,7 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docDelete: McpTool = {
   name: "yuque_delete_doc",
-  description: "Delete a document (moves to recycle bin). ⚠️ Requires confirm='DELETE'",
+  description: "Delete a document (moves to recycle bin). ⚠️ Requires confirm='DELETE'. DELETE /repos/:id/docs/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",

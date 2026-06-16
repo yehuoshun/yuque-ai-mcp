@@ -13,7 +13,7 @@ import { formatGroupUser } from "../common/format.js";
 
 export const groupListUsers: McpTool = {
   name: "yuque_get_group_users",
-  description: "List group members. Page size is fixed at 100. Supports role filter (0=admin, 1=member, 2=readonly).",
+  description: "List group members (page size 100). Supports role filter (0=admin,1=member,2=readonly). GET /groups/:login/users. 详见 references/api/group_api.md",
 
   inputSchema: {
     type: "object",

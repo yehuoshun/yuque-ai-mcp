@@ -42,10 +42,7 @@ interface TocNode {
 
 export const repoExport: McpTool = {
   name: "yuque_export_repo",
-  description:
-    "Export all documents in a repository as Markdown files organized by TOC directory structure, " +
-    "with images/attachments downloaded and INDEX.md + GRAPH.md generated. " +
-    "Files are named by document title. Failed downloads fall back to original CDN URLs.",
+  description: "Export all docs in a repo as Markdown files organized by TOC dir structure, with images downloaded and INDEX.md+GRAPH.md generated. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -235,6 +232,9 @@ function buildTocDocDirMap(nodes: TocNode[]): Map<number, string> {
 
 // ─── 批量导出实现 ─────────────────────────────────────
 
+/** 并发导出数：平衡速度与内存/限流 */
+const EXPORT_CONCURRENCY = 5;
+
 interface ExportResult {
   doc_id: number;
   slug: string;
@@ -248,6 +248,10 @@ interface ExportResult {
   outboundLinks?: string[];  // 引用其他文档的链接
 }
 
+/**
+ * 并发导出文档，分批处理防止 OOM。
+ * 每批 EXPORT_CONCURRENCY 个并发，api-client 自带 429 重试兜底。
+ */
 async function exportDocs(
   allDocs: Array<{ id: number; slug: string; title: string }>,
   outputDir: string,
@@ -259,43 +263,51 @@ async function exportDocs(
   docDirMap: Map<number, string>,
 ): Promise<ExportResult[]> {
   const results: ExportResult[] = [];
+  const total = allDocs.length;
 
-  for (const docMeta of allDocs) {
-    try {
-      const docData = await apiGet(
-        `/repos/docs/${docMeta.id}`,
-        { page_size: "200", page: "1" },
-        `Export: get doc ${docMeta.id}`,
-      );
+  for (let i = 0; i < total; i += EXPORT_CONCURRENCY) {
+    const batch = allDocs.slice(i, i + EXPORT_CONCURRENCY);
 
-      if (isErrorResult(docData)) {
-        results.push({
-          doc_id: docMeta.id, slug: docMeta.slug, title: docMeta.title,
-          status: "error", file: "", dir: "", images_downloaded: 0, images_failed: 0,
-          error: "Failed to fetch doc",
-        });
-        continue;
-      }
+    const batchResults = await Promise.all(
+      batch.map(async (docMeta) => {
+        try {
+          const docData = await apiGet(
+            `/repos/docs/${docMeta.id}`,
+            { page_size: "200", page: "1" },
+            `Export: get doc ${docMeta.id}`,
+          );
 
-      const result = await exportSingleDoc(
-        docData,
-        docMeta,
-        outputDir,
-        imagesDir,
-        attachmentsDir,
-        downloadImages,
-        rawBody,
-        token,
-        docDirMap.get(docMeta.id) || "",
-      );
-      results.push(result);
-    } catch (err) {
-      results.push({
-        doc_id: docMeta.id, slug: docMeta.slug, title: docMeta.title,
-        status: "error", file: "", dir: "", images_downloaded: 0, images_failed: 0,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+          if (isErrorResult(docData)) {
+            return {
+              doc_id: docMeta.id, slug: docMeta.slug, title: docMeta.title,
+              status: "error" as const, file: "", dir: "", images_downloaded: 0, images_failed: 0,
+              error: "Failed to fetch doc",
+            };
+          }
+
+          return await exportSingleDoc(
+            docData,
+            docMeta,
+            outputDir,
+            imagesDir,
+            attachmentsDir,
+            downloadImages,
+            rawBody,
+            token,
+            docDirMap.get(docMeta.id) || "",
+          );
+        } catch (err) {
+          return {
+            doc_id: docMeta.id, slug: docMeta.slug, title: docMeta.title,
+            status: "error" as const, file: "", dir: "", images_downloaded: 0, images_failed: 0,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }),
+    );
+
+    results.push(...batchResults);
+    batchResults.length = 0; // 释放引用，防止大知识库 OOM
   }
 
   return results;

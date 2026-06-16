@@ -13,7 +13,7 @@ import { formatDocVersion, wrapResult } from "../common/format.js";
 
 export const docVersionDetail: McpTool = {
   name: "yuque_get_doc_version_detail",
-  description: "Get version detail (body/body_html/body_asl + diff)",
+  description: "Get version detail (body/body_html/body_asl + diff). GET /doc_versions/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",

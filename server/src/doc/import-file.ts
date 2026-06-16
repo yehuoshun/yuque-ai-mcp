@@ -313,10 +313,7 @@ function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
 
 export const docImportFile: McpTool = {
   name: "yuque_import_file",
-  description:
-    "Import a local Markdown/HTML file into Yuque. Three modes: (1) direct — import as-is; " +
-    "(2) upload_assets — upload local images/attachments to Yuque CDN and replace paths; " +
-    "(3) embed_assets — parse attachments (docx/xlsx/pptx/pdf) into child docs, replace refs with Yuque doc links, then import.",
+  description: "Import a local Markdown/HTML file into Yuque. 3 modes: direct / upload_assets / embed_assets. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

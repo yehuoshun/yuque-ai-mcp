@@ -13,7 +13,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoUpdate: McpTool = {
   name: "yuque_update_repo",
-  description: "Update repository info",
+  description: "Update repo name/description/slug/public. PUT /repos/:id. 详见 references/api/repo_api.md",
 
   inputSchema: {
     type: "object",

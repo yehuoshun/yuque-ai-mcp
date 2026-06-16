@@ -149,7 +149,7 @@ async function createKvMark(
 
 export const rssFetch: McpTool = {
   name: "yuque_rss_fetch",
-  description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (slug-based), and save to Yuque repo. Use yuque_rss_list_sources first to see available sources.",
+  description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (slug-based), and save to Yuque repo. Call yuque_rss_list_sources first. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

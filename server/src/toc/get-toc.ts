@@ -13,7 +13,7 @@ import { formatToc, wrapResult } from "../common/format.js";
 
 export const tocGet: McpTool = {
   name: "yuque_get_toc",
-  description: "Get repository TOC tree (flat array, navigable via uuid/parent_uuid/child_uuid)",
+  description: "Get repo TOC tree (flat array, navigable via uuid/parent_uuid/child_uuid). GET /repos/:id/toc. 详见 references/api/toc_api.md",
 
   inputSchema: {
     type: "object",

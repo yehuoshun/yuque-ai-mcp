@@ -13,7 +13,7 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 export const docUpdate: McpTool = {
   name: "yuque_update_doc",
-  description: "Update a document",
+  description: "Update a document title/body/slug/format/public. PUT /repos/:id/docs/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",

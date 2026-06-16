@@ -61,9 +61,7 @@ function diffLines(oldText: string, newText: string): DiffLine[] {
 
 export const docDiff: McpTool = {
   name: "yuque_diff_doc_versions",
-  description:
-    "Compare two document versions and show line-level diff (added/removed/unchanged). " +
-    "Pulls version bodies via API, computes diff locally, no external dependencies.",
+  description: "Compare two document versions and show line-level diff (added/removed/unchanged). Computes diff locally. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",

@@ -11,8 +11,7 @@ import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js"
 
 export const docImportUrl: McpTool = {
   name: "yuque_import_url",
-  description:
-    "Import content from a web URL into Yuque. Tool fetches the page, extracts readable content, creates document and mounts to TOC.",
+  description: "Import content from a web URL into Yuque. Fetches page, extracts readable content, creates doc. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

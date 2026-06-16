@@ -11,7 +11,7 @@ import { requiredString } from "../common/validate.js";
 
 export const boardUpdate: McpTool = {
   name: "yuque_update_board",
-  description: "Update a board resource, pass text or dsl (choose one)",
+  description: "Update a board resource (text or dsl, choose one). PUT /yfm/boards. 详见 references/api/board_api.md",
 
   inputSchema: {
     type: "object",

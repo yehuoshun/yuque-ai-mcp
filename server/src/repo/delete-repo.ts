@@ -14,7 +14,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoDelete: McpTool = {
   name: "yuque_delete_repo",
-  description: "Delete a repository (⚠️ irreversible). Requires confirm='DELETE'",
+  description: "Delete a repo (⚠️ irreversible). Requires confirm='DELETE'. DELETE /repos/:id. 详见 references/api/repo_api.md",
 
   inputSchema: {
     type: "object",

@@ -12,7 +12,7 @@ import { requiredString, check } from "../common/validate.js";
 
 export const repoBatchGet: McpTool = {
   name: "yuque_batch_get_repos",
-  description: "Batch get repository details (concurrent GET, read-only, max 20 repos)",
+  description: "Batch get repo details (concurrent GET, read-only, max 20). 详见 references/api/repo_api.md",
 
   inputSchema: {
     type: "object",

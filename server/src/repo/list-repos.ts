@@ -13,7 +13,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoList: McpTool = {
   name: "yuque_list_repos",
-  description: "List repositories for a user or group",
+  description: "List repos for a user or group. GET /users|groups/:login/repos. 详见 references/api/repo_api.md",
 
   inputSchema: {
     type: "object",

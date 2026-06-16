@@ -13,7 +13,7 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteUpdate: McpTool = {
   name: "yuque_update_note",
-  description: "Update or delete a note. ⚠️ Deleting (status=9) requires confirm='DELETE'",
+  description: "Update or delete a note. ⚠️ Deleting (status=9) requires confirm='DELETE'. PUT /notes/:id. 详见 references/api/note_api.md",
 
   inputSchema: {
     type: "object",

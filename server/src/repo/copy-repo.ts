@@ -9,6 +9,9 @@ import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
 import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
 
+/** 并发复制数：平衡速度与语雀 API 限流 */
+const COPY_CONCURRENCY = 5;
+
 interface CopyDocument {
   title: string;
   body: string;
@@ -20,8 +23,7 @@ interface CopyDocument {
 
 export const repoCopy: McpTool = {
   name: "yuque_copy_repo",
-  description:
-    "Batch copy documents to another repository. Agent provides cleaned documents array (title/body/format/paths for each). Tool creates TOC directories and copies.",
+  description: "Batch copy documents to another repo. Agent provides cleaned documents array (title/body/format/paths). Tool creates TOC dirs and copies. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -67,76 +69,89 @@ export const repoCopy: McpTool = {
       };
     }
 
+    // 预处理：追尾源链接
+    const preparedDocs = documents.map((doc) => {
+      let body = doc.body || "";
+      if (doc.source_url) {
+        body = appendSourceLink(body, doc.source_url, doc.source_title || "原文档");
+      }
+      return {
+        title: doc.title || "无标题",
+        body,
+        format: doc.format || "markdown",
+        paths: (doc.paths || []).slice(0, 5),
+      };
+    });
+
+    let totalSuccess = 0;
+    let totalFailed = 0;
     const details: Array<{
       title: string;
       paths: string[];
       results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }>;
     }> = [];
 
-    let totalSuccess = 0;
-    let totalFailed = 0;
+    // 分批并发复制
+    for (let i = 0; i < preparedDocs.length; i += COPY_CONCURRENCY) {
+      const batch = preparedDocs.slice(i, i + COPY_CONCURRENCY);
 
-    for (const doc of documents) {
-      const title = doc.title || "无标题";
-      let body = doc.body || "";
-      const format = doc.format || "markdown";
-      const paths = (doc.paths || []).slice(0, 5);
+      const batchResults = await Promise.all(
+        batch.map(async (doc) => {
+          const { title, body, format, paths } = doc;
 
-      if (paths.length === 0) {
-        details.push({ title, paths: [], results: [{ path: "", error: "paths 为空" }] });
-        totalFailed++;
-        continue;
-      }
-
-      // 追尾源链接
-      if (doc.source_url) {
-        body = appendSourceLink(body, doc.source_url, doc.source_title || "原文档");
-      }
-
-      const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
-
-      for (const path of paths) {
-        try {
-          const dirUuid = await ensureDirectoryPath(targetBookId, path);
-          if (!dirUuid) {
-            results.push({ path, error: "目录创建失败" });
-            totalFailed++;
-            continue;
+          if (paths.length === 0) {
+            return { title, paths: [] as string[], results: [{ path: "", error: "paths 为空" }] };
           }
 
-          const payload: Record<string, unknown> = { title, body, format };
-          const data = await apiPost(`/repos/${targetBookId}/docs`, payload, `Copy doc to ${path}`);
-          if (isErrorResult(data)) {
-            const errMsg = (data as { content?: Array<{ text: string }> }).content?.[0]?.text || "Unknown error";
-            results.push({ path, error: errMsg });
-            totalFailed++;
-            continue;
-          }
+          // 同一文档的多个 paths 也并发
+          const pathResults = await Promise.all(
+            paths.map(async (path): Promise<{ path: string; doc_id?: number; slug?: string; error?: string }> => {
+              try {
+                const dirUuid = await ensureDirectoryPath(targetBookId, path);
+                if (!dirUuid) {
+                  return { path, error: "目录创建失败" };
+                }
 
-          const newDoc = (data as { data?: { id: number; slug: string } }).data;
-          if (!newDoc?.id) {
-            results.push({ path, error: "文档创建返回无 ID" });
-            totalFailed++;
-            continue;
-          }
+                const payload: Record<string, unknown> = { title, body, format };
+                const data = await apiPost(`/repos/${targetBookId}/docs`, payload, `Copy doc to ${path}`);
+                if (isErrorResult(data)) {
+                  const errMsg = (data as { content?: Array<{ text: string }> }).content?.[0]?.text || "Unknown error";
+                  return { path, error: errMsg };
+                }
 
-          await apiPut(`/repos/${targetBookId}/toc`, {
-            action: "appendNode",
-            action_mode: "child",
-            type: "DOC",
-            doc_ids: [newDoc.id],
-            target_uuid: dirUuid,
-          }, `Append doc to TOC: ${path}`);
+                const newDoc = (data as { data?: { id: number; slug: string } }).data;
+                if (!newDoc?.id) {
+                  return { path, error: "文档创建返回无 ID" };
+                }
 
-          results.push({ path, doc_id: newDoc.id, slug: newDoc.slug });
-          totalSuccess++;
-        } catch (err) {
-          results.push({ path, error: err instanceof Error ? err.message : String(err) });
-          totalFailed++;
+                await apiPut(`/repos/${targetBookId}/toc`, {
+                  action: "appendNode",
+                  action_mode: "child",
+                  type: "DOC",
+                  doc_ids: [newDoc.id],
+                  target_uuid: dirUuid,
+                }, `Append doc to TOC: ${path}`);
+
+                return { path, doc_id: newDoc.id, slug: newDoc.slug };
+              } catch (err) {
+                return { path, error: err instanceof Error ? err.message : String(err) };
+              }
+            }),
+          );
+
+          return { title, paths, results: pathResults };
+        }),
+      );
+
+      for (const r of batchResults) {
+        for (const pr of r.results) {
+          if (pr.error) totalFailed++;
+          else totalSuccess++;
         }
+        details.push(r);
       }
 
-      details.push({ title, paths, results });
+      batchResults.length = 0; // 释放引用
     }
 
     const summary = {

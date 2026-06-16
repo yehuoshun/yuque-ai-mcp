@@ -13,7 +13,7 @@ import { apiPut, isErrorResult } from "../common/api-client.js";
 
 export const tocUpdate: McpTool = {
   name: "yuque_update_toc",
-  description: "Update repository TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'",
+  description: "Update repo TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'. PUT /repos/:id/toc. 详见 references/api/toc_api.md",
 
   inputSchema: {
     type: "object",

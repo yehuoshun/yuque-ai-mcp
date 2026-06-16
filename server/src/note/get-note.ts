@@ -12,7 +12,7 @@ import { formatNote, wrapResult } from "../common/format.js";
 
 export const noteGet: McpTool = {
   name: "yuque_get_note",
-  description: "Get note detail",
+  description: "Get note detail. GET /notes/:id. 详见 references/api/note_api.md",
 
   inputSchema: {
     type: "object",

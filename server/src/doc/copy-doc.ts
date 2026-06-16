@@ -14,8 +14,7 @@ import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js"
 
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",
-  description:
-    "Copy a single document to another repository. Two modes: (1) Agent provides cleaned content (title/body/format/paths) for creation; (2) Agent provides doc_id+source_book_id, tool fetches source doc and returns raw content for Agent to clean, then Agent calls mode 1. Mode 2 solves large doc (>30KB) instability through mcporter CLI.",
+  description: "Copy a single document to another repo. Mode 1: Agent provides cleaned content. Mode 2: tool fetches source for Agent to clean. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

@@ -13,7 +13,7 @@ import { formatGroupUser } from "../common/format.js";
 
 export const groupUpdateUser: McpTool = {
   name: "yuque_update_group_user",
-  description: "Change a group member role (0=admin, 1=member, 2=readonly)",
+  description: "Change a group member role (0=admin,1=member,2=readonly). PUT /groups/:login/users/:id. 详见 references/api/group_api.md",
 
   inputSchema: {
     type: "object",

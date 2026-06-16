@@ -11,7 +11,7 @@ import { requiredString } from "../common/validate.js";
 
 export const docStatistics: McpTool = {
   name: "yuque_get_doc_statistics",
-  description: "Get group document statistics",
+  description: "Get group document statistics. GET /groups/:login/statistics/docs. 详见 references/api/statistic_api.md",
 
   inputSchema: {
     type: "object",

@@ -13,7 +13,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 export const repoGet: McpTool = {
   name: "yuque_get_repo",
-  description: "Get repository detail including toc_yml (TOC tree in YAML), namespace, items_count, and full metadata.",
+  description: "Get repo detail including toc_yml (TOC tree in YAML), namespace, items_count, full metadata. GET /repos/:id. 详见 references/api/repo_api.md",
 
   inputSchema: {
     type: "object",

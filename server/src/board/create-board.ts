@@ -11,7 +11,7 @@ import { requiredString } from "../common/validate.js";
 
 export const boardCreate: McpTool = {
   name: "yuque_create_board",
-  description: "Create a board (mindmap/flowchart/architecture diagram) in a document",
+  description: "Create a board resource (mindmap/flowchart/architecture diagram) in a document. POST /yfm/boards. 详见 references/api/board_api.md",
 
   inputSchema: {
     type: "object",
