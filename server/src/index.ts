@@ -8,7 +8,7 @@ import { registerAllTools } from "./common/register-tools.js";
 async function main() {
   const server = new McpServer({
     name: "yuque-ai-mcp",
-    version: "2.3.0",
+    version: "2.4.0",
   });
 
   registerAllTools(server);

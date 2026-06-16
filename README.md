@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 54 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 58 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **54 个** |
+| 工具数量 | 19 个 | **58 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -15,7 +15,7 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，14 个域 60+ 个文件） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，15 个域 70+ 个文件） |
 | 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
 | HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
@@ -84,7 +84,8 @@ server/
 │   ├── upload/          # 文件上传（含 index.ts barrel）
 │   ├── board/           # 画板资源（含 index.ts barrel）
 │   ├── rss/             # RSS 抓取（含 index.ts barrel）
-│   └── crawler/         # 网页爬虫（含 index.ts barrel）
+│   ├── crawler/         # 网页爬虫（含 index.ts barrel）
+│   └── kv/              # KV 键值存储（含 index.ts barrel）
 │   ├── index.ts         # MCP Server 入口（stdio）
 │   └── http.ts           # HTTP Server 入口（SSE）
 ├── references/api/      # API 文档参考（12 个域）
@@ -130,7 +131,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（54 个）
+## 工具列表（58 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -249,7 +250,7 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 ```
 
 知识库标识支持三种格式：`id`（数字ID）> `book_id` > `namespace`。
-去重策略：`kv.enabled=true` 时，每次抓取后自动在 KV 库创建 slug 标记文档，后续重复文章自动跳过。
+去重策略：`kv.enabled=true` 时，使用 KV 域的单文档 JSON map 去重（一个 namespace 一篇文档，存储 `{slug: url}` 映射）。
 
 ### crawler — 网页爬虫
 | 工具 | 说明 |
@@ -274,7 +275,18 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 ```
 
 目标知识库优先级：`target_repo` 参数 → `crawler.sources.{source}` → `crawler.default_repo`。
-去重依赖 `kv.enabled=true`，slug = URL 的 md5 前 12 位。
+去重依赖 `kv.enabled=true`，使用 KV 域的单文档 JSON map 去重（namespace 默认为 source 或 'crawler'）。
+
+### kv — KV 键值存储
+| 工具 | 说明 |
+|------|------|
+| `yuque_kv_get` | 读取命名空间的完整 JSON key-value map |
+| `yuque_kv_set` | 设置命名空间中的一个 key-value 对（读→改→写） |
+| `yuque_kv_delete` | 删除命名空间中的一个 key |
+| `yuque_kv_list` | 列出 KV 知识库中所有命名空间 |
+
+KV 存储方案：单文档 JSON map，一个 namespace 对应语雀知识库里的一篇文档（slug = namespace，body = `{"key": "value", ...}`）。
+RSS 和 crawler 的去重都依赖此域。
 
 ## 错误处理
 

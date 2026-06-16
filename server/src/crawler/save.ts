@@ -1,11 +1,11 @@
 /**
  * crawler/save — 抓取 + 提取 + 写入语雀（串联工具）
  *
- * 职责：fetch → extract → 去重（KV slug）→ 创建语雀文档。
+ * 职责：fetch → extract → 去重（KV JSON map）→ 创建语雀文档。
  * 一次调用完成「爬→取→存」全流程。
  *
  * 端点到语雀：POST /repos/{book_id}/docs（创建文档）
- * 去重：复用 RSS 域的 slug 策略（URL hash），kv.enabled 控制
+ * 去重：调用 kv/common.ts 的 loadKvMap / saveKvMap，不再自己创建 KV 标记文档。
  */
 
 import { createHash } from "crypto";
@@ -13,6 +13,7 @@ import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
+import { resolveKvRepo, loadKvMap, saveKvMap } from "../kv/common.js";
 
 /** 从 RepoRef 提取知识库标识 */
 function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
@@ -31,22 +32,9 @@ function resolveRepo(source?: string, paramRepo?: string): string {
   return repoRefToString(cfg.crawler?.sources?.[source || ""]) || repoRefToString(cfg.crawler?.default_repo);
 }
 
-/** 解析 KV 去重知识库 */
-function resolveKvRepo(paramRepo?: string): string {
-  if (paramRepo) return paramRepo;
-  const cfg = loadConfig();
-  return repoRefToString(cfg.kv?.default_repo);
-}
-
 /** 生成去重 slug（URL → md5 前 12 位） */
 function buildSlug(url: string): string {
   return createHash("md5").update(url).digest("hex").slice(0, 12);
-}
-
-/** 检查 slug 是否已存在 */
-async function checkSlugExists(kvRepo: string, slug: string): Promise<boolean> {
-  const data = await apiPost("", {}, `Dedup check: ${slug}`); // placeholder, 用 apiGet
-  return false;
 }
 
 /** 从 HTML 中提取正文（仅做基础清洗，格式化交给 Agent） */
@@ -106,15 +94,16 @@ function extractContent(html: string, contentSelector?: string): { title: string
 
 export const crawlSave: McpTool = {
   name: "yuque_crawl_save",
-  description: "Fetch URL → extract content → dedup (KV slug) → save to Yuque repo. One-shot pipeline. Use yuque_crawl_fetch + yuque_crawl_extract for fine-grained control. 详见 references/api/extended_api.md",
+  description: "Fetch URL → extract content → dedup (KV JSON map) → save to Yuque repo. One-shot pipeline. Use yuque_crawl_fetch + yuque_crawl_extract for fine-grained control. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
     properties: {
       url: { type: "string", description: "Target URL to crawl and save" },
-      source: { type: "string", description: "Source key for repo routing, e.g. 'cnblogs'. Falls back to crawler.default_repo" },
+      source: { type: "string", description: "Source key for repo routing and KV namespace, e.g. 'cnblogs'. Falls back to crawler.default_repo" },
       target_repo: { type: "string", description: "Target repo ID or namespace. Optional — falls back to config.json crawler config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv config." },
+      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.default_repo." },
+      kv_namespace: { type: "string", description: "KV namespace for dedup. Defaults to source if set, otherwise 'crawler'." },
       content_selector: { type: "string", description: "CSS selector for content area, e.g. '.post-body', '#article-content'. Extracts full page if omitted." },
       title_selector: { type: "string", description: "CSS selector for title override, e.g. 'h1.title'. Uses <title> tag if omitted." },
       headers: { type: "string", description: "Custom request headers as JSON string" },
@@ -134,6 +123,7 @@ export const crawlSave: McpTool = {
     const source = args?.source as string | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
     const kvRepoParam = args?.kv_repo as string | undefined;
+    const kvNamespace = (args?.kv_namespace as string) || source || "crawler";
     const contentSelector = args?.content_selector as string | undefined;
     const titleSelector = args?.title_selector as string | undefined;
     const timeout = Math.min((args?.timeout as number) ?? 15000, 30000);
@@ -143,7 +133,7 @@ export const crawlSave: McpTool = {
     const cfg = loadConfig();
     const targetRepo = resolveRepo(source, targetRepoParam);
     const enableKv = !!(cfg.kv?.enabled);
-    const kvRepo = enableKv ? resolveKvRepo(kvRepoParam) : "";
+    const kvRepo = enableKv ? (kvRepoParam || resolveKvRepo()) : "";
 
     // 1. 抓取
     let customHeaders: Record<string, string> = {};
@@ -200,15 +190,14 @@ export const crawlSave: McpTool = {
     const { title, body } = extractContent(html, contentSelector);
     const docTitle = `${titlePrefix}${title || finalUrl}`;
 
-    // 3. 去重
+    // 3. 去重：加载 KV map 检查 slug
     const slug = buildSlug(finalUrl);
     let isDuplicate = false;
 
     if (enableKv && kvRepo && mode === "save") {
       try {
-        const { apiGet } = await import("../common/api-client.js");
-        const checkResult = await apiGet(`/repos/${kvRepo}/docs/${slug}`, undefined, `Dedup check: ${slug}`);
-        isDuplicate = !isErrorResult(checkResult);
+        const existingMap = await loadKvMap(kvRepo, kvNamespace);
+        isDuplicate = slug in existingMap;
       } catch { /* 去重检查失败不影响主流程 */ }
     }
 
@@ -295,16 +284,12 @@ export const crawlSave: McpTool = {
       } catch { /* TOC 失败不影响主流程 */ }
     }
 
-    // 7. 写 KV 标记
+    // 7. 更新 KV map（一次写入）
     if (enableKv && kvRepo) {
       try {
-        await apiPost(`/repos/${kvRepo}/docs`, {
-          title: slug,
-          slug,
-          body: finalUrl,
-          format: "markdown",
-          public: 0,
-        }, `Create KV mark: ${slug}`);
+        const existingMap = await loadKvMap(kvRepo, kvNamespace);
+        existingMap[slug] = finalUrl;
+        await saveKvMap(kvRepo, kvNamespace, existingMap);
       } catch { /* KV 标记失败不影响主流程 */ }
     }
 
@@ -319,6 +304,7 @@ export const crawlSave: McpTool = {
           doc_id: docId,
           target_repo: targetRepo,
           kv_repo: kvRepo || null,
+          kv_namespace: kvNamespace,
           body_size: body.length,
           elapsed_ms: elapsed,
         }, null, 2),

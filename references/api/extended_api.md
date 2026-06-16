@@ -17,6 +17,10 @@
 | `yuque_embed_url` | doc | 生成文档嵌入阅读器 URL |
 | `yuque_batch_get_docs` | doc | 批量获取文档详情（并发） |
 | `yuque_batch_get_repos` | repo | 批量获取知识库详情（并发） |
+| `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map |
+| `yuque_kv_set` | kv | 设置 KV 命名空间中的一个 key-value 对 |
+| `yuque_kv_delete` | kv | 删除 KV 命名空间中的一个 key |
+| `yuque_kv_list` | kv | 列出 KV 知识库中所有命名空间 |
 
 ---
 
@@ -359,3 +363,76 @@
 ## 错误处理
 
 所有扩展工具共用 `references/api/errors.md` 中的错误码体系。网络异常、Token 过期、限流等错误会以统一格式返回。
+
+---
+
+## KV 键值存储
+
+### 存储方案
+
+单文档 JSON map：一个 namespace 对应语雀知识库里的一篇文档。
+
+- 文档 slug = namespace
+- 文档 body = `{"key1": "value1", "key2": "value2", ...}`
+- 一次 get 读取全量 map，一次 set 更新全量 map
+
+### 设计优势
+
+相比旧方案（每个去重标记 = 一篇独立文档），新方案：
+- **API 调用大幅减少**：RSS 抓取 10 篇 → 去重只需 1 次 GET（读 map）+ 1 次 PUT（写 map），而非 10 次 GET + 10 次 POST
+- **KV 知识库整洁**：一个主题一篇文档，而非几百篇标记文档
+- **天然支持批量操作**：一次加载全量 map，内存中过滤，一次写回
+
+### yuque_kv_get
+
+**流程**：`GET /repos/{repo}/docs/{namespace}` → 解析 body 为 JSON
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `namespace` | string | ✅ | KV 命名空间，如 `cnblogs` |
+| `repo` | string | ❌ | KV 知识库，默认 config.json 中 kv.default_repo |
+
+**返回**：`{namespace, repo, count, data: {key: value}}`
+
+### yuque_kv_set
+
+**流程**：GET 读 map → 更新 key → PUT 写回（文档存在）或 POST 创建（文档不存在）
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `namespace` | string | ✅ | KV 命名空间 |
+| `key` | string | ✅ | 键 |
+| `value` | string | ✅ | 值 |
+| `repo` | string | ❌ | KV 知识库 |
+
+**返回**：`{namespace, key, value, action: "created"|"updated", total_keys}`
+
+### yuque_kv_delete
+
+**流程**：GET 读 map → 删除 key → PUT 写回
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `namespace` | string | ✅ | KV 命名空间 |
+| `key` | string | ✅ | 要删除的键 |
+| `repo` | string | ❌ | KV 知识库 |
+
+**返回**：`{namespace, key, action: "deleted"|"not_found", total_keys}`
+
+### yuque_kv_list
+
+**流程**：`GET /repos/{repo}/docs` → 列出所有文档（每个文档即一个 namespace）
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `repo` | string | ❌ | KV 知识库 |
+
+**返回**：`{repo, count, namespaces: [{namespace, title, updated_at}]}`

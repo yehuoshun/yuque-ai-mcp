@@ -1,8 +1,8 @@
 /**
  * rss/fetch-feed — 通用 RSS 抓取 → 解析 → 去重（语雀 KV）→ 写入语雀
  *
- * 端点到语雀：无（工具内部调用语雀 API 创建文档）
- * 职责：抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入目标知识库
+ * 职责：抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入目标知识库。
+ * 去重：调用 kv/common.ts 的 loadKvMap / saveKvMap，不再自己创建 KV 标记文档。
  */
 
 import type { McpTool } from "../common/types.js";
@@ -11,7 +11,8 @@ import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
-import { buildSlug, checkDuplicates } from "./dedup.js";
+import { buildSlug } from "./dedup.js";
+import { resolveKvRepo, loadKvMap, saveKvMap } from "../kv/common.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -55,16 +56,6 @@ function resolveRssRepo(source: string, paramRepo?: string): string {
   return repoRefToString(cfg.rss?.sources?.[source]) || repoRefToString(cfg.rss?.default_repo);
 }
 
-/**
- * 解析 KV 去重知识库
- * 优先级：tool 参数 → config.kv.repo
- */
-function resolveKvRepo(paramRepo?: string): string {
-  if (paramRepo) return paramRepo;
-  const cfg = loadConfig();
-  return repoRefToString(cfg.kv?.default_repo);
-}
-
 /** 将 FeedEntry 转为语雀文档 Markdown body */
 function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
   const lines: string[] = [];
@@ -84,7 +75,7 @@ function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
   return lines.join("\n");
 }
 
-/** 创建一篇语雀文档（指定 slug 用于 KV 去重） */
+/** 创建一篇语雀文档 */
 async function createDoc(
   bookId: string,
   title: string,
@@ -123,27 +114,9 @@ async function createDoc(
   return { ok: true, id: docId };
 }
 
-/** 在 KV 库创建去重标记文档（轻量文档，仅存链接） */
-async function createKvMark(
-  kvRepo: string,
-  slug: string,
-  link: string,
-  title: string,
-): Promise<void> {
-  try {
-    await apiPost(`/repos/${kvRepo}/docs`, {
-      title: slug,
-      slug,
-      body: link,
-      format: "markdown",
-      public: 0,
-    }, `Create KV mark: ${slug}`);
-  } catch { /* KV 标记失败不影响主流程 */ }
-}
-
 export const rssFetch: McpTool = {
   name: "yuque_rss_fetch",
-  description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (slug-based), and save to Yuque repo. Call yuque_rss_list_sources first. 详见 references/api/extended_api.md",
+  description: "Fetch RSS/Atom feed, parse entries, deduplicate via Yuque KV (single-doc JSON map), and save to Yuque repo. Call yuque_rss_list_sources first. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -152,7 +125,8 @@ export const rssFetch: McpTool = {
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "string", description: "Template params for feeds with url_template. JSON string, e.g. '{\"username\":\"hsewr333\"}'" },
       target_repo: { type: "string", description: "RSS target repo ID or namespace. Optional — falls back to config.json rss config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv config." },
+      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.default_repo." },
+      kv_namespace: { type: "string", description: "KV namespace for dedup, e.g. 'cnblogs'. Defaults to source key." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'dry_run' (preview only, no save)" },
       title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[博客园] '" },
@@ -162,7 +136,6 @@ export const rssFetch: McpTool = {
   },
 
   async handler(args) {
-    // @validate
     const __v = check(
       requiredString(args?.source, "source"),
       requiredString(args?.feed_type, "feed_type"),
@@ -178,15 +151,15 @@ export const rssFetch: McpTool = {
     feedParams = feedParams as Record<string, unknown> | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
     const kvRepoParam = args?.kv_repo as string | undefined;
+    const kvNamespace = (args?.kv_namespace as string) || source;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
     const mode = (args?.mode as string) ?? "append";
     const titlePrefix = (args?.title_prefix as string) ?? "";
 
-    // 解析目标知识库
     const targetRepo = resolveRssRepo(source, targetRepoParam);
     const cfg = loadConfig();
     const enableKv = !!(cfg.kv?.enabled);
-    const kvRepo = enableKv ? resolveKvRepo(kvRepoParam) : "";
+    const kvRepo = enableKv ? (kvRepoParam || resolveKvRepo()) : "";
 
     // 1. 查数据源配置
     const src = RSS_SOURCES[source];
@@ -255,19 +228,26 @@ export const rssFetch: McpTool = {
     const parsed = parseFeed(xml);
     const entries = parsed.entries.slice(0, maxItems);
 
-    // 5. 去重（dry_run 或 enable_kv=false 跳过）
+    // 5. 去重：加载 KV map，过滤已存在的 slug
     let newEntries: Array<FeedEntry & { slug: string }> = [];
     let skippedCount = 0;
+    let existingMap: Record<string, string> = {};
 
-    if (mode === "dry_run" || !enableKv) {
+    if (enableKv && kvRepo && mode !== "dry_run") {
+      existingMap = await loadKvMap(kvRepo, kvNamespace);
+      for (const entry of entries) {
+        const slug = buildSlug(source, entry.link);
+        if (slug in existingMap) {
+          skippedCount++;
+        } else {
+          newEntries.push({ ...entry, slug });
+        }
+      }
+    } else {
       newEntries = entries.map((e) => ({
         ...e,
         slug: buildSlug(source, e.link),
       }));
-    } else {
-      const result = await checkDuplicates(kvRepo, source, entries);
-      newEntries = result.newEntries;
-      skippedCount = result.skippedCount;
     }
 
     // 6. dry_run 模式：只预览不写入
@@ -300,8 +280,9 @@ export const rssFetch: McpTool = {
       const body = entryToMarkdown(entry, src.name);
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
-      if (result.ok && enableKv && kvRepo) {
-        await createKvMark(kvRepo, entry.slug, entry.link, entry.title);
+      if (result.ok) {
+        // 写入成功后更新 KV map
+        existingMap[entry.slug] = entry.link;
       }
       results.push({
         title: entry.title,
@@ -313,6 +294,11 @@ export const rssFetch: McpTool = {
       });
     }
 
+    // 8. 批量保存 KV map（所有新条目写完后一次更新）
+    if (enableKv && kvRepo && newEntries.length > 0) {
+      await saveKvMap(kvRepo, kvNamespace, existingMap);
+    }
+
     return {
       content: [{
         type: "text" as const,
@@ -321,10 +307,11 @@ export const rssFetch: McpTool = {
           feed_url: feedUrl,
           target_repo: targetRepo,
           kv_repo: kvRepo,
+          kv_namespace: kvNamespace,
           fetched: entries.length,
           new: newEntries.length,
           skipped: skippedCount,
-          dedup: { strategy: enableKv ? "yuque-kv-slug" : "disabled", kv_repo: kvRepo || null },
+          dedup: { strategy: enableKv ? "yuque-kv-json-map" : "disabled", kv_repo: kvRepo || null },
           results,
         }, null, 2),
       }],
