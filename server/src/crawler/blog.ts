@@ -46,18 +46,29 @@ function htmlToLake(html: string, sourceUrl: string, title: string): string {
   function convert(node: cheerio.Cheerio<any>): string {
     let result = "";
 
-    node.contents().each((_, child) => {
+    const children = node.contents().toArray();
+    let i = 0;
+
+    while (i < children.length) {
+      const child = children[i];
+
       if (child.type === "text") {
-        const text = $(child).text();
+        // 合并相邻文本节点
+        let text = "";
+        while (i < children.length && children[i].type === "text") {
+          text += $(children[i]).text();
+          i++;
+        }
         if (text.trim()) {
           result += `<span class="ne-text">${escapeLake(text)}</span>`;
         } else {
           result += text;
         }
-        return;
+        continue;
       }
 
-      if (child.type !== "tag") return;
+      i++;
+      if (child.type !== "tag") continue;
 
       const tag = child.tagName?.toLowerCase();
       const $el = $(child);
@@ -109,8 +120,6 @@ function htmlToLake(html: string, sourceUrl: string, title: string): string {
         }
 
         case "code": {
-          const parentTag = $el.parent().get(0)?.tagName?.toLowerCase();
-          if (parentTag === "pre") return; // 由 pre 统一处理
           result += `<code>${escapeLake($el.text())}</code>`;
           break;
         }
@@ -176,7 +185,7 @@ function htmlToLake(html: string, sourceUrl: string, title: string): string {
         default:
           result += convert($el);
       }
-    });
+    }
 
     return result;
   }
