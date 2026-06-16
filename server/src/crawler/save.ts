@@ -49,6 +49,50 @@ async function checkSlugExists(kvRepo: string, slug: string): Promise<boolean> {
   return false;
 }
 
+/** 去除 HTML 标签 */
+function stripTags(html: string): string {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
+
+/** 解码 HTML 实体 */
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+/** HTML 表格 → Markdown 表格 */
+function htmlTableToMd(tableHtml: string): string {
+  const rows: string[][] = [];
+  const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let trMatch: RegExpExecArray | null;
+  while ((trMatch = trRe.exec(tableHtml)) !== null) {
+    const cells: string[] = [];
+    const tdRe = /<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi;
+    let tdMatch: RegExpExecArray | null;
+    while ((tdMatch = tdRe.exec(trMatch[1])) !== null) {
+      cells.push(stripTags(tdMatch[1]));
+    }
+    if (cells.length > 0) rows.push(cells);
+  }
+  if (rows.length === 0) return "";
+  const colCount = Math.max(...rows.map(r => r.length));
+  const padRow = (r: string[]) => r.concat(Array(colCount - r.length).fill(""));
+  const header = padRow(rows[0]);
+  const sep = header.map(() => "---");
+  const body = rows.slice(1).map(padRow);
+  const lines = [
+    "|" + header.join("|") + "|",
+    "|" + sep.join("|") + "|",
+    ...body.map(r => "|" + r.join("|") + "|"),
+  ];
+  return "\n" + lines.join("\n") + "\n";
+}
+
 /** 从 HTML 中提取正文（简易 Readability） */
 function extractContent(html: string, contentSelector?: string): { title: string; body: string } {
   // 提取标题
@@ -95,25 +139,60 @@ function extractContent(html: string, contentSelector?: string): { title: string
     }
   }
 
-  // 去除 script/style 标签
-  bodyHtml = bodyHtml
+  // 转 Markdown（完整版：处理标题、列表、表格、引用、代码块、链接、图片等）
+  let body = bodyHtml
+    // 去除 script/style/noscript
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
-
-  // 转 Markdown 风格（简易版）
-  let body = bodyHtml
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
+    // 标题
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_, t) => `\n# ${stripTags(t)}\n`)
+    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, t) => `\n## ${stripTags(t)}\n`)
+    .replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_, t) => `\n### ${stripTags(t)}\n`)
+    .replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_, t) => `\n#### ${stripTags(t)}\n`)
+    .replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, (_, t) => `\n##### ${stripTags(t)}\n`)
+    .replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, (_, t) => `\n###### ${stripTags(t)}\n`)
+    // 引用
+    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_, t) => `\n> ${stripTags(t).replace(/\n/g, '\n> ')}\n`)
+    // 代码块
+    .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, (_, t) => `\n\`\`\`\n${decodeEntities(t)}\n\`\`\`\n`)
+    .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, t) => `\`${decodeEntities(t)}\``)
+    // 表格 → Markdown 表格
+    .replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (_, t) => htmlTableToMd(t))
+    // 无序列表
+    .replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_ul: string, t: string) => t.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li: string, li: string) => `- ${stripTags(li)}\n`))
+    // 有序列表
+    .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_ol: string, t: string) => {
+      let idx = 1;
+      return t.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li: string, li: string) => `${idx++}. ${stripTags(li)}\n`);
+    })
+    // 图片
+    .replace(/<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*>/gi, (_, src, alt) => `![${alt}](${src})`)
+    .replace(/<img[^>]*alt="([^"]*)"[^>]*src="([^"]+)"[^>]*>/gi, (_, alt, src) => `![${alt}](${src})`)
+    .replace(/<img[^>]*src="([^"]+)"[^>]*>/gi, (_, src) => `![](${src})`)
+    // 链接
+    .replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => `[${stripTags(text)}](${href})`)
+    // 粗体/斜体
+    .replace(/<(strong|b)[^>]*>([\s\S]*?)<\/(strong|b)>/gi, (_, __, t) => `**${stripTags(t)}**`)
+    .replace(/<(em|i)[^>]*>([\s\S]*?)<\/(em|i)>/gi, (_, __, t) => `*${stripTags(t)}*`)
+    // 删除线
+    .replace(/<(del|s|strike)[^>]*>([\s\S]*?)<\/(del|s|strike)>/gi, (_, __, t) => `~~${stripTags(t)}~~`)
+    // 段落
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_, t) => `\n${stripTags(t)}\n`)
+    // 换行
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/h[1-6]>/gi, "\n\n")
-    .replace(/<\/li>/gi, "\n")
+    // 水平线
+    .replace(/<hr\s*\/?>/gi, "\n---\n")
+    // 剩余标签去除
     .replace(/<[^>]*>/g, "")
+    // 实体解码
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
+    // 清理多余空行
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
