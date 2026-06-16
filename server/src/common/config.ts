@@ -22,10 +22,14 @@ interface RssConfig {
   sources?: Record<string, RepoRef>;
 }
 
+interface KvNamespace {
+  book_id: number;
+  docs: number[];
+}
+
 interface KvConfig {
   enabled: boolean;
-  default_repo?: RepoRef;
-  namespaces?: Record<string, string[]>;
+  namespaces?: Record<string, KvNamespace>;
 }
 
 interface CrawlerConfig {

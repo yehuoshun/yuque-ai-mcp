@@ -12,7 +12,7 @@ import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug } from "./dedup.js";
-import { resolveKvRepo, loadKvMap, kvIncrementalSet } from "../kv/common.js";
+import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -159,7 +159,6 @@ export const rssFetch: McpTool = {
     const targetRepo = resolveRssRepo(source, targetRepoParam);
     const cfg = loadConfig();
     const enableKv = !!(cfg.kv?.enabled);
-    const kvRepo = enableKv ? (kvRepoParam || resolveKvRepo()) : "";
 
     // 1. 查数据源配置
     const src = RSS_SOURCES[source];
@@ -233,8 +232,8 @@ export const rssFetch: McpTool = {
     let skippedCount = 0;
     let existingMap: Record<string, string> = {};
 
-    if (enableKv && kvRepo && mode !== "dry_run") {
-      existingMap = await loadKvMap(kvRepo, kvNamespace);
+    if (enableKv && mode !== "dry_run") {
+      existingMap = await loadKvMap(kvNamespace);
       for (const entry of entries) {
         const slug = buildSlug(source, entry.link);
         if (slug in existingMap) {
@@ -280,9 +279,9 @@ export const rssFetch: McpTool = {
       const body = entryToMarkdown(entry, src.name);
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
-      if (result.ok && enableKv && kvRepo) {
+      if (result.ok && enableKv) {
         // 增量写入 KV 标记
-        await kvIncrementalSet(kvRepo, kvNamespace, entry.slug, entry.link);
+        await kvIncrementalSet(kvNamespace, entry.slug, entry.link);
       }
       results.push({
         title: entry.title,
@@ -301,12 +300,11 @@ export const rssFetch: McpTool = {
           source: `${src.name} / ${feed.label}`,
           feed_url: feedUrl,
           target_repo: targetRepo,
-          kv_repo: kvRepo,
           kv_namespace: kvNamespace,
           fetched: entries.length,
           new: newEntries.length,
           skipped: skippedCount,
-          dedup: { strategy: enableKv ? "yuque-kv-json-map" : "disabled", kv_repo: kvRepo || null },
+          dedup: { strategy: enableKv ? "yuque-kv-json-map" : "disabled" },
           results,
         }, null, 2),
       }],

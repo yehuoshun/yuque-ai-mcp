@@ -13,7 +13,7 @@ import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { resolveKvRepo, loadKvMap, kvIncrementalSet } from "../kv/common.js";
+import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
 
 /** 从 RepoRef 提取知识库标识 */
 function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
@@ -133,7 +133,6 @@ export const crawlSave: McpTool = {
     const cfg = loadConfig();
     const targetRepo = resolveRepo(source, targetRepoParam);
     const enableKv = !!(cfg.kv?.enabled);
-    const kvRepo = enableKv ? (kvRepoParam || resolveKvRepo()) : "";
 
     // 1. 抓取
     let customHeaders: Record<string, string> = {};
@@ -194,9 +193,9 @@ export const crawlSave: McpTool = {
     const slug = buildSlug(finalUrl);
     let isDuplicate = false;
 
-    if (enableKv && kvRepo && mode === "save") {
+    if (enableKv && mode === "save") {
       try {
-        const existingMap = await loadKvMap(kvRepo, kvNamespace);
+        const existingMap = await loadKvMap(kvNamespace);
         isDuplicate = slug in existingMap;
       } catch { /* 去重检查失败不影响主流程 */ }
     }
@@ -285,9 +284,9 @@ export const crawlSave: McpTool = {
     }
 
     // 7. 增量写入 KV 标记
-    if (enableKv && kvRepo) {
+    if (enableKv) {
       try {
-        await kvIncrementalSet(kvRepo, kvNamespace, slug, finalUrl);
+        await kvIncrementalSet(kvNamespace, slug, finalUrl);
       } catch { /* KV 标记失败不影响主流程 */ }
     }
 
@@ -301,7 +300,6 @@ export const crawlSave: McpTool = {
           slug,
           doc_id: docId,
           target_repo: targetRepo,
-          kv_repo: kvRepo || null,
           kv_namespace: kvNamespace,
           body_size: body.length,
           elapsed_ms: elapsed,

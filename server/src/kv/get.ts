@@ -1,12 +1,13 @@
 /**
  * kv/get — 读取 namespace 的完整 JSON map
  *
- * 端点到语雀：GET /repos/{repo}/docs/{namespace}
+ * 端点到语雀：GET /repos/{book_id}/docs/{doc_id}（逐个分片）
  */
 
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
-import { resolveKvRepo, loadKvMap } from "./common.js";
+import { loadConfig } from "../common/config.js";
+import { loadKvMap } from "./common.js";
 
 export const kvGet: McpTool = {
   name: "yuque_kv_get",
@@ -15,8 +16,7 @@ export const kvGet: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs', 'weibo'. One namespace = one Yuque doc." },
-      repo: { type: "string", description: "KV repo ID or namespace. Optional — falls back to config.json kv.default_repo." },
+      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs', 'weibo'." },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
     required: ["namespace"],
@@ -27,26 +27,27 @@ export const kvGet: McpTool = {
     if (__v) return __v;
 
     const namespace = args?.namespace as string;
-    const repo = (args?.repo as string) || resolveKvRepo();
+    const ns = loadConfig().kv?.namespaces?.[namespace];
 
-    if (!repo) {
+    if (!ns) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "NO_KV_REPO",
-          message: "未配置 KV 知识库，请在 config.json 中设置 kv.default_repo 或传 repo 参数",
+          error: "NAMESPACE_NOT_FOUND",
+          message: `namespace '${namespace}' 未配置，请先在 config.json 中设置 kv.namespaces`,
         }, null, 2) }],
         isError: true,
       };
     }
 
-    const map = await loadKvMap(repo, namespace);
+    const map = await loadKvMap(namespace);
 
     return {
       content: [{
         type: "text" as const,
         text: JSON.stringify({
           namespace,
-          repo,
+          book_id: ns.book_id,
+          shards: ns.docs.length,
           count: Object.keys(map).length,
           data: map,
         }, null, 2),
