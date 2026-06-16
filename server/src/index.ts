@@ -8,14 +8,14 @@ import { registerAllTools } from "./common/register-tools.js";
 async function main() {
   const server = new McpServer({
     name: "yuque-ai-mcp",
-    version: "2.2.0",
+    version: "2.3.0",
   });
 
   registerAllTools(server);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("yuque-ai-mcp v2.2.0 已启动");
+  console.error("yuque-ai-mcp v2.3.0 已启动");
 }
 
 main().catch((err) => {
