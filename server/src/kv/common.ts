@@ -9,8 +9,8 @@
  *   - 写：PUT /repos/{repo}/docs/{doc_id}（更新已有文档）
  *   - 创建：POST /repos/{repo}/docs（首次创建）
  *
- * 大小限制：单文档 body 上限 250KB（约 5000 条记录）。
- * 实测数据：5000 条/232KB 读 2s，10000 条/466KB 读 5.7s，20000 条/955KB 读 21.8s。
+ * 大小限制：单文档 body 上限 250KB（条数取决于 key/value 长度）。
+ * 实测数据：232KB 读 2s，466KB 读 5.7s，955KB 读 21.8s。
  * 超过上限自动分片：namespace → namespace-1, namespace-2, ...
  */
 
