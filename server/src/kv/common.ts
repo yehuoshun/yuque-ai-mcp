@@ -4,24 +4,19 @@
  * 方案：单文档 JSON map，一个 namespace 对应语雀知识库里的一篇文档。
  * 文档 slug = namespace，body = JSON.stringify({key: value, ...})
  *
- * API 调用：
- *   - 读：GET /repos/{repo}/docs/{namespace} → 解析 body 为 JSON
- *   - 写：PUT /repos/{repo}/docs/{doc_id}（更新已有文档）
- *   - 创建：POST /repos/{repo}/docs（首次创建）
+ * 分片：单文档 body 上限 250KB，超出自动创建新分片。
+ * 分片记录在 config.json 的 kv.namespaces 中：
+ *   { "cnblogs": ["cnblogs", "cnblogs-2", "cnblogs-3"] }
  *
- * 大小限制：单文档 body 上限 250KB（条数取决于 key/value 长度）。
- * 实测数据：232KB 读 2s，466KB 读 5.7s，955KB 读 21.8s。
- * 超过上限自动分片：namespace → namespace-1, namespace-2, ...
+ * set 流程：读最后一个分片 → 判断大小 → PUT 更新或 POST 创建新分片 → 更新 config
+ * get 流程：config 里取分片数组 → 逐个读 → 合并返回
  */
 
-import { loadConfig } from "../common/config.js";
+import { loadConfig, saveConfig } from "../common/config.js";
 import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 
-/** 单文档 body 大小上限（字节），约 5000 条记录 */
+/** 单文档 body 大小上限（字节） */
 const MAX_BODY_SIZE = 250 * 1024; // 250KB
-
-/** 单个 namespace 最大分片数 */
-const MAX_SHARDS = 100;
 
 /** 从 RepoRef 提取知识库标识 */
 function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
@@ -38,186 +33,201 @@ export function resolveKvRepo(): string {
   return repoRefToString(cfg.kv?.default_repo);
 }
 
-/** KV 文档元信息 */
-interface KvDocMeta {
-  id: number;
-  slug: string;
+/** 获取 namespace 的分片数组，不存在返回空数组 */
+function getShards(namespace: string): string[] {
+  const cfg = loadConfig();
+  return cfg.kv?.namespaces?.[namespace] || [];
+}
+
+/** 更新 namespace 的分片数组并持久化 */
+function setShards(namespace: string, shards: string[]): void {
+  const cfg = loadConfig();
+  if (!cfg.kv) cfg.kv = { enabled: true };
+  if (!cfg.kv.namespaces) cfg.kv.namespaces = {};
+  cfg.kv.namespaces[namespace] = shards;
+  saveConfig();
 }
 
 /**
- * 查找 namespace 对应的文档
- * GET /repos/{repo}/docs/{namespace}
- * 返回文档 id + slug，不存在返回 null
+ * 计算新增一个 key-value 后 body 的预估大小
  */
-async function findKvDoc(repo: string, namespace: string): Promise<KvDocMeta | null> {
-  const data = await apiGet(`/repos/${repo}/docs/${namespace}`, undefined, `KV find: ${namespace}`);
-  if (isErrorResult(data)) return null;
-  const doc = (data as { data?: { id: number; slug: string } })?.data;
-  if (!doc) return null;
-  return { id: doc.id, slug: doc.slug };
-}
-
-/**
- * 将 map 按大小拆分为多个分片
- * 每个分片 body 不超过 MAX_BODY_SIZE
- */
-function splitMap(map: Record<string, string>): Record<string, string>[] {
-  const shards: Record<string, string>[] = [];
-  let current: Record<string, string> = {};
-  let currentSize = 2; // "{}"
-
-  for (const [key, value] of Object.entries(map)) {
-    const entry = JSON.stringify({ [key]: value });
-    const entrySize = Buffer.byteLength(entry, "utf-8") - 2; // 去掉外层 {}
-    const comma = currentSize > 2 ? 1 : 0; // 逗号
-
-    if (currentSize + comma + entrySize > MAX_BODY_SIZE && Object.keys(current).length > 0) {
-      shards.push(current);
-      current = {};
-      currentSize = 2;
-    }
-
-    current[key] = value;
-    currentSize += comma + entrySize;
-  }
-
-  if (Object.keys(current).length > 0) {
-    shards.push(current);
-  }
-
-  return shards;
-}
-
-/** 生成分片 namespace */
-function shardNamespace(namespace: string, index: number): string {
-  return `${namespace}-${index}`;
-}
-
-/**
- * 写入单个分片文档
- */
-async function writeShard(
-  repo: string,
-  ns: string,
-  map: Record<string, string>,
-): Promise<{ ok: boolean; error?: string }> {
-  const body = JSON.stringify(map, null, 2);
-  const doc = await findKvDoc(repo, ns);
-
-  if (doc) {
-    const result = await apiPut(
-      `/repos/${repo}/docs/${doc.id}`,
-      { title: ns, body, slug: ns, format: "markdown", public: 0 },
-      `KV update: ${ns}`,
-    );
-    if (isErrorResult(result)) {
-      return { ok: false, error: JSON.stringify(result) };
-    }
-    return { ok: true };
-  }
-
-  const result = await apiPost(
-    `/repos/${repo}/docs`,
-    { title: ns, body, slug: ns, format: "markdown", public: 0 },
-    `KV create: ${ns}`,
-  );
-  if (isErrorResult(result)) {
-    return { ok: false, error: JSON.stringify(result) };
-  }
-  return { ok: true };
-}
-
-/**
- * 保存 JSON map 到 namespace（自动分片）
- *
- * 如果 map 总大小超过 MAX_BODY_SIZE（250KB），自动拆分为多个分片文档：
- *   namespace-1, namespace-2, ...
- *
- * 注意：保存时会先清理旧分片（namespace-*），再写入新分片。
- */
-export async function saveKvMap(
-  repo: string,
-  namespace: string,
-  map: Record<string, string>,
-): Promise<{ ok: boolean; error?: string; shards?: number }> {
-  const shards = splitMap(map);
-
-  if (shards.length > MAX_SHARDS) {
-    return {
-      ok: false,
-      error: `KV map 过大：${shards.length} 个分片，超过上限 ${MAX_SHARDS}。请清理过期数据。`,
-    };
-  }
-
-  // 清理旧分片（namespace-N 形式）
-  for (let i = 1; i <= MAX_SHARDS; i++) {
-    const oldNs = shardNamespace(namespace, i);
-    const oldDoc = await findKvDoc(repo, oldNs);
-    if (!oldDoc) break; // 没有更多旧分片
-    // 如果这个分片号在新分片范围内，跳过（会被覆盖）
-    if (i <= shards.length) continue;
-    // 删除多余旧分片
-    try {
-      const { apiDelete } = await import("../common/api-client.js");
-      await apiDelete(`/repos/${repo}/docs/${oldDoc.id}`, `KV delete shard: ${oldNs}`);
-    } catch { /* 删除失败不影响主流程 */ }
-  }
-
-  // 写入所有分片
-  const errors: string[] = [];
-  for (let i = 0; i < shards.length; i++) {
-    const ns = shardNamespace(namespace, i + 1);
-    const result = await writeShard(repo, ns, shards[i]);
-    if (!result.ok) {
-      errors.push(`分片 ${ns}: ${result.error}`);
-    }
-  }
-
-  if (errors.length > 0) {
-    return { ok: false, error: errors.join("; "), shards: shards.length };
-  }
-
-  return { ok: true, shards: shards.length };
+function estimateNewSize(currentBody: string, key: string, value: string): number {
+  // body 是 JSON.stringify(map)，末尾是 "}"，新 entry 插入到最后一个 "}" 之前
+  const entry = JSON.stringify({ [key]: value });
+  // 去掉外层 {}，保留内部 "key":"value"
+  const entryInner = entry.slice(1, -1);
+  const comma = currentBody.length > 2 ? 1 : 0; // 非空 map 需要逗号
+  return Buffer.byteLength(currentBody, "utf-8") + comma + Buffer.byteLength(entryInner, "utf-8");
 }
 
 /**
  * 读取 namespace 的所有分片，合并为完整 JSON map
- * 返回 {key: value} 对象，不存在返回 {}
  */
 export async function loadKvMap(repo: string, namespace: string): Promise<Record<string, string>> {
-  const result: Record<string, string> = {};
-
-  // 先尝试读单个文档（兼容旧数据，无分片）
-  const singleDoc = await findKvDoc(repo, namespace);
-  if (singleDoc) {
-    const data = await apiGet(`/repos/${repo}/docs/${singleDoc.slug}?raw=1`, undefined, `KV load: ${namespace}`);
-    if (!isErrorResult(data)) {
-      const body = (data as { data?: { body?: string } })?.data?.body;
-      if (body) {
-        try {
-          Object.assign(result, JSON.parse(body));
-        } catch { /* ignore */ }
-      }
-    }
-    return result;
+  const shards = getShards(namespace);
+  // 没有分片记录 → 尝试旧单文档兼容
+  if (shards.length === 0) {
+    const data = await apiGet(`/repos/${repo}/docs/${namespace}?raw=1`, undefined, `KV load: ${namespace}`);
+    if (isErrorResult(data)) return {};
+    const body = (data as { data?: { body?: string } })?.data?.body;
+    if (!body) return {};
+    try { return JSON.parse(body); } catch { return {}; }
   }
 
-  // 尝试读分片 namespace-1, namespace-2, ...
-  for (let i = 1; i <= MAX_SHARDS; i++) {
-    const ns = shardNamespace(namespace, i);
-    const doc = await findKvDoc(repo, ns);
-    if (!doc) break; // 没有更多分片
-
-    const data = await apiGet(`/repos/${repo}/docs/${doc.slug}?raw=1`, undefined, `KV load: ${ns}`);
+  // 按分片数组逐个读
+  const result: Record<string, string> = {};
+  for (const ns of shards) {
+    const data = await apiGet(`/repos/${repo}/docs/${ns}?raw=1`, undefined, `KV load: ${ns}`);
     if (isErrorResult(data)) continue;
-
     const body = (data as { data?: { body?: string } })?.data?.body;
     if (!body) continue;
+    try { Object.assign(result, JSON.parse(body)); } catch { /* ignore */ }
+  }
+  return result;
+}
 
-    try {
-      Object.assign(result, JSON.parse(body));
-    } catch { /* ignore */ }
+/**
+ * 增量 set：在 namespace 中设置一个 key-value
+ *
+ * 流程：
+ * 1. 读 config 获取分片数组
+ * 2. 读最后一个分片文档（获取 body + doc_id）
+ * 3. 预估新增后大小 → 没超就 PUT 更新，超了就 POST 创建新分片
+ * 4. 更新 config 分片数组（新分片 push）
+ */
+export async function kvIncrementalSet(
+  repo: string,
+  namespace: string,
+  key: string,
+  value: string,
+): Promise<{ ok: boolean; error?: string; shards?: number }> {
+  const shards = getShards(namespace);
+  const entryJson = JSON.stringify({ [key]: value });
+
+  // 没有分片 → 首次创建
+  if (shards.length === 0) {
+    const body = entryJson;
+    const newNs = namespace;
+    const result = await apiPost(
+      `/repos/${repo}/docs`,
+      { title: newNs, body, slug: newNs, format: "markdown", public: 0 },
+      `KV create: ${newNs}`,
+    );
+    if (isErrorResult(result)) {
+      return { ok: false, error: JSON.stringify(result) };
+    }
+    setShards(namespace, [newNs]);
+    return { ok: true, shards: 1 };
   }
 
-  return result;
+  // 读最后一个分片
+  const lastNs = shards[shards.length - 1];
+  const data = await apiGet(`/repos/${repo}/docs/${lastNs}?raw=1`, undefined, `KV load: ${lastNs}`);
+  if (isErrorResult(data)) {
+    return { ok: false, error: `读分片 ${lastNs} 失败` };
+  }
+
+  const doc = (data as { data?: { id: number; body?: string } })?.data;
+  if (!doc) {
+    return { ok: false, error: `分片 ${lastNs} 数据为空` };
+  }
+
+  const currentBody = doc.body || "{}";
+  let currentMap: Record<string, string>;
+  try {
+    currentMap = JSON.parse(currentBody);
+  } catch {
+    currentMap = {};
+  }
+
+  // key 已存在 → 更新 value
+  currentMap[key] = value;
+  const newBody = JSON.stringify(currentMap, null, 2);
+
+  // 判断大小
+  if (Buffer.byteLength(newBody, "utf-8") <= MAX_BODY_SIZE) {
+    // 没超 → PUT 更新当前分片
+    const result = await apiPut(
+      `/repos/${repo}/docs/${doc.id}`,
+      { title: lastNs, body: newBody, slug: lastNs, format: "markdown", public: 0 },
+      `KV update: ${lastNs}`,
+    );
+    if (isErrorResult(result)) {
+      return { ok: false, error: JSON.stringify(result) };
+    }
+    return { ok: true, shards: shards.length };
+  }
+
+  // 超了 → 回退当前分片（去掉刚加的 key），创建新分片
+  delete currentMap[key];
+  const oldBody = JSON.stringify(currentMap, null, 2);
+
+  // PUT 回退当前分片
+  await apiPut(
+    `/repos/${repo}/docs/${doc.id}`,
+    { title: lastNs, body: oldBody, slug: lastNs, format: "markdown", public: 0 },
+    `KV rollback: ${lastNs}`,
+  );
+
+  // POST 创建新分片
+  const newNs = `${namespace}-${shards.length + 1}`;
+  const result = await apiPost(
+    `/repos/${repo}/docs`,
+    { title: newNs, body: entryJson, slug: newNs, format: "markdown", public: 0 },
+    `KV create shard: ${newNs}`,
+  );
+  if (isErrorResult(result)) {
+    return { ok: false, error: JSON.stringify(result) };
+  }
+
+  shards.push(newNs);
+  setShards(namespace, shards);
+  return { ok: true, shards: shards.length };
+}
+
+/**
+ * 增量 delete：从 namespace 中删除一个 key
+ *
+ * 流程：
+ * 1. 遍历所有分片找到 key 所在分片
+ * 2. 从 map 中删除 key → PUT 更新该分片
+ */
+export async function kvIncrementalDelete(
+  repo: string,
+  namespace: string,
+  key: string,
+): Promise<{ ok: boolean; error?: string; shards?: number }> {
+  const shards = getShards(namespace);
+  if (shards.length === 0) {
+    return { ok: false, error: `namespace '${namespace}' 不存在` };
+  }
+
+  for (const ns of shards) {
+    const data = await apiGet(`/repos/${repo}/docs/${ns}?raw=1`, undefined, `KV load: ${ns}`);
+    if (isErrorResult(data)) continue;
+
+    const doc = (data as { data?: { id: number; body?: string } })?.data;
+    if (!doc) continue;
+
+    const currentBody = doc.body || "{}";
+    let currentMap: Record<string, string>;
+    try { currentMap = JSON.parse(currentBody); } catch { continue; }
+
+    if (!(key in currentMap)) continue;
+
+    delete currentMap[key];
+    const newBody = JSON.stringify(currentMap, null, 2);
+
+    const result = await apiPut(
+      `/repos/${repo}/docs/${doc.id}`,
+      { title: ns, body: newBody, slug: ns, format: "markdown", public: 0 },
+      `KV delete key: ${ns}`,
+    );
+    if (isErrorResult(result)) {
+      return { ok: false, error: JSON.stringify(result) };
+    }
+    return { ok: true, shards: shards.length };
+  }
+
+  return { ok: false, error: `key '${key}' not found in namespace '${namespace}'` };
 }

@@ -1,16 +1,16 @@
 /**
- * kv/delete — 删除 namespace 中的一个 key
+ * kv/delete — 增量删除 namespace 中的一个 key
  *
- * 端点到语雀：GET /repos/{repo}/docs/{namespace} + PUT
+ * 端点到语雀：GET /repos/{repo}/docs/{ns}（逐个分片查找）+ PUT
  */
 
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
-import { resolveKvRepo, loadKvMap, saveKvMap } from "./common.js";
+import { resolveKvRepo, kvIncrementalDelete } from "./common.js";
 
 export const kvDelete: McpTool = {
   name: "yuque_kv_delete",
-  description: "Delete a key from a KV namespace. Reads existing map, removes the key, writes back. 详见 references/api/extended_api.md",
+  description: "Delete a key from a KV namespace. Scans shards to find the key, updates that shard. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -44,28 +44,12 @@ export const kvDelete: McpTool = {
       };
     }
 
-    const map = await loadKvMap(repo, namespace);
-    if (!(key in map)) {
-      return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            namespace,
-            key,
-            action: "not_found",
-            message: `Key '${key}' not found in namespace '${namespace}'`,
-          }, null, 2),
-        }],
-      };
-    }
-
-    delete map[key];
-    const result = await saveKvMap(repo, namespace, map);
+    const result = await kvIncrementalDelete(repo, namespace, key);
     if (!result.ok) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "KV_SAVE_FAILED",
-          message: `保存 KV 失败: ${result.error}`,
+          error: "KV_DELETE_FAILED",
+          message: result.error,
         }, null, 2) }],
         isError: true,
       };
@@ -78,7 +62,6 @@ export const kvDelete: McpTool = {
           namespace,
           key,
           action: "deleted",
-          total_keys: Object.keys(map).length,
           shards: result.shards,
         }, null, 2),
       }],

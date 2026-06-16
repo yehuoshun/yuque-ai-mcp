@@ -13,7 +13,7 @@ import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { resolveKvRepo, loadKvMap, saveKvMap } from "../kv/common.js";
+import { resolveKvRepo, loadKvMap, kvIncrementalSet } from "../kv/common.js";
 
 /** 从 RepoRef 提取知识库标识 */
 function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
@@ -284,12 +284,10 @@ export const crawlSave: McpTool = {
       } catch { /* TOC 失败不影响主流程 */ }
     }
 
-    // 7. 更新 KV map（一次写入）
+    // 7. 增量写入 KV 标记
     if (enableKv && kvRepo) {
       try {
-        const existingMap = await loadKvMap(kvRepo, kvNamespace);
-        existingMap[slug] = finalUrl;
-        await saveKvMap(kvRepo, kvNamespace, existingMap);
+        await kvIncrementalSet(kvRepo, kvNamespace, slug, finalUrl);
       } catch { /* KV 标记失败不影响主流程 */ }
     }
 

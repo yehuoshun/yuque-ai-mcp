@@ -4,7 +4,7 @@
  * 所有工具模块通过此文件获取配置，不再依赖环境变量。
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -25,6 +25,7 @@ interface RssConfig {
 interface KvConfig {
   enabled: boolean;
   default_repo?: RepoRef;
+  namespaces?: Record<string, string[]>;
 }
 
 interface CrawlerConfig {
@@ -64,4 +65,11 @@ export function loadConfig(): Config {
 
   _config.api_base = _config.api_base || "https://www.yuque.com/api/v2";
   return _config;
+}
+
+/** 持久化 config 到文件（目前仅用于更新 kv.namespaces） */
+export function saveConfig(): void {
+  if (!_config) return;
+  const configPath = resolve(__dirname, "../../../config/config.json");
+  writeFileSync(configPath, JSON.stringify(_config, null, 2) + "\n", "utf-8");
 }

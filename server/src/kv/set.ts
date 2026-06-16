@@ -1,16 +1,16 @@
 /**
- * kv/set — 设置 namespace 中的一个 key-value 对
+ * kv/set — 增量设置 namespace 中的一个 key-value 对
  *
- * 端点到语雀：GET /repos/{repo}/docs/{namespace} + PUT/POST
+ * 端点到语雀：GET /repos/{repo}/docs/{lastNs} + PUT 或 POST（新分片）
  */
 
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
-import { resolveKvRepo, loadKvMap, saveKvMap } from "./common.js";
+import { resolveKvRepo, kvIncrementalSet } from "./common.js";
 
 export const kvSet: McpTool = {
   name: "yuque_kv_set",
-  description: "Set a key-value pair in a KV namespace. Reads existing map, upserts the key, writes back. Used for dedup marking, config updates, etc. 详见 references/api/extended_api.md",
+  description: "Set a key-value pair in a KV namespace. Incremental: reads only the last shard, updates if under 250KB, creates new shard if full. Used for dedup marking, config updates, etc. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -47,16 +47,12 @@ export const kvSet: McpTool = {
       };
     }
 
-    const map = await loadKvMap(repo, namespace);
-    const existed = key in map;
-    map[key] = value;
-
-    const result = await saveKvMap(repo, namespace, map);
+    const result = await kvIncrementalSet(repo, namespace, key, value);
     if (!result.ok) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "KV_SAVE_FAILED",
-          message: `保存 KV 失败: ${result.error}`,
+          error: "KV_SET_FAILED",
+          message: `KV 写入失败: ${result.error}`,
         }, null, 2) }],
         isError: true,
       };
@@ -69,8 +65,6 @@ export const kvSet: McpTool = {
           namespace,
           key,
           value,
-          action: existed ? "updated" : "created",
-          total_keys: Object.keys(map).length,
           shards: result.shards,
         }, null, 2),
       }],

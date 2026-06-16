@@ -12,7 +12,7 @@ import { loadConfig } from "../common/config.js";
 import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug } from "./dedup.js";
-import { resolveKvRepo, loadKvMap, saveKvMap } from "../kv/common.js";
+import { resolveKvRepo, loadKvMap, kvIncrementalSet } from "../kv/common.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -273,16 +273,16 @@ export const rssFetch: McpTool = {
       };
     }
 
-    // 7. 写入语雀
+    // 7. 写入语雀 + KV 标记
     const results: Array<{ title: string; link: string; slug: string; doc_id?: number; status: string; error?: string }> = [];
     for (const entry of newEntries) {
       const docTitle = `${titlePrefix}${entry.title}`;
       const body = entryToMarkdown(entry, src.name);
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
-      if (result.ok) {
-        // 写入成功后更新 KV map
-        existingMap[entry.slug] = entry.link;
+      if (result.ok && enableKv && kvRepo) {
+        // 增量写入 KV 标记
+        await kvIncrementalSet(kvRepo, kvNamespace, entry.slug, entry.link);
       }
       results.push({
         title: entry.title,
@@ -292,11 +292,6 @@ export const rssFetch: McpTool = {
         status: result.ok ? "created" : "failed",
         error: result.error,
       });
-    }
-
-    // 8. 批量保存 KV map（所有新条目写完后一次更新）
-    if (enableKv && kvRepo && newEntries.length > 0) {
-      await saveKvMap(kvRepo, kvNamespace, existingMap);
     }
 
     return {
