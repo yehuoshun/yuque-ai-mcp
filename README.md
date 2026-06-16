@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 53 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 54 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **53 个** |
+| 工具数量 | 19 个 | **54 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -15,7 +15,7 @@
 | 文档版本 | ❌ 不支持 | ✅ versions + version_detail |
 | 知识库删除 | ❌ 不支持 | ✅ delete_repo |
 | 小记删除/恢复 | ❌ 不支持 | ✅ update_note(status=9/0) |
-| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，13 个域 60+ 个文件） |
+| 架构 | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，14 个域 60+ 个文件） |
 | 配置方式 | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie） |
 | 安装方式 | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
 | HTTP 解耦 | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心，修改无需重启 Gateway） |
@@ -130,7 +130,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（53 个）
+## 工具列表（54 个）
 
 ### user — 用户信息
 | 工具 | 端点 |

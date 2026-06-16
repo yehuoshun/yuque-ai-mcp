@@ -1,6 +1,6 @@
 {
   "name": "yuque-ai-mcp",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "语雀 MCP Server — 细粒度工具集",
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +12,8 @@
     "start:http": "node dist/http.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "cheerio": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
