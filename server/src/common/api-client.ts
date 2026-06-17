@@ -39,7 +39,8 @@ async function fetchWithRetry(
     const res = await fetch(url, options);
     if (shouldRetry(res) && attempt <= MAX_RETRIES) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
-      console.error(`[RETRY] ${context} 第 ${attempt} 次失败 (${res.status})，${delay}ms 后重试`);
+      // 重试日志仅在 DEBUG 环境变量设置时输出
+      if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次失败 (${res.status})，${delay}ms 后重试`);
       await sleep(delay);
       return fetchWithRetry(url, options, context, attempt + 1);
     }
@@ -47,7 +48,7 @@ async function fetchWithRetry(
   } catch (err) {
     if (attempt <= MAX_RETRIES) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
-      console.error(`[RETRY] ${context} 第 ${attempt} 次网络异常，${delay}ms 后重试`);
+      if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次网络异常，${delay}ms 后重试`);
       await sleep(delay);
       return fetchWithRetry(url, options, context, attempt + 1);
     }

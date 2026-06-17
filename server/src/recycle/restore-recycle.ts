@@ -5,7 +5,10 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { webRequest, MINE_BASE } from "./common.js";
+import { webRequest } from "../common/web-request.js";
+import { MINE_BASE } from "./common.js";
+
+const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
 
 export const recycleRestore: McpTool = {
   name: "yuque_restore_recycle",
@@ -22,7 +25,7 @@ export const recycleRestore: McpTool = {
   async handler(args) {
     const recycleId = args?.recycle_id as number;
 
-    await webRequest(`${MINE_BASE}/${recycleId}/restore`, { method: "PUT" });
+    await webRequest(`${MINE_BASE}/${recycleId}/restore`, { method: "PUT", referer: RECYCLE_REFERER });
 
     return {
       content: [

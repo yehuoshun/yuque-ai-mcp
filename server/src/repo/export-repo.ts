@@ -12,11 +12,10 @@
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
-import { join, relative, dirname } from "node:path";
+import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import {
   extractResources,
@@ -25,18 +24,9 @@ import {
   sanitizeFilename,
   htmlToMarkdown,
 } from "../common/export-common.js";
-
-// ─── TOC 类型 ──────────────────────────────────────────
-
-interface TocNode {
-  uuid: string;
-  title: string;
-  parent_uuid: string;
-  child_uuid: string;
-  doc_id?: number;
-  type: string;
-  url: string;
-}
+import { buildTocDocDirMap } from "./export-toc.js";
+import { buildIndexMd } from "./export-index.js";
+import { buildGraphMd, extractYuqueLinks } from "./export-graph.js";
 
 // ─── 主工具 ────────────────────────────────────────────
 
@@ -86,12 +76,11 @@ export const repoExport: McpTool = {
 
     // ── 2. 获取 TOC 目录树 ──
     const tocData = await apiGet(`/repos/${bookId}/toc`, undefined, "Export: get TOC");
-    let tocNodes: TocNode[] = [];
+    let tocNodes: Array<{ uuid: string; title: string; parent_uuid: string; child_uuid: string; doc_id?: number; type: string; url: string }> = [];
     if (!isErrorResult(tocData)) {
-      tocNodes = ((tocData as { data?: TocNode[] }).data || []) as TocNode[];
+      tocNodes = ((tocData as { data?: typeof tocNodes }).data || []) as typeof tocNodes;
     }
 
-    // 构建：doc_id → TOC 目录路径（相对于 outputDir）
     const docDirMap = buildTocDocDirMap(tocNodes);
 
     // ── 3. 分页获取全部文档 ──
@@ -184,55 +173,8 @@ export const repoExport: McpTool = {
   },
 };
 
-// ─── TOC 目录映射 ──────────────────────────────────────
-
-/**
- * 根据 TOC 树构建 doc_id → 相对目录路径 的映射
- *
- * TOC 节点有两种：
- * - type=TITLE: 目录节点，子节点在其下
- * - type=DOC: 文档节点，通过 doc_id 关联
- *
- * 使用 parent_uuid / child_uuid 链构建完整路径。
- */
-function buildTocDocDirMap(nodes: TocNode[]): Map<number, string> {
-  const map = new Map<number, string>();
-
-  if (!nodes || nodes.length === 0) return map;
-
-  // 先建立 uuid → node 和 uuid → parent_uuid 的索引
-  const nodeByUuid = new Map<string, TocNode>();
-  for (const n of nodes) {
-    nodeByUuid.set(n.uuid, n);
-  }
-
-  // 递归计算某个 uuid 的目录路径
-  function getPath(uuid: string): string {
-    const node = nodeByUuid.get(uuid);
-    if (!node) return "";
-
-    // 从根往上递归
-    const parentPath = node.parent_uuid ? getPath(node.parent_uuid) : "";
-    const dirName = sanitizeFilename(node.title);
-
-    return parentPath ? join(parentPath, dirName) : dirName;
-  }
-
-  // 遍历所有 DOC 类型的节点
-  for (const n of nodes) {
-    if (n.type === "DOC" && n.doc_id != null) {
-      // DOC 节点的 parent_uuid 指向其所属的 TITLE 节点
-      const dirPath = n.parent_uuid ? getPath(n.parent_uuid) : "";
-      map.set(n.doc_id, dirPath);
-    }
-  }
-
-  return map;
-}
-
 // ─── 批量导出实现 ─────────────────────────────────────
 
-/** 并发导出数：平衡速度与内存/限流 */
 const EXPORT_CONCURRENCY = 5;
 
 interface ExportResult {
@@ -245,13 +187,9 @@ interface ExportResult {
   images_downloaded: number;
   images_failed: number;
   error?: string;
-  outboundLinks?: string[];  // 引用其他文档的链接
+  outboundLinks?: string[];
 }
 
-/**
- * 并发导出文档，分批处理防止 OOM。
- * 每批 EXPORT_CONCURRENCY 个并发，api-client 自带 429 重试兜底。
- */
 async function exportDocs(
   allDocs: Array<{ id: number; slug: string; title: string }>,
   outputDir: string,
@@ -307,13 +245,13 @@ async function exportDocs(
     );
 
     results.push(...batchResults);
-    batchResults.length = 0; // 释放引用，防止大知识库 OOM
+    batchResults.length = 0;
   }
 
   return results;
 }
 
-export async function exportSingleDoc(
+async function exportSingleDoc(
   docData: unknown,
   docMeta: { id: number; slug: string; title: string },
   outputDir: string,
@@ -335,11 +273,9 @@ export async function exportSingleDoc(
   const wordCount = (doc.word_count as number) || 0;
   const description = (doc.description as string) || "";
 
-  // 根据 TOC 确定文档所在目录
   const docDir = tocDir ? join(outputDir, tocDir) : outputDir;
   await mkdir(docDir, { recursive: true });
 
-  // 相对 images/attachments 目录（用于 Markdown 引用）
   const relDepth = tocDir ? tocDir.split("/").map(() => "..").join("/") + "/" : "";
   const relImagesDir = relDepth + "images";
   const relAttachmentsDir = relDepth + "attachments";
@@ -347,7 +283,6 @@ export async function exportSingleDoc(
   let imagesDownloaded = 0;
   let imagesFailed = 0;
 
-  // 提取资源并下载
   let resourceMap = new Map<string, { url: string; localPath: string; success: boolean }>();
 
   if (downloadImages && bodyHtml) {
@@ -368,7 +303,6 @@ export async function exportSingleDoc(
     }
   }
 
-  // 生成 Markdown 内容
   let markdown = "";
 
   if (format === "markdown" && !rawBody) {
@@ -379,7 +313,6 @@ export async function exportSingleDoc(
     markdown = body || JSON.stringify(doc, null, 2);
   }
 
-  // 替换图片引用（使用相对路径）
   for (const [url, result] of resourceMap) {
     if (result.success) {
       imagesDownloaded++;
@@ -389,17 +322,14 @@ export async function exportSingleDoc(
     }
   }
 
-  // 提取文档中的语雀链接（用于 GRAPH.md）
   const outboundLinks = extractYuqueLinks(markdown);
 
-  // 添加 frontmatter
   const frontmatter = formatFrontMatter({
     title, slug,
     created_at: createdAt, updated_at: updatedAt,
     word_count: wordCount, description,
   });
 
-  // 文件名 = 标题（安全化处理）
   const fileName = sanitizeFilename(title) + ".md";
   const filePath = join(docDir, fileName);
   await writeFile(filePath, frontmatter + markdown, "utf-8");
@@ -415,186 +345,4 @@ export async function exportSingleDoc(
     images_failed: imagesFailed,
     outboundLinks,
   };
-}
-
-// ─── INDEX.md 生成 ─────────────────────────────────────
-
-function buildIndexMd(
-  tocNodes: TocNode[],
-  results: ExportResult[],
-  repoName: string,
-): string {
-  const lines: string[] = [];
-  lines.push(`# ${repoName} — 导出索引`);
-  lines.push("");
-  lines.push(`> 导出时间：${new Date().toISOString()}`);
-  lines.push(`> 文档总数：${results.length}（成功 ${results.filter(r => r.status === "ok").length}，失败 ${results.filter(r => r.status === "error").length}）`);
-  lines.push("");
-
-  // 按 TOC 树输出目录结构
-  if (tocNodes.length > 0) {
-    lines.push("## 目录结构");
-    lines.push("");
-    lines.push(formatTocTree(tocNodes, results));
-  } else {
-    // 无 TOC 时平铺列表
-    lines.push("## 文档列表");
-    lines.push("");
-    lines.push("| 标题 | Slug | 状态 |");
-    lines.push("|------|------|------|");
-    for (const r of results) {
-      const status = r.status === "ok" ? "✅" : `❌ ${r.error || ""}`;
-      const file = r.status === "ok" ? `[${r.title}](${r.dir ? r.dir + "/" : ""}${sanitizeFilename(r.title)}.md)` : r.title;
-      lines.push(`| ${file} | ${r.slug} | ${status} |`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * 将 TOC 扁平数组格式化为 Markdown 目录树
- */
-function formatTocTree(nodes: TocNode[], results: ExportResult[]): string {
-  // 建立 uuid → node 索引
-  const nodeByUuid = new Map<string, TocNode>();
-  for (const n of nodes) {
-    nodeByUuid.set(n.uuid, n);
-  }
-
-  // 建立 parent_uuid → children 索引
-  const childrenByParent = new Map<string, TocNode[]>();
-  for (const n of nodes) {
-    const parentKey = n.parent_uuid || "__root__";
-    const arr = childrenByParent.get(parentKey) || [];
-    arr.push(n);
-    childrenByParent.set(parentKey, arr);
-  }
-
-  // 找到根节点（没有 parent_uuid 或 parent_uuid 为空的 TITLE 节点）
-  const rootChildren = childrenByParent.get("__root__") || [];
-
-  // 建立 slug → title 映射用于链接解析
-  const resultByDir = new Map<string, ExportResult>();
-  for (const r of results) {
-    if (r.status === "ok") {
-      const key = r.dir || "";
-      resultByDir.set(key + ":::" + r.title, r);
-    }
-  }
-
-  const lines: string[] = [];
-
-  function renderNode(node: TocNode, depth: number) {
-    const indent = "  ".repeat(depth);
-    if (node.type === "TITLE") {
-      lines.push(`${indent}- 📁 **${node.title}**`);
-      const children = childrenByParent.get(node.uuid) || [];
-      for (const child of children) {
-        renderNode(child, depth + 1);
-      }
-    } else if (node.type === "DOC" && node.doc_id != null) {
-      // 找到对应的导出结果
-      const result = results.find(r => r.doc_id === node.doc_id);
-      if (result && result.status === "ok") {
-        const filePath = (result.dir ? result.dir + "/" : "") + sanitizeFilename(result.title) + ".md";
-        lines.push(`${indent}- 📄 [${result.title}](${filePath})`);
-      } else {
-        lines.push(`${indent}- 📄 ${node.title} ${!result ? "(未找到)" : "(导出失败)"}`);
-      }
-    } else {
-      lines.push(`${indent}- ${node.title}`);
-    }
-  }
-
-  for (const child of rootChildren) {
-    renderNode(child, 0);
-  }
-
-  return lines.join("\n");
-}
-
-// ─── GRAPH.md 生成 ─────────────────────────────────────
-
-/**
- * 提取 Markdown 中的语雀文档链接
- * 匹配 https://www.yuque.com/<user>/<book>/<slug> 格式
- */
-function extractYuqueLinks(markdown: string): string[] {
-  const links: string[] = [];
-  const regex = /https?:\/\/www\.yuque\.com\/[^/]+\/[^/]+\/([a-zA-Z0-9_-]+)/g;
-  let match;
-  while ((match = regex.exec(markdown)) !== null) {
-    // 去重
-    if (!links.includes(match[1])) {
-      links.push(match[1]);
-    }
-  }
-  return links;
-}
-
-function buildGraphMd(results: ExportResult[]): string {
-  const lines: string[] = [];
-  lines.push("# 文档引用关系图");
-  lines.push("");
-  lines.push(`> 生成时间：${new Date().toISOString()}`);
-  lines.push("");
-
-  // 建立 slug → title 索引
-  const slugToTitle = new Map<string, string>();
-  const slugToFile = new Map<string, string>();
-  for (const r of results) {
-    if (r.status === "ok") {
-      slugToTitle.set(r.slug, r.title);
-      const filePath = (r.dir ? r.dir + "/" : "") + sanitizeFilename(r.title) + ".md";
-      slugToFile.set(r.slug, filePath);
-    }
-  }
-
-  // 统计引用关系
-  let totalOutbound = 0;
-  let totalUnresolved = 0;
-  const okResults = results.filter(r => r.status === "ok");
-
-  if (okResults.length === 0) {
-    lines.push("（无成功导出的文档）");
-    return lines.join("\n");
-  }
-
-  lines.push("## 引用关系");
-  lines.push("");
-
-  for (const r of okResults) {
-    const links = r.outboundLinks || [];
-    if (links.length === 0) continue;
-
-    totalOutbound += links.length;
-    const fromFile = (r.dir ? r.dir + "/" : "") + sanitizeFilename(r.title) + ".md";
-
-    for (const targetSlug of links) {
-      const targetTitle = slugToTitle.get(targetSlug);
-      const targetFile = slugToFile.get(targetSlug);
-
-      if (targetTitle) {
-        lines.push(`- [${r.title}](${fromFile}) → [${targetTitle}](${targetFile})`);
-      } else {
-        totalUnresolved++;
-        lines.push(`- [${r.title}](${fromFile}) → \`${targetSlug}\` ⚠️ 未在本知识库中找到`);
-      }
-    }
-  }
-
-  if (totalOutbound === 0) {
-    lines.push("（未检测到文档间引用）");
-  }
-
-  lines.push("");
-  lines.push("## 统计");
-  lines.push("");
-  lines.push(`- 总引用数：${totalOutbound}`);
-  lines.push(`- 已解析：${totalOutbound - totalUnresolved}`);
-  lines.push(`- 未解析：${totalUnresolved}`);
-  lines.push(`- 有引用的文档：${okResults.filter(r => (r.outboundLinks || []).length > 0).length} / ${okResults.length}`);
-
-  return lines.join("\n");
 }

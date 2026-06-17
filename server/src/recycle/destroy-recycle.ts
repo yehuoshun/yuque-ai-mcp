@@ -7,7 +7,10 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
-import { webRequest, MINE_BASE } from "./common.js";
+import { webRequest } from "../common/web-request.js";
+import { MINE_BASE } from "./common.js";
+
+const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
 
 export const recycleDestroy: McpTool = {
   name: "yuque_destroy_recycle",
@@ -28,7 +31,7 @@ export const recycleDestroy: McpTool = {
 
     const recycleId = args?.recycle_id as number;
 
-    await webRequest(`${MINE_BASE}/${recycleId}`, { method: "DELETE" });
+    await webRequest(`${MINE_BASE}/${recycleId}`, { method: "DELETE", referer: RECYCLE_REFERER });
 
     return {
       content: [

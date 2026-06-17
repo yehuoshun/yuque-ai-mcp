@@ -6,7 +6,10 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { webRequest, MINE_BASE } from "./common.js";
+import { webRequest } from "../common/web-request.js";
+import { MINE_BASE } from "./common.js";
+
+const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
 
 export const recycleList: McpTool = {
   name: "yuque_list_recycles",
@@ -29,7 +32,7 @@ export const recycleList: McpTool = {
     let url = `${MINE_BASE}?offset=${offset}&limit=${limit}`;
     if (targetType) url += `&target_type=${targetType}`;
 
-    const data = (await webRequest(url)) as { data?: { data?: Array<Record<string, unknown>>; total?: number } };
+    const data = (await webRequest(url, { referer: RECYCLE_REFERER })) as { data?: { data?: Array<Record<string, unknown>>; total?: number } };
     const items = data?.data?.data || [];
     const total = data?.data?.total ?? items.length;
 

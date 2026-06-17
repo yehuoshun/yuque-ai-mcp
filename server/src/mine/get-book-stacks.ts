@@ -6,7 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { webRequest, MINE_BASE } from "./common.js";
+import { webRequest } from "../common/web-request.js";
+import { MINE_BASE } from "./common.js";
 
 export const mineBookStacks: McpTool = {
   name: "yuque_get_book_stacks",
