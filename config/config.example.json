@@ -5,25 +5,29 @@
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
     "enabled": true,
-    "default_repo": {
-      "id": "可选，默认 RSS 知识库数字 ID（优先级最高）",
-      "book_id": "可选，默认 RSS 知识库 ID",
-      "namespace": "可选，默认 RSS 知识库 namespace，如 my-group/my-repo"
-    },
     "sources": {
       "cnblogs": {
-        "id": "可选，博客园专用 RSS 知识库数字 ID（覆盖 default_repo）",
-        "book_id": "可选",
-        "namespace": "可选"
+        "book_id": "可选，博客园 RSS 知识库数字 ID",
+        "namespace": "可选，知识库 namespace，如 my-group/my-repo"
       }
     }
   },
   "kv": {
     "enabled": false,
-    "default_repo": {
-      "id": "可选，KV 去重知识库数字 ID（enabled=true 时必填）",
-      "book_id": "可选",
-      "namespace": "可选"
+    "namespaces": {
+      "cnblogs": {
+        "book_id": "可选，KV 去重知识库数字 ID（enabled=true 时必填）",
+        "docs": ["可选，分片文档的 doc_id 数组"]
+      }
+    }
+  },
+  "crawler": {
+    "enabled": true,
+    "sources": {
+      "cnblogs": {
+        "book_id": "可选，爬虫目标知识库数字 ID",
+        "namespace": "可选，知识库 namespace，如 my-group/my-repo"
+      }
     }
   }
 }

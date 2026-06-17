@@ -8,10 +8,17 @@ import { apiPost, apiPut, apiDelete, isErrorResult } from "../common/api-client.
 function resolveRepo(source?: string, paramRepo?: string): string {
   const cfg = loadConfig();
   if (paramRepo) return paramRepo;
-  if (source && cfg.crawler?.sources?.[source]?.id) {
-    return String(cfg.crawler.sources[source].id);
+  if (source && cfg.crawler?.sources?.[source]) {
+    return repoRefToString(cfg.crawler.sources[source]);
   }
-  if (cfg.crawler?.default_repo?.id) return String(cfg.crawler.default_repo.id);
+  return "";
+}
+
+function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
+  if (!ref) return "";
+  if (ref.id) return String(ref.id);
+  if (ref.book_id) return ref.book_id;
+  if (ref.namespace) return ref.namespace;
   return "";
 }
 

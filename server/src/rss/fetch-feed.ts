@@ -47,13 +47,13 @@ function repoRefToString(ref: { id?: number; book_id?: string; namespace?: strin
 
 /**
  * 解析 RSS 目标知识库
- * 优先级：tool 参数 → config.rss.{source} → config.rss.default_repo
+ * 优先级：tool 参数 → config.rss.sources.{source}.book_id
  */
 function resolveRssRepo(source: string, paramRepo?: string): string {
   if (paramRepo) return paramRepo;
   const cfg = loadConfig();
   if (!cfg.rss) return "";
-  return repoRefToString(cfg.rss?.sources?.[source]) || repoRefToString(cfg.rss?.default_repo);
+  return repoRefToString(cfg.rss?.sources?.[source]);
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */
@@ -125,7 +125,7 @@ export const rssFetch: McpTool = {
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "string", description: "Template params for feeds with url_template. JSON string, e.g. '{\"username\":\"hsewr333\"}'" },
       target_repo: { type: "string", description: "RSS target repo ID or namespace. Optional — falls back to config.json rss config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.default_repo." },
+      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.namespaces.{namespace}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup, e.g. 'cnblogs'. Defaults to source key." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'dry_run' (preview only, no save)" },

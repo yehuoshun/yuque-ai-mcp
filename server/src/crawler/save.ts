@@ -29,7 +29,7 @@ function resolveRepo(source?: string, paramRepo?: string): string {
   if (paramRepo) return paramRepo;
   const cfg = loadConfig();
   if (!cfg.crawler) return "";
-  return repoRefToString(cfg.crawler?.sources?.[source || ""]) || repoRefToString(cfg.crawler?.default_repo);
+  return repoRefToString(cfg.crawler?.sources?.[source || ""]);
 }
 
 /** 生成去重 slug（URL → md5 前 12 位） */
@@ -100,9 +100,9 @@ export const crawlSave: McpTool = {
     type: "object",
     properties: {
       url: { type: "string", description: "Target URL to crawl and save" },
-      source: { type: "string", description: "Source key for repo routing and KV namespace, e.g. 'cnblogs'. Falls back to crawler.default_repo" },
+      source: { type: "string", description: "Source key for repo routing and KV namespace, e.g. 'cnblogs'. Falls back to config crawler.sources.{source}" },
       target_repo: { type: "string", description: "Target repo ID or namespace. Optional — falls back to config.json crawler config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.default_repo." },
+      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.namespaces.{namespace}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup. Defaults to source if set, otherwise 'crawler'." },
       content_selector: { type: "string", description: "CSS selector for content area, e.g. '.post-body', '#article-content'. Extracts full page if omitted." },
       title_selector: { type: "string", description: "CSS selector for title override, e.g. 'h1.title'. Uses <title> tag if omitted." },
@@ -240,7 +240,7 @@ export const crawlSave: McpTool = {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           error: "NO_TARGET_REPO",
-          message: "未配置目标知识库，请在 config.json 中设置 crawler.default_repo 或传 target_repo 参数",
+          message: "未配置目标知识库，请在 config.json 中设置 crawler.sources.{source}.book_id 或传 target_repo 参数",
         }, null, 2) }],
         isError: true,
       };

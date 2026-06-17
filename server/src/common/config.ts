@@ -18,7 +18,6 @@ interface RepoRef {
 
 interface RssConfig {
   enabled: boolean;
-  default_repo?: RepoRef;
   sources?: Record<string, RepoRef>;
 }
 
@@ -34,7 +33,6 @@ interface KvConfig {
 
 interface CrawlerConfig {
   enabled: boolean;
-  default_repo?: RepoRef;
   sources?: Record<string, RepoRef>;
 }
 
