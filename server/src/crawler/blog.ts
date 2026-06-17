@@ -8,8 +8,8 @@ import { apiPost, apiPut, apiDelete, isErrorResult } from "../common/api-client.
 function resolveRepo(source?: string, paramRepo?: string): string {
   const cfg = loadConfig();
   if (paramRepo) return paramRepo;
-  if (source && cfg.crawler?.sources?.[source]) {
-    return repoRefToString(cfg.crawler.sources[source]);
+  if (source && cfg.crawler?.namespaces?.[source]) {
+    return repoRefToString(cfg.crawler.namespaces[source]);
   }
   return "";
 }

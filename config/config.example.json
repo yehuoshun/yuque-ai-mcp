@@ -5,7 +5,7 @@
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
     "enabled": true,
-    "sources": {
+    "namespaces": {
       "cnblogs": {
         "book_id": "可选，博客园 RSS 知识库数字 ID",
         "namespace": "可选，知识库 namespace，如 my-group/my-repo"
@@ -23,7 +23,7 @@
   },
   "crawler": {
     "enabled": true,
-    "sources": {
+    "namespaces": {
       "cnblogs": {
         "book_id": "可选，爬虫目标知识库数字 ID",
         "namespace": "可选，知识库 namespace，如 my-group/my-repo"

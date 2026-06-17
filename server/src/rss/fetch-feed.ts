@@ -47,13 +47,13 @@ function repoRefToString(ref: { id?: number; book_id?: string; namespace?: strin
 
 /**
  * 解析 RSS 目标知识库
- * 优先级：tool 参数 → config.rss.sources.{source}.book_id
+ * 优先级：tool 参数 → config.rss.namespaces.{source}.book_id
  */
 function resolveRssRepo(source: string, paramRepo?: string): string {
   if (paramRepo) return paramRepo;
   const cfg = loadConfig();
   if (!cfg.rss) return "";
-  return repoRefToString(cfg.rss?.sources?.[source]);
+  return repoRefToString(cfg.rss?.namespaces?.[source]);
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */

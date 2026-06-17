@@ -18,7 +18,7 @@ interface RepoRef {
 
 interface RssConfig {
   enabled: boolean;
-  sources?: Record<string, RepoRef>;
+  namespaces?: Record<string, RepoRef>;
 }
 
 interface KvNamespace {
@@ -33,7 +33,7 @@ interface KvConfig {
 
 interface CrawlerConfig {
   enabled: boolean;
-  sources?: Record<string, RepoRef>;
+  namespaces?: Record<string, RepoRef>;
 }
 
 interface Config {
