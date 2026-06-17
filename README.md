@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 58 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 59 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **58 个** |
+| 工具数量 | 19 个 | **59 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -131,7 +131,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（58 个）
+## 工具列表（59 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -205,6 +205,12 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_get_note` | `GET /api/v2/notes/:id` | 获取小记详情 |
 | `yuque_create_note` | `POST /api/v2/notes` | 创建小记 |
 | `yuque_update_note` | `PUT /api/v2/notes/:id` | 更新小记，也支持软删除（`status=9`）和恢复（`status=0`）。删除需 `confirm='DELETE'` |
+
+### mine — 个人数据（Web API，Cookie 认证）
+| 工具 | 端点 |
+|------|------|
+| `yuque_get_book_stacks` | `GET /api/mine/book_stacks` |
+| `yuque_get_editor_center` | `GET /api/mine/editor_center` |
 
 ### recycle — 回收站
 | 工具 | 端点 | 认证 |
