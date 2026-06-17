@@ -120,7 +120,7 @@ Content-Type: application/json
 
 ### 流程
 
-1. **appendNode** 把文档加入 TOC 根目录
+1. **appendNode** 把文档加入 TOC（不指定 `target_uuid` 默认根目录）
 2. **prependNode** + `target_uuid` 提到首位
 
 ### 示例
