@@ -7,10 +7,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { createServer } from "http";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import { registerAllTools, ALL_TOOLS, DOMAIN_COUNTS } from "./common/register-tools.js";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf-8"));
+const VERSION = pkg.version;
+
 function createMcpServer() {
-  const server = new McpServer({ name: "yuque-ai-mcp", version: "2.4.0" });
+  const server = new McpServer({ name: "yuque-ai-mcp", version: VERSION });
   registerAllTools(server);
   return server;
 }
@@ -39,7 +46,7 @@ const httpServer = createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       status: "ok",
-      version: "2.4.0",
+      version: VERSION,
       tools: ALL_TOOLS.length,
       domains: DOMAIN_COUNTS,
     }));
