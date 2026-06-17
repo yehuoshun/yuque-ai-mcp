@@ -6,8 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
-import { formatNote, wrapResult } from "../common/format.js";
+import { apiGet } from "../common/api-client.js";
+import { formatNote, handleApiCall } from "../common/format.js";
 
 
 export const noteGet: McpTool = {
@@ -28,9 +28,6 @@ export const noteGet: McpTool = {
     const noteId = args?.note_id as number;
 
     const data = await apiGet(`/notes/${noteId}`, undefined, "Get note");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
-    };
+    return handleApiCall(data, formatNote, raw);
   },
 };
