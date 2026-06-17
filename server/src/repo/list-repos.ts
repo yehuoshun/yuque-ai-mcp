@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiGetWithFallback, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatRepo, wrapResult } from "../common/format.js";
+import { formatRepo, handleApiCall } from "../common/format.js";
 
 
 export const repoList: McpTool = {
@@ -52,9 +52,6 @@ export const repoList: McpTool = {
       params,
       "List repos",
     );
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
-    };
+    return handleApiCall(data, formatRepo, raw);
   },
 };

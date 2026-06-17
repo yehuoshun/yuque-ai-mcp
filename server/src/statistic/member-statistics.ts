@@ -5,7 +5,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
+import { handleApiCall } from "../common/format.js";
 import { requiredString } from "../common/validate.js";
 
 
@@ -47,9 +48,6 @@ export const memberStatistics: McpTool = {
     if (sortField) params.sortField = sortField;
 
     const data = await apiGet(`/groups/${login}/statistics/members`, params, "Get member stats");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    };
+    return handleApiCall(data, undefined as any);
   },
 };

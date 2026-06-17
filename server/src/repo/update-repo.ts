@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatRepo, wrapResult } from "../common/format.js";
+import { formatRepo, handleApiCall } from "../common/format.js";
 
 
 export const repoUpdate: McpTool = {
@@ -44,9 +44,6 @@ export const repoUpdate: McpTool = {
     if (args?.toc !== undefined) payload.toc = args.toc;
 
     const data = await apiPut(`/repos/${bookId}`, payload, "Update repo");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
-    };
+    return handleApiCall(data, formatRepo, raw);
   },
 };

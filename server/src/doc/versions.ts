@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatDocVersion, wrapResult } from "../common/format.js";
+import { formatDocVersion, handleApiCall } from "../common/format.js";
 
 
 export const docVersions: McpTool = {
@@ -36,9 +36,6 @@ export const docVersions: McpTool = {
     const raw = args?.raw as boolean | undefined;
 
     const data = await apiGet("/doc_versions", { doc_id: String(docId) }, "Get doc versions");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatDocVersion, raw) }],
-    };
+    return handleApiCall(data, formatDocVersion, raw);
   },
 };

@@ -6,7 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
+import { handleApiCall } from "../common/format.js";
 import { requiredString } from "../common/validate.js";
 
 
@@ -41,9 +42,6 @@ export const searchGeneral: McpTool = {
     if (creator) params.creator = creator;
 
     const data = await apiGet("/search", params, "Search");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    };
+    return handleApiCall(data, undefined as any);
   },
 };

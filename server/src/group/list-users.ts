@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatGroupUser } from "../common/format.js";
+import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
 export const groupListUsers: McpTool = {
@@ -39,14 +39,7 @@ export const groupListUsers: McpTool = {
     if (role !== undefined) params.role = String(role);
 
     const data = await apiGet(`/groups/${login}/users`, params, "Get group users");
-    if (isErrorResult(data)) return data;
-
     const items = (data as { data?: Record<string, unknown>[] })?.data ?? data;
-    const result = raw
-      ? JSON.stringify(data, null, 2)
-      : JSON.stringify(Array.isArray(items) ? items.map(formatGroupUser) : items, null, 2);
-    return {
-      content: [{ type: "text" as const, text: result }],
-    };
+    return handleApiCall(Array.isArray(items) ? items : items, formatGroupUser, raw);
   },
 };

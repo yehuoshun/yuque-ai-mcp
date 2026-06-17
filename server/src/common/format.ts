@@ -325,3 +325,20 @@ export function wrapResult(
   // 处理纯对象
   return JSON.stringify(formatFn(data), null, 2);
 }
+
+/**
+ * 统一处理 API 调用结果：检查错误 → 格式化 → 包装 content 返回
+ * 消除 32 处 handler 末尾重复的 isErrorResult + wrapResult 模式。
+ */
+export function handleApiCall(
+  data: unknown,
+  formatFn: (item: any) => unknown,
+  raw?: boolean,
+): { content: Array<{ type: "text"; text: string }> } | { content: Array<{ type: "text"; text: string }>; isError: true } {
+  if (data && typeof data === "object" && "isError" in data && (data as any).isError) {
+    return data as { content: Array<{ type: "text"; text: string }>; isError: true };
+  }
+  return {
+    content: [{ type: "text" as const, text: wrapResult(data, formatFn, raw) }],
+  };
+}

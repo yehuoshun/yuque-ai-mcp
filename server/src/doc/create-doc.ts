@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
+import { apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
-import { formatDoc, wrapResult } from "../common/format.js";
+import { formatDoc, handleApiCall } from "../common/format.js";
 import { generateSlug } from "../common/slug.js";
 
 /** 创建文档后自动追加到 TOC 末尾 */
@@ -63,19 +63,17 @@ export const docCreate: McpTool = {
     if (isPublic !== undefined) payload.public = isPublic;
 
     const data = await apiPost(`/repos/${bookId}/docs`, payload, "Create doc");
-    if (isErrorResult(data)) return data;
 
     const docId = (data as { data?: { id: number } })?.data?.id;
 
-    const result: Array<{ type: "text"; text: string }> = [
-      { type: "text" as const, text: wrapResult(data, formatDoc, raw) },
-    ];
+    const result = handleApiCall(data, formatDoc, raw);
+    const content = result.content ? [...result.content] : [];
 
     if (docId) {
       const tocWarning = await appendToToc(bookId, docId);
-      if (tocWarning) result.push({ type: "text" as const, text: tocWarning });
+      if (tocWarning) content.push({ type: "text" as const, text: tocWarning });
     }
 
-    return { content: result };
+    return result;
   },
 };

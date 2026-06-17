@@ -8,7 +8,8 @@
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { check, requiredString } from "../common/validate.js";
-import { apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPut } from "../common/api-client.js";
+import { handleApiCall } from "../common/format.js";
 
 
 export const tocUpdate: McpTool = {
@@ -68,9 +69,6 @@ export const tocUpdate: McpTool = {
     }
 
     const data = await apiPut(`/repos/${bookId}/toc`, payload, "Update TOC");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    };
+    return handleApiCall(data, undefined as any);
   },
 };

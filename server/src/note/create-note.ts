@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatNote, wrapResult } from "../common/format.js";
+import { formatNote, handleApiCall } from "../common/format.js";
 
 
 export const noteCreate: McpTool = {
@@ -32,9 +32,6 @@ export const noteCreate: McpTool = {
     const body = args?.body as string;
 
     const data = await apiPost("/notes", { body }, "Create note");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
-    };
+    return handleApiCall(data, formatNote, raw);
   },
 };

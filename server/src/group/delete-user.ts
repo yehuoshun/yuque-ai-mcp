@@ -8,8 +8,8 @@
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { check, requiredString } from "../common/validate.js";
-import { apiDelete, isErrorResult } from "../common/api-client.js";
-import { formatGroupUser } from "../common/format.js";
+import { apiDelete } from "../common/api-client.js";
+import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
 export const groupDeleteUser: McpTool = {
@@ -42,9 +42,6 @@ export const groupDeleteUser: McpTool = {
     const id = args?.id as string;
 
     const data = await apiDelete(`/groups/${login}/users/${id}`, "Delete group user");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: raw ? JSON.stringify(data, null, 2) : JSON.stringify(formatGroupUser(data as any), null, 2) }],
-    };
+    return handleApiCall(data, formatGroupUser, raw);
   },
 };

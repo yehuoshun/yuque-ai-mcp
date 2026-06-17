@@ -6,8 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
-import { formatNoteSummary } from "../common/format.js";
+import { apiGet } from "../common/api-client.js";
+import { formatNoteSummary, handleApiCall } from "../common/format.js";
 
 
 export const noteList: McpTool = {
@@ -36,16 +36,11 @@ export const noteList: McpTool = {
     if (status !== undefined) params.status = String(status);
 
     const data = await apiGet("/notes", params, "List notes");
-    if (isErrorResult(data)) return data;
-
     const notes = (data as { data?: { notes?: unknown[]; pin_notes?: unknown[] } })?.data;
     const formatted = {
       pin_notes: (notes?.pin_notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
       notes: (notes?.notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
     };
-    const result = raw ? JSON.stringify(data, null, 2) : JSON.stringify(formatted, null, 2);
-    return {
-      content: [{ type: "text" as const, text: result }],
-    };
+    return handleApiCall(raw ? data : formatted, undefined as any, raw);
   },
 };

@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatToc, wrapResult } from "../common/format.js";
+import { formatToc, handleApiCall } from "../common/format.js";
 
 
 export const tocGet: McpTool = {
@@ -32,10 +32,7 @@ export const tocGet: McpTool = {
     const bookId = args?.book_id as string;
 
     const data = await apiGet(`/repos/${bookId}/toc`, undefined, "Get TOC");
-    if (isErrorResult(data)) return data;
     const items = (data as { data?: unknown })?.data ?? data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(items, formatToc, raw) }],
-    };
+    return handleApiCall(items, formatToc, raw);
   },
 };

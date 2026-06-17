@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPostWithFallback, isErrorResult } from "../common/api-client.js";
+import { apiPostWithFallback } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
-import { formatRepo, wrapResult } from "../common/format.js";
+import { formatRepo, handleApiCall } from "../common/format.js";
 import { generateSlug } from "../common/slug.js";
 
 
@@ -35,7 +35,6 @@ export const repoCreate: McpTool = {
     const __v = check(
       requiredString(args?.login, "login"),
       requiredString(args?.name, "name"),
-      requiredString(args?.slug, "slug"),
     );
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
@@ -56,9 +55,6 @@ export const repoCreate: McpTool = {
       payload,
       "Create repo",
     );
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
-    };
+    return handleApiCall(data, formatRepo, raw);
   },
 };

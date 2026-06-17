@@ -9,7 +9,7 @@ import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { requiredString } from "../common/validate.js";
 import { apiDelete, isErrorResult } from "../common/api-client.js";
-import { formatRepo, wrapResult } from "../common/format.js";
+import { formatRepo, handleApiCall } from "../common/format.js";
 
 
 export const repoDelete: McpTool = {
@@ -37,9 +37,6 @@ export const repoDelete: McpTool = {
     const bookId = args?.book_id as string;
 
     const data = await apiDelete(`/repos/${bookId}`, "Delete repo");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatRepo, raw) }],
-    };
+    return handleApiCall(data, formatRepo, raw);
   },
 };

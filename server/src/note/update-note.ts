@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { apiPut, isErrorResult } from "../common/api-client.js";
-import { formatNote, wrapResult } from "../common/format.js";
+import { formatNote, handleApiCall } from "../common/format.js";
 
 
 export const noteUpdate: McpTool = {
@@ -55,9 +55,6 @@ export const noteUpdate: McpTool = {
     }
 
     const data = await apiPut(`/notes/${noteId}`, payload, "Update note");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatNote, raw) }],
-    };
+    return handleApiCall(data, formatNote, raw);
   },
 };

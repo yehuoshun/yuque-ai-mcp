@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatDocSummary, wrapResult } from "../common/format.js";
+import { formatDocSummary, handleApiCall } from "../common/format.js";
 
 
 export const docList: McpTool = {
@@ -44,9 +44,6 @@ export const docList: McpTool = {
     if (opt) params.optional_properties = opt;
 
     const data = await apiGet(`/repos/${bookId}/docs`, params, "List docs");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatDocSummary, raw) }],
-    };
+    return handleApiCall(data, formatDocSummary, raw);
   },
 };

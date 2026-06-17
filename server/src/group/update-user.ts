@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
-import { formatGroupUser } from "../common/format.js";
+import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
 export const groupUpdateUser: McpTool = {
@@ -39,11 +39,7 @@ export const groupUpdateUser: McpTool = {
     const role = (args?.role as number) ?? 1;
 
     const data = await apiPut(`/groups/${login}/users/${id}`, { role }, "Update group user");
-    if (isErrorResult(data)) return data;
-
     const item = (data as { data?: Record<string, unknown> })?.data ?? data;
-    return {
-      content: [{ type: "text" as const, text: raw ? JSON.stringify(data, null, 2) : JSON.stringify(formatGroupUser(item as any), null, 2) }],
-    };
+    return handleApiCall(item, formatGroupUser, raw);
   },
 };

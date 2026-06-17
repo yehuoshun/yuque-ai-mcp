@@ -6,9 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { formatUserGroup, wrapResult } from "../common/format.js";
+import { formatUserGroup, handleApiCall } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
   name: "yuque_get_user_groups",
@@ -38,12 +38,9 @@ export const userGetGroups: McpTool = {
     if (role !== undefined) params.role = String(role);
 
     const data = await apiGet(`/users/${id}/groups`, params, "Get user groups");
-    if (isErrorResult(data)) return data;
 
     const items = (data as { data?: unknown[] })?.data ?? data;
     const formatted = Array.isArray(items) ? items.map(formatUserGroup) : items;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(raw ? data : formatted, undefined, raw) }],
-    };
+    return handleApiCall(raw ? data : formatted, undefined as any, raw);
   },
 };

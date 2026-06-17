@@ -6,7 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
+import { handleApiCall } from "../common/format.js";
 
 
 export const userHello: McpTool = {
@@ -15,10 +16,6 @@ export const userHello: McpTool = {
 
   async handler() {
     const data = await apiGet("/hello");
-    if (isErrorResult(data)) return data;
-    const result = (data as { data?: { message: string } })?.data ?? data;
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-    };
+    return handleApiCall(data, undefined as any);
   },
 };

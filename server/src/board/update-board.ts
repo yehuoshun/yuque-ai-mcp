@@ -6,7 +6,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPut } from "../common/api-client.js";
-import { isErrorResult } from "../common/api-client.js";
+import { handleApiCall } from "../common/format.js";
 import { requiredString } from "../common/validate.js";
 
 export const boardUpdate: McpTool = {
@@ -58,9 +58,6 @@ export const boardUpdate: McpTool = {
     }
 
     const data = await apiPut("/yfm/boards", payload, "Update board");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    };
+    return handleApiCall(data, undefined as any);
   },
 };

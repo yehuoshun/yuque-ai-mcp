@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { formatUser, wrapResult } from "../common/format.js";
+import { formatUser, handleApiCall } from "../common/format.js";
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
@@ -23,9 +23,6 @@ export const userGet: McpTool = {
   async handler(args) {
     const raw = args?.raw as boolean | undefined;
     const data = await apiGet("/user", undefined, "Get user");
-    if (isErrorResult(data)) return data;
-    return {
-      content: [{ type: "text" as const, text: wrapResult(data, formatUser, raw) }],
-    };
+    return handleApiCall(data, formatUser, raw);
   },
 };
