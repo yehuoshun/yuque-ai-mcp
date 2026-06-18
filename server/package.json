@@ -1,6 +1,6 @@
 {
   "name": "yuque-ai-mcp",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "description": "\u8bed\u96c0 MCP Server \u2014 \u7ec6\u7c92\u5ea6\u5de5\u5177\u96c6",
   "type": "module",
   "main": "dist/index.js",
@@ -12,8 +12,7 @@
     "start:http": "node dist/http.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "cheerio": "^1.2.0"
+    "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
