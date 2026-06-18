@@ -2,31 +2,21 @@
  * doc/create — 创建文档
  *
  * 端点：POST /api/v2/repos/:book_id/docs
- * 职责：在指定知识库中创建新文档，并自动追加到知识库目录末尾
+ * 职责：在指定知识库中创建新文档
+ *
+ * 注意：不再自动 appendNode 到 TOC。
+ * 需要调整目录结构时，请使用 yuque_update_toc。
+ * import_url / import_file 内部有自己的 appendNode 逻辑。
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost, apiPut } from "../common/api-client.js";
+import { apiPost } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
 
-/** 创建文档后自动追加到 TOC 末尾 */
-async function appendToToc(bookId: string, docId: number): Promise<string | null> {
-  try {
-    const payload = { action: "appendNode", action_mode: "child", target_uuid: "", type: "DOC", doc_ids: [docId] };
-    const res = await apiPut(`/repos/${bookId}/toc`, payload, "Append to TOC");
-    if (res && typeof res === "object" && "isError" in res) {
-      return `文档创建成功，但自动追加到目录失败。请手动在语雀网页端调整目录。`;
-    }
-    return null;
-  } catch {
-    return "文档创建成功，但自动追加到目录时网络异常，请手动在语雀网页端调整目录 / Document created but network error during TOC append. Please manually adjust TOC in Yuque web UI.";
-  }
-}
-
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
-  description: "Create a document in a repo. Auto-appended to TOC root; use yuque_update_toc to reposition. POST /repos/:id/docs. 详见 references/api/doc_api.md",
+  description: "Create a document in a repo. TOC 不做自动处理，需要调整目录请用 yuque_update_toc。POST /repos/:id/docs. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",
@@ -65,14 +55,6 @@ export const docCreate: McpTool = {
 
     const docId = (data as { data?: { id: number } })?.data?.id;
 
-    const result = handleApiCall(data, formatDoc, raw);
-    const content = result.content ? [...result.content] : [];
-
-    if (docId) {
-      const tocWarning = await appendToToc(bookId, docId);
-      if (tocWarning) content.push({ type: "text" as const, text: tocWarning });
-    }
-
-    return result;
+    return handleApiCall(data, formatDoc, raw);
   },
 };
