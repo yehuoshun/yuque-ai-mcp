@@ -280,8 +280,13 @@ export const rssFetch: McpTool = {
 
       const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
       if (result.ok && enableKv) {
-        // 增量写入 KV 标记
-        await kvIncrementalSet(kvNamespace, entry.slug, entry.link);
+        // 增量写入 KV 标记（含时间戳和作者，供 schedule 分析用）
+        const kvMeta = JSON.stringify({
+          link: entry.link,
+          author: entry.author || "未知",
+          date: entry.published || new Date().toISOString(),
+        });
+        await kvIncrementalSet(kvNamespace, entry.slug, kvMeta);
       }
       results.push({
         title: entry.title,
