@@ -1,211 +1,225 @@
 /**
  * rss/schedule — 定时抓取策略分析
  *
- * 职责：根据 KV 中已抓取文章的时间戳，分析各作者的更新频率，
- * 按频率分档规划抓取间隔，输出结构化策略建议。
+ * 主方案：读取 RSS 配置知识库（config.json 中 rss.schedule.book_id），
+ * 分析每个 feed 的最近更新频率，生成推荐下次抓取时间，写回知识库。
  *
- * 频率分档：
- *   - 高频（日更/隔日更）：每 6h 抓一次
- *   - 中频（3-7 天）：每 12h 抓一次
- *   - 低频（7-30 天）：每天 1 次
- *   - 休眠（>30 天未更新）：每 3 天 1 次
+ * 兜底方案：KV 去重数据（无配置知识库时自动回退）。
+ *
+ * 频率分档（保守策略，最小间隔 1 天）：
+ *   - 高频：近 7 天 ≥5 篇 → 每天 1 次
+ *   - 中频：近 7 天 1-4 篇 → 每 7 天
+ *   - 低频：近 14 天 1 篇 → 每 15 天
+ *   - 休眠：近 30 天 0 篇 → 每 30 天
  */
 
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { RSS_SOURCES, type RssFeed } from "./sources.js";
+import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { RSS_SOURCES } from "./sources.js";
 import { loadKvMap } from "../kv/common.js";
 
-/** 频率分档 */
-interface FrequencyBand {
-  label: string;
-  range: string;
-  interval: string;
-  intervalHours: number;
-  authors: string[];
-}
+// ── 类型定义 ──
 
-/** 作者统计 */
-interface AuthorStats {
-  name: string;
-  articleCount: number;
-  firstSeen: string;
-  lastSeen: string;
-  avgIntervalDays: number;
-  band: string;
-}
-
-/** 策略结果 */
-interface ScheduleResult {
-  namespace: string;
+interface FeedAnalysis {
   source: string;
   sourceName: string;
-  totalAuthors: number;
-  totalArticles: number;
-  bands: FrequencyBand[];
-  recommendations: Array<{
-    feed: string;
-    label: string;
-    frequency: string;
-    reason: string;
-  }>;
-  authors: AuthorStats[];
+  feed: string;
+  label: string;
+  lastFetch: string | null;
+  nextFetch: string;
+  intervalDays: number;
+  band: string;
+  recent7dCount: number;
+  recent14dCount: number;
+  recent30dCount: number;
+  activeAuthors: string[];
 }
 
-/** 从 KV 中解析文章时间戳 */
-function parseTimestamps(kvMap: Record<string, string>): Array<{ author: string; date: Date }> {
-  const entries: Array<{ author: string; date: Date }> = [];
+interface ScheduleResult {
+  source: string;
+  sourceName: string;
+  mode: "schedule_book" | "kv_fallback" | "no_data";
+  scheduleBookId?: number;
+  analyses: FeedAnalysis[];
+  summary: {
+    high: number;
+    mid: number;
+    low: number;
+    dormant: number;
+  };
+}
+
+// ── 频率分档 ──
+
+interface BandRule {
+  label: string;
+  range: string;
+  intervalDays: number;
+}
+
+const BANDS: BandRule[] = [
+  { label: "高频", range: "近7天≥5篇", intervalDays: 1 },
+  { label: "中频", range: "近7天1-4篇", intervalDays: 7 },
+  { label: "低频", range: "近14天1篇", intervalDays: 15 },
+  { label: "休眠", range: "近30天0篇", intervalDays: 30 },
+];
+
+function classifyBand(recent7d: number, recent14d: number, recent30d: number): BandRule {
+  if (recent7d >= 5) return BANDS[0];
+  if (recent7d >= 1 && recent7d <= 4) return BANDS[1];
+  if (recent14d >= 1 && recent7d === 0) return BANDS[2];
+  return BANDS[3];
+}
+
+// ── 文章时间戳解析 ──
+
+interface ArticleMeta {
+  author: string;
+  date: Date;
+  link: string;
+}
+
+function parseArticles(kvMap: Record<string, string>): ArticleMeta[] {
+  const articles: ArticleMeta[] = [];
   for (const [slug, value] of Object.entries(kvMap)) {
     try {
       const meta = JSON.parse(value);
       if (meta.date) {
-        entries.push({ author: meta.author || "未知", date: new Date(meta.date) });
+        articles.push({
+          author: meta.author || "未知",
+          date: new Date(meta.date),
+          link: meta.link || "",
+        });
       }
     } catch {
-      // 旧格式：value 直接是 link，没有时间戳，跳过
-      continue;
+      // 旧格式，跳过
     }
   }
-  return entries;
+  return articles.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
-/** 按作者分组，计算平均更新间隔 */
-function analyzeAuthors(
-  entries: Array<{ author: string; date: Date }>,
-): AuthorStats[] {
-  const byAuthor: Record<string, Date[]> = {};
-  for (const e of entries) {
-    if (!byAuthor[e.author]) byAuthor[e.author] = [];
-    byAuthor[e.author].push(e.date);
+/** 统计最近 N 天内的文章数和活跃作者 */
+function countRecent(
+  articles: ArticleMeta[],
+  days: number,
+  now: Date,
+): { count: number; authors: string[] } {
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const recent = articles.filter((a) => a.date >= cutoff);
+  const authors = [...new Set(recent.map((a) => a.author))];
+  return { count: recent.length, authors };
+}
+
+// ── 配置知识库操作 ──
+
+/** 获取 RSS 配置知识库 ID */
+function getScheduleBookId(): number | null {
+  const cfg = loadConfig();
+  if (!cfg.rss?.schedule?.book_id) return null;
+  return cfg.rss.schedule.book_id;
+}
+
+/** 文档 slug 格式：{source}--{feed} */
+function buildSlug(source: string, feed: string): string {
+  return `${source}--${feed}`;
+}
+
+/** 从配置知识库中读取一个 feed 的已有记录 */
+async function readScheduleDoc(
+  bookId: number,
+  slug: string,
+): Promise<{ docId: number | null; lastFetch: string | null }> {
+  // 搜 slug 找文档
+  const searchData = await apiGet(
+    `/repos/${bookId}/docs?q=${encodeURIComponent(slug)}`,
+    undefined,
+    `Search schedule: ${slug}`,
+  );
+  if (isErrorResult(searchData)) return { docId: null, lastFetch: null };
+
+  const docs = (searchData as { data?: Array<{ id: number; slug: string; body?: string; content_updated_at?: string }> })?.data || [];
+  const doc = docs.find((d) => d.slug === slug);
+
+  if (!doc) return { docId: null, lastFetch: null };
+
+  // 从 body 中提取上次抓取时间
+  const body = doc.body || "";
+  const m = body.match(/上次抓取:\s*(.+)/);
+  const lastFetch = m ? m[1].trim() : null;
+
+  return { docId: doc.id, lastFetch };
+}
+
+/** 构建 schedule 文档的 Markdown 内容 */
+function buildScheduleBody(analysis: FeedAnalysis): string {
+  const lines: string[] = [];
+  lines.push(`# ${analysis.sourceName}/${analysis.label}`);
+  lines.push("");
+  lines.push(`- 数据源: ${analysis.source}`);
+  lines.push(`- Feed: ${analysis.feed}`);
+  lines.push(`- 上次抓取: ${analysis.lastFetch || "无记录"}`);
+  lines.push(`- 推荐下次抓取: ${analysis.nextFetch}`);
+  lines.push(`- 抓取间隔: ${analysis.intervalDays}天`);
+  lines.push(`- 频率分档: ${analysis.band}`);
+  lines.push(`- 近7天文章数: ${analysis.recent7dCount}`);
+  lines.push(`- 近14天文章数: ${analysis.recent14dCount}`);
+  lines.push(`- 近30天文章数: ${analysis.recent30dCount}`);
+  if (analysis.activeAuthors.length > 0) {
+    lines.push(`- 活跃作者: ${analysis.activeAuthors.slice(0, 10).join(", ")}${analysis.activeAuthors.length > 10 ? "..." : ""}`);
   }
+  return lines.join("\n");
+}
 
-  const now = new Date();
-  const stats: AuthorStats[] = [];
+/** 写入或更新 schedule 文档 */
+async function upsertScheduleDoc(
+  bookId: number,
+  slug: string,
+  analysis: FeedAnalysis,
+): Promise<{ ok: boolean; docId?: number; error?: string }> {
+  const body = buildScheduleBody(analysis);
+  const { docId } = await readScheduleDoc(bookId, slug);
 
-  for (const [author, dates] of Object.entries(byAuthor)) {
-    dates.sort((a, b) => a.getTime() - b.getTime());
-    const lastSeen = dates[dates.length - 1];
-    const daysSinceLast = (now.getTime() - lastSeen.getTime()) / (1000 * 60 * 60 * 24);
-
-    let avgIntervalDays = 0;
-    if (dates.length >= 2) {
-      let totalGap = 0;
-      for (let i = 1; i < dates.length; i++) {
-        totalGap += (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
-      }
-      avgIntervalDays = totalGap / (dates.length - 1);
+  if (docId) {
+    // 更新已有文档
+    const result = await apiPut(
+      `/repos/${bookId}/docs/${docId}`,
+      { title: `${analysis.sourceName}/${analysis.label}`, body, slug, format: "markdown", public: 0 },
+      `Update schedule: ${slug}`,
+    );
+    if (isErrorResult(result)) {
+      return { ok: false, error: JSON.stringify(result) };
     }
-
-    // 频率分档
-    let band: string;
-    if (avgIntervalDays <= 2 && avgIntervalDays > 0) band = "高频";
-    else if (avgIntervalDays <= 7 && avgIntervalDays > 0) band = "中频";
-    else if (avgIntervalDays <= 30 && avgIntervalDays > 0) band = "低频";
-    else if (daysSinceLast > 30) band = "休眠";
-    else band = "低频"; // 数据不足，保守估计
-
-    // 单篇文章但最近更新的 → 暂定中频
-    if (dates.length === 1 && daysSinceLast <= 7) band = "中频";
-    if (dates.length === 1 && daysSinceLast > 7) band = "低频";
-
-    stats.push({
-      name: author,
-      articleCount: dates.length,
-      firstSeen: dates[0].toISOString().slice(0, 10),
-      lastSeen: lastSeen.toISOString().slice(0, 10),
-      avgIntervalDays: Math.round(avgIntervalDays * 10) / 10,
-      band,
-    });
-  }
-
-  return stats.sort((a, b) => b.articleCount - a.articleCount);
-}
-
-/** 按频率分档分组 */
-function groupByBand(stats: AuthorStats[]): FrequencyBand[] {
-  const bands: Record<string, { authors: string[]; intervalHours: number; interval: string; range: string; label: string }> = {
-    "高频": { label: "高频", range: "≤2 天", interval: "每 6h", intervalHours: 6, authors: [] },
-    "中频": { label: "中频", range: "3-7 天", interval: "每 12h", intervalHours: 12, authors: [] },
-    "低频": { label: "低频", range: "7-30 天", interval: "每天 1 次", intervalHours: 24, authors: [] },
-    "休眠": { label: "休眠", range: ">30 天未更新", interval: "每 3 天 1 次", intervalHours: 72, authors: [] },
-  };
-
-  for (const s of stats) {
-    if (bands[s.band]) {
-      bands[s.band].authors.push(s.name);
+    return { ok: true, docId };
+  } else {
+    // 创建新文档
+    const result = await apiPost(
+      `/repos/${bookId}/docs`,
+      { title: `${analysis.sourceName}/${analysis.label}`, body, slug, format: "markdown", public: 0 },
+      `Create schedule: ${slug}`,
+    );
+    if (isErrorResult(result)) {
+      return { ok: false, error: JSON.stringify(result) };
     }
+    const newId = (result as { data?: { id: number } })?.data?.id;
+    return { ok: true, docId: newId };
   }
-
-  return Object.values(bands).filter((b) => b.authors.length > 0);
 }
 
-/** 生成各 feed 的推荐策略 */
-function recommendFeeds(
-  source: string,
-  bands: FrequencyBand[],
-): Array<{ feed: string; label: string; frequency: string; reason: string }> {
-  const src = RSS_SOURCES[source];
-  if (!src) return [];
-
-  const recommendations: Array<{ feed: string; label: string; frequency: string; reason: string }> = [];
-
-  for (const [feedKey, feed] of Object.entries(src.feeds)) {
-    let frequency: string;
-    let reason: string;
-
-    switch (feedKey) {
-      case "sitehome":
-      case "picked":
-        // 首页/推荐 → 高频，文章更新快
-        frequency = "每 6h";
-        reason = "首页/推荐内容更新频繁，建议高频抓取";
-        break;
-      case "48h":
-      case "10d":
-        // 排行类 → 中频，排行榜变动有周期
-        frequency = "每 12h";
-        reason = "排行榜内容有固定更新周期，中频即可";
-        break;
-      case "user":
-      case "category":
-        // 用户/分类 → 看作者整体频率
-        if (bands.length > 0) {
-          const topBand = bands[0].label;
-          if (topBand === "高频") { frequency = "每 6h"; reason = "作者整体更新频率高"; }
-          else if (topBand === "中频") { frequency = "每 12h"; reason = "作者整体更新频率中等"; }
-          else { frequency = "每天 1 次"; reason = "作者整体更新频率较低"; }
-        } else {
-          frequency = "每天 1 次";
-          reason = "无历史数据，保守估计";
-        }
-        break;
-      default:
-        frequency = "每 12h";
-        reason = "默认策略";
-    }
-
-    recommendations.push({
-      feed: feedKey,
-      label: feed.label,
-      frequency,
-      reason,
-    });
-  }
-
-  return recommendations;
-}
+// ── 工具定义 ──
 
 export const rssSchedule: McpTool = {
   name: "yuque_rss_schedule",
-  description: "Analyze RSS author update frequency from KV dedup data and recommend optimal fetch intervals. Use to plan cron schedules. 调用前需确保 KV 中有已抓取的时间戳数据。",
+  description: "Analyze RSS feed recent update frequency and recommend next fetch time. 主方案：读取 RSS 配置知识库，分析最近更新频率，生成推荐抓取时间并写回。兜底方案：KV 去重数据。",
 
   inputSchema: {
     type: "object",
     properties: {
       source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
-      kv_namespace: { type: "string", description: "KV namespace for reading dedup data, e.g. 'cnblogs'. Defaults to source key." },
-      raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
+      kv_namespace: { type: "string", description: "KV namespace for fallback dedup data. Defaults to source key." },
+      mode: { type: "string", description: "Mode: 'analyze' (analyze + write back, default) | 'dry_run' (analyze only, no write)" },
+      raw: { type: "boolean", description: "Return raw full JSON (default false)" },
     },
     required: ["source"],
   },
@@ -218,6 +232,7 @@ export const rssSchedule: McpTool = {
 
     const source = args?.source as string;
     const kvNamespace = (args?.kv_namespace as string) || source;
+    const mode = (args?.mode as string) ?? "analyze";
     const cfg = loadConfig();
     const enableKv = !!(cfg.kv?.enabled);
 
@@ -233,6 +248,7 @@ export const rssSchedule: McpTool = {
       };
     }
 
+    // 1. 加载 KV 数据（主方案和兜底方案都需要）
     if (!enableKv) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
@@ -244,7 +260,6 @@ export const rssSchedule: McpTool = {
       };
     }
 
-    // 1. 加载 KV 去重数据
     const kvMap = await loadKvMap(kvNamespace);
     const totalEntries = Object.keys(kvMap).length;
 
@@ -259,11 +274,9 @@ export const rssSchedule: McpTool = {
       };
     }
 
-    // 2. 解析时间戳
-    const entries = parseTimestamps(kvMap);
+    const articles = parseArticles(kvMap);
 
-    // 如果旧格式没有时间戳，回退到仅统计数量
-    if (entries.length === 0) {
+    if (articles.length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           source: src.name,
@@ -272,31 +285,96 @@ export const rssSchedule: McpTool = {
           warning: "KV 中数据为旧格式（无时间戳），无法按作者分析频率。建议重新抓取以生成带时间戳的记录。",
           fallback_recommendation: {
             strategy: "保守策略",
-            interval: "每 12h 抓取一次",
+            interval: "每 7 天抓取一次",
             reason: "无历史频率数据，使用默认间隔",
           },
         }, null, 2) }],
       };
     }
 
-    // 3. 分析作者频率
-    const authors = analyzeAuthors(entries);
-    const bands = groupByBand(authors);
-    const recommendations = recommendFeeds(source, bands);
+    const now = new Date();
+
+    // 2. 确定方案：主方案 = 配置知识库，兜底 = 纯 KV 分析
+    const scheduleBookId = getScheduleBookId();
+    const analysisMode = scheduleBookId ? "schedule_book" : "kv_fallback";
+
+    // 3. 分析每个 feed
+    const analyses: FeedAnalysis[] = [];
+
+    for (const [feedKey, feed] of Object.entries(src.feeds)) {
+      const { count: recent7d, authors: authors7d } = countRecent(articles, 7, now);
+      const { count: recent14d, authors: authors14d } = countRecent(articles, 14, now);
+      const { count: recent30d, authors: authors30d } = countRecent(articles, 30, now);
+
+      const band = classifyBand(recent7d, recent14d, recent30d);
+
+      let lastFetch: string | null = null;
+      if (scheduleBookId) {
+        const slug = buildSlug(source, feedKey);
+        const existing = await readScheduleDoc(scheduleBookId, slug);
+        lastFetch = existing.lastFetch;
+      }
+
+      const nextFetchDate = new Date(now.getTime() + band.intervalDays * 24 * 60 * 60 * 1000);
+
+      analyses.push({
+        source,
+        sourceName: src.name,
+        feed: feedKey,
+        label: feed.label,
+        lastFetch,
+        nextFetch: nextFetchDate.toISOString().slice(0, 10),
+        intervalDays: band.intervalDays,
+        band: band.label,
+        recent7dCount: recent7d,
+        recent14dCount: recent14d,
+        recent30dCount: recent30d,
+        activeAuthors: authors7d,
+      });
+    }
+
+    // 4. 主方案：写回配置知识库
+    const writeResults: Array<{ feed: string; status: string; docId?: number; error?: string }> = [];
+    if (analysisMode === "schedule_book" && mode !== "dry_run" && scheduleBookId) {
+      for (const analysis of analyses) {
+        const slug = buildSlug(analysis.source, analysis.feed);
+        const result = await upsertScheduleDoc(scheduleBookId, slug, analysis);
+        writeResults.push({
+          feed: analysis.feed,
+          status: result.ok ? "updated" : "failed",
+          docId: result.docId,
+          error: result.error,
+        });
+      }
+    }
+
+    // 5. 汇总
+    const summary = {
+      high: analyses.filter((a) => a.band === "高频").length,
+      mid: analyses.filter((a) => a.band === "中频").length,
+      low: analyses.filter((a) => a.band === "低频").length,
+      dormant: analyses.filter((a) => a.band === "休眠").length,
+    };
 
     const result: ScheduleResult = {
-      namespace: kvNamespace,
       source,
       sourceName: src.name,
-      totalAuthors: authors.length,
-      totalArticles: totalEntries,
-      bands,
-      recommendations,
-      authors,
+      mode: analysisMode,
+      scheduleBookId: scheduleBookId || undefined,
+      analyses,
+      summary,
     };
 
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify(
+          mode === "dry_run" || analysisMode === "kv_fallback"
+            ? { ...result, writeResults: writeResults.length > 0 ? writeResults : undefined }
+            : { ...result, writeResults },
+          null, 2,
+        ),
+      }],
     };
   },
 };

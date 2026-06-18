@@ -236,17 +236,20 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 |------|------|
 | `yuque_rss_list_sources` | 列出所有可用 RSS 数据源及 feed 类型 |
 | `yuque_rss_fetch` | 抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入知识库，自动加入目录 |
-| `yuque_rss_schedule` | 分析 KV 去重数据中的作者更新频率，输出分档抓取策略建议 |
+| `yuque_rss_schedule` | 分析最近更新频率，生成推荐抓取时间并写入配置知识库，支持 KV 兜底 |
 
-RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识库和去重知识库：
+RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识库和去重知识库。
+定时策略需额外配置 `rss.schedule.book_id`，指向 RSS 配置知识库：
 
 ```json
 {
   "rss": {
     "enabled": true,
-    "default_repo": { "id": 80197497 },
-    "sources": {
-      "cnblogs": { "id": 80197497 }
+    "namespaces": {
+      "cnblogs": { "book_id": 80197497 }
+    },
+    "schedule": {
+      "book_id": 80278170
     }
   },
   "kv": {

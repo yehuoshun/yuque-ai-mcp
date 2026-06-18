@@ -19,6 +19,9 @@ interface RepoRef {
 interface RssConfig {
   enabled: boolean;
   namespaces?: Record<string, RepoRef>;
+  schedule?: {
+    book_id: number;
+  };
 }
 
 interface KvNamespace {
