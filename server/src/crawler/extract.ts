@@ -18,6 +18,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
+import { unescapeHtml } from "../common/text-utils.js";
 
 interface ExtractResult {
   selector: string;
@@ -101,16 +102,10 @@ function extractAttrs(el: string): Record<string, string> {
 
 /** 提取元素的文本内容（去除标签） */
 function extractText(el: string): string {
-  return el
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return unescapeHtml(
+    el.replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+  ).trim();
 }
 
 /**

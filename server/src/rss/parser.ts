@@ -5,6 +5,8 @@
  * 不做网络请求，只做字符串 → 结构化的转换。
  */
 
+import { unescapeHtml as decodeXmlEntities } from "../common/text-utils.js";
+
 /** 统一条目结构，与 RSS/Atom 格式无关 */
 export interface FeedEntry {
   title: string;
@@ -115,15 +117,4 @@ function extractBlocks(xml: string, tag: string): string[] {
   return blocks;
 }
 
-/** 解码常见 XML 实体 */
-function decodeXmlEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, "/");
-}
+// decodeXmlEntities 已从 common/text-utils.ts 导入

@@ -6,6 +6,7 @@
 
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { unescapeHtml } from "./text-utils.js";
 
 // ─── 资源提取 ─────────────────────────────────────────
 
@@ -170,12 +171,4 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "");
 }
 
-function unescapeHtml(text: string): string {
-  return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
-}
+export { unescapeHtml } from "./text-utils.js";

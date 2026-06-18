@@ -8,6 +8,7 @@ import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
 import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
+import { escapeHtml } from "../common/text-utils.js";
 
 export const docImportUrl: McpTool = {
   name: "yuque_import_url",
@@ -195,14 +196,6 @@ function appendSourceLinkByFormat(
     return body + "\n" + footer;
   }
   return appendSourceLink(body, sourceUrl, sourceTitle);
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 function extractAndCleanContent(html: string, format: string): string {
