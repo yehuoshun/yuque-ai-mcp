@@ -11,43 +11,49 @@ import { loadKvMap } from "./common.js";
 
 export const kvGet: McpTool = {
   name: "yuque_kv_get",
-  description: "Get the full JSON key-value map for a namespace. Returns {key: value} object. Used for dedup checks, config storage, etc. 详见 references/api/extended_api.md",
+  description: "Get the full JSON key-value map for a namespace. 需指定 domain（rss/crawler）定位 kv_slugs。详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
     properties: {
-      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs', 'weibo'." },
+      domain: { type: "string", description: "Domain: 'rss' or 'crawler'. Locates kv_slugs in config." },
+      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs'." },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
-    required: ["namespace"],
+    required: ["domain", "namespace"],
   },
 
   async handler(args) {
-    const __v = check(requiredString(args?.namespace, "namespace"));
+    const __v = check(
+      requiredString(args?.domain, "domain"),
+      requiredString(args?.namespace, "namespace"),
+    );
     if (__v) return __v;
 
+    const domain = args?.domain as "rss" | "crawler";
     const namespace = args?.namespace as string;
-    const ns = loadConfig().kv?.namespaces?.[namespace];
 
-    if (!ns) {
+    const slugs = loadConfig()[domain]?.namespaces?.[namespace]?.kv_slugs ?? [];
+
+    if (slugs.length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           error: "NAMESPACE_NOT_FOUND",
-          message: `namespace '${namespace}' 未配置，请先在 config.json 中设置 kv.namespaces`,
+          message: `namespace '${namespace}' 未配置 kv_slugs，请先在 config.json 的 ${domain}.namespaces.${namespace} 中设置`,
         }, null, 2) }],
         isError: true,
       };
     }
 
-    const map = await loadKvMap(namespace);
+    const map = await loadKvMap(domain, namespace);
 
     return {
       content: [{
         type: "text" as const,
         text: JSON.stringify({
+          domain,
           namespace,
-          book_id: ns.book_id,
-          shards: ns.docs.length,
+          shards: slugs.length,
           count: Object.keys(map).length,
           data: map,
         }, null, 2),

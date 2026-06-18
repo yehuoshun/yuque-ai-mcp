@@ -15,21 +15,11 @@ import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
 
-/** 从 RepoRef 提取知识库标识 */
-function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
-  if (!ref) return "";
-  if (ref.id) return String(ref.id);
-  if (ref.book_id) return ref.book_id;
-  if (ref.namespace) return ref.namespace;
-  return "";
-}
-
 /** 解析目标知识库 */
-function resolveRepo(source?: string, paramRepo?: string): string {
-  if (paramRepo) return paramRepo;
+function resolveRepo(source?: string, paramRepo?: string): number | null {
+  if (paramRepo) return parseInt(paramRepo, 10) || null;
   const cfg = loadConfig();
-  if (!cfg.crawler) return "";
-  return repoRefToString(cfg.crawler?.namespaces?.[source || ""]);
+  return cfg.crawler?.namespaces?.[source || ""]?.book_id ?? null;
 }
 
 /** 生成去重 slug（URL → md5 前 12 位） */
@@ -101,8 +91,7 @@ export const crawlSave: McpTool = {
     properties: {
       url: { type: "string", description: "Target URL to crawl and save" },
       source: { type: "string", description: "Source key for repo routing and KV namespace, e.g. 'cnblogs'. Falls back to config crawler.namespaces.{source}" },
-      target_repo: { type: "string", description: "Target repo ID or namespace. Optional — falls back to config.json crawler config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.namespaces.{namespace}.book_id." },
+      target_repo: { type: "string", description: "Target repo ID. Optional — falls back to config.json crawler.namespaces.{source}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup. Defaults to source if set, otherwise 'crawler'." },
       content_selector: { type: "string", description: "CSS selector for content area, e.g. '.post-body', '#article-content'. Extracts full page if omitted." },
       title_selector: { type: "string", description: "CSS selector for title override, e.g. 'h1.title'. Uses <title> tag if omitted." },
@@ -122,7 +111,6 @@ export const crawlSave: McpTool = {
     const url = args?.url as string;
     const source = args?.source as string | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
-    const kvRepoParam = args?.kv_repo as string | undefined;
     const kvNamespace = (args?.kv_namespace as string) || source || "crawler";
     const contentSelector = args?.content_selector as string | undefined;
     const titleSelector = args?.title_selector as string | undefined;
@@ -195,7 +183,7 @@ export const crawlSave: McpTool = {
 
     if (enableKv && mode === "save") {
       try {
-        const existingMap = await loadKvMap(kvNamespace);
+        const existingMap = await loadKvMap("crawler", kvNamespace);
         isDuplicate = slug in existingMap;
       } catch { /* 去重检查失败不影响主流程 */ }
     }
@@ -290,7 +278,7 @@ export const crawlSave: McpTool = {
           link: finalUrl,
           date: new Date().toISOString(),
         });
-        await kvIncrementalSet(kvNamespace, slug, kvMeta);
+        await kvIncrementalSet("crawler", kvNamespace, slug, kvMeta);
       } catch { /* KV 标记失败不影响主流程 */ }
     }
 

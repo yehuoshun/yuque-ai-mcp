@@ -238,31 +238,30 @@ npm run dev:http   # HTTP SSE 模式（端口 3099）
 | `yuque_rss_fetch` | 抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入知识库，自动加入目录 |
 | `yuque_rss_schedule` | 分析最近更新频率，生成推荐抓取时间并写入配置知识库，支持 KV 兜底 |
 
-RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识库和去重知识库。
-定时策略需额外配置 `rss.schedule.book_id`，指向 RSS 配置知识库：
+RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识库、去重 KV 和定时策略文档。
+配置使用 slug 格式 `{book_id}/{doc_id}` 直接定位文档：
 
 ```json
 {
+  "kv": {
+    "enabled": true
+  },
   "rss": {
     "enabled": true,
     "namespaces": {
-      "cnblogs": { "book_id": 80197497 }
-    },
-    "schedule": {
-      "book_id": 80278170
-    }
-  },
-  "kv": {
-    "enabled": true,
-    "namespaces": {
-      "cnblogs": { "book_id": 80197550, "docs": [] }
+      "cnblogs": {
+        "book_id": 80197497,
+        "kv_slugs": ["80197550/274164064"],
+        "schedule_slugs": ["80278170/274357940"]
+      }
     }
   }
 }
 ```
 
-知识库标识支持三种格式：`id`（数字ID）> `book_id` > `namespace`。
-去重策略：`kv.enabled=true` 时，使用 KV 域增量分片去重（config 记录 book_id + docs 数组，单文档上限 250KB）。
+- `kv_slugs`：KV 去重分片文档，数组支持多分片（单文档上限 250KB，超出自动创建新分片）
+- `schedule_slugs`：定时策略配置文档，数组支持多 feed
+- 去重策略：`kv.enabled=true` 时，使用 KV 域增量分片去重
 
 ### crawler — 网页爬虫
 | 工具 | 说明 |
@@ -273,22 +272,25 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 | `yuque_crawl_blog` | 博客园专用：抓取→cheerio HTML→Markdown→写入（语法高亮） |
 | `yuque_crawl_schedule` | 分析爬虫最近抓取频率，生成推荐抓取时间并写入配置知识库 |
 
-爬虫需在 `config.json` 中配置 `crawler` 段：
+爬虫需在 `config.json` 中配置 `crawler` 段，与 RSS 共用 kv_slugs/schedule_slugs 格式：
 
 ```json
 {
   "crawler": {
     "enabled": true,
-    "default_repo": { "id": 80197497 },
-    "sources": {
-      "cnblogs": { "id": 80197497 }
+    "namespaces": {
+      "cnblogs": {
+        "book_id": 80197497,
+        "kv_slugs": ["80197550/274164064"],
+        "schedule_slugs": ["80278170/274358465"]
+      }
     }
   }
 }
 ```
 
-目标知识库优先级：`target_repo` 参数 → `crawler.sources.{source}` → `crawler.default_repo`。
-去重依赖 `kv.enabled=true`，使用 KV 域增量分片去重（namespace 默认为 source 或 'crawler'，config 记录 book_id + docs 数组）。
+目标知识库优先级：`target_repo` 参数 → `crawler.namespaces.{source}.book_id`。
+去重依赖 `kv.enabled=true`，使用 KV 域增量分片去重。
 
 ### kv — KV 键值存储
 | 工具 | 说明 |
@@ -298,8 +300,9 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 | `yuque_kv_delete` | 遍历分片查找并删除 key |
 | `yuque_kv_list` | 列出 config.json 中已配置的命名空间 |
 
-KV 存储方案：增量分片，config.json 记录 `{book_id, docs:[doc_id]}`。
+KV 存储方案：增量分片，配置分散在 rss/crawler 的 namespaces 中（`kv_slugs` 数组）。
 单文档 body 上限 250KB，超出自动创建新分片。RSS 和 crawler 的去重都依赖此域。
+KV 工具调用需指定 `domain` 参数（rss/crawler），定位对应 namespace 的 `kv_slugs`。
 
 ## 错误处理
 

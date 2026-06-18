@@ -10,32 +10,35 @@ import { kvIncrementalSet } from "./common.js";
 
 export const kvSet: McpTool = {
   name: "yuque_kv_set",
-  description: "Set a key-value pair in a KV namespace. Incremental: reads only the last shard, updates if under 250KB, creates new shard if full. 详见 references/api/extended_api.md",
+  description: "Set a key-value pair in a KV namespace. 需指定 domain（rss/crawler）定位 kv_slugs。详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
     properties: {
-      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs', 'weibo'." },
+      domain: { type: "string", description: "Domain: 'rss' or 'crawler'. Locates kv_slugs in config." },
+      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs'." },
       key: { type: "string", description: "Key to set" },
       value: { type: "string", description: "Value to store" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
-    required: ["namespace", "key", "value"],
+    required: ["domain", "namespace", "key", "value"],
   },
 
   async handler(args) {
     const __v = check(
+      requiredString(args?.domain, "domain"),
       requiredString(args?.namespace, "namespace"),
       requiredString(args?.key, "key"),
       requiredString(args?.value, "value"),
     );
     if (__v) return __v;
 
+    const domain = args?.domain as "rss" | "crawler";
     const namespace = args?.namespace as string;
     const key = args?.key as string;
     const value = args?.value as string;
 
-    const result = await kvIncrementalSet(namespace, key, value);
+    const result = await kvIncrementalSet(domain, namespace, key, value);
     if (!result.ok) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
@@ -50,6 +53,7 @@ export const kvSet: McpTool = {
       content: [{
         type: "text" as const,
         text: JSON.stringify({
+          domain,
           namespace,
           key,
           value,

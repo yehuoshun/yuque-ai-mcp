@@ -36,24 +36,14 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
   return null;
 }
 
-/** 从 RepoRef 提取知识库标识 */
-function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
-  if (!ref) return "";
-  if (ref.id) return String(ref.id);
-  if (ref.book_id) return ref.book_id;
-  if (ref.namespace) return ref.namespace;
-  return "";
-}
-
 /**
  * 解析 RSS 目标知识库
  * 优先级：tool 参数 → config.rss.namespaces.{source}.book_id
  */
-function resolveRssRepo(source: string, paramRepo?: string): string {
-  if (paramRepo) return paramRepo;
+function resolveRssRepo(source: string, paramRepo?: string): number | null {
+  if (paramRepo) return parseInt(paramRepo, 10) || null;
   const cfg = loadConfig();
-  if (!cfg.rss) return "";
-  return repoRefToString(cfg.rss?.namespaces?.[source]);
+  return cfg.rss?.namespaces?.[source]?.book_id ?? null;
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */
@@ -77,7 +67,7 @@ function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
 
 /** 创建一篇语雀文档 */
 async function createDoc(
-  bookId: string,
+  bookId: number,
   title: string,
   body: string,
   link: string,
@@ -124,8 +114,7 @@ export const rssFetch: McpTool = {
       source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "string", description: "Template params for feeds with url_template. JSON string, e.g. '{\"username\":\"hsewr333\"}'" },
-      target_repo: { type: "string", description: "RSS target repo ID or namespace. Optional — falls back to config.json rss config." },
-      kv_repo: { type: "string", description: "KV dedup repo ID or namespace. Optional — falls back to config.json kv.namespaces.{namespace}.book_id." },
+      target_repo: { type: "string", description: "RSS target repo ID. Optional — falls back to config.json rss.namespaces.{source}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup, e.g. 'cnblogs'. Defaults to source key." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'dry_run' (preview only, no save)" },
@@ -150,7 +139,6 @@ export const rssFetch: McpTool = {
     }
     feedParams = feedParams as Record<string, unknown> | undefined;
     const targetRepoParam = args?.target_repo as string | undefined;
-    const kvRepoParam = args?.kv_repo as string | undefined;
     const kvNamespace = (args?.kv_namespace as string) || source;
     const maxItems = Math.min((args?.max_items as number) ?? 10, 50);
     const mode = (args?.mode as string) ?? "append";
@@ -233,7 +221,7 @@ export const rssFetch: McpTool = {
     let existingMap: Record<string, string> = {};
 
     if (enableKv && mode !== "dry_run") {
-      existingMap = await loadKvMap(kvNamespace);
+      existingMap = await loadKvMap("rss", kvNamespace);
       for (const entry of entries) {
         const slug = buildSlug(source, entry.link);
         if (slug in existingMap) {
@@ -273,6 +261,16 @@ export const rssFetch: McpTool = {
     }
 
     // 7. 写入语雀 + KV 标记
+    if (!targetRepo) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "NO_TARGET_REPO",
+          message: "未配置目标知识库，请在 config.json 的 rss.namespaces.{source}.book_id 中设置或传 target_repo 参数",
+        }, null, 2) }],
+        isError: true,
+      };
+    }
+
     const results: Array<{ title: string; link: string; slug: string; doc_id?: number; status: string; error?: string }> = [];
     for (const entry of newEntries) {
       const docTitle = `${titlePrefix}${entry.title}`;
@@ -286,7 +284,7 @@ export const rssFetch: McpTool = {
           author: entry.author || "未知",
           date: entry.published || new Date().toISOString(),
         });
-        await kvIncrementalSet(kvNamespace, entry.slug, kvMeta);
+        await kvIncrementalSet("rss", kvNamespace, entry.slug, kvMeta);
       }
       results.push({
         title: entry.title,

@@ -1,5 +1,5 @@
 /**
- * kv/list — 列出所有已配置的 KV namespace（直接从 config 读取）
+ * kv/list — 列出所有已配置的 KV namespace（从 rss/crawler namespaces 汇总）
  */
 
 import type { McpTool } from "../common/types.js";
@@ -7,7 +7,7 @@ import { loadConfig } from "../common/config.js";
 
 export const kvList: McpTool = {
   name: "yuque_kv_list",
-  description: "List all configured KV namespaces from config.json. 详见 references/api/extended_api.md",
+  description: "List all configured KV namespaces from config.json (rss + crawler). 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -19,14 +19,21 @@ export const kvList: McpTool = {
 
   async handler() {
     const cfg = loadConfig();
-    const namespaces = cfg.kv?.namespaces || {};
+    const list: Array<{ domain: string; namespace: string; book_id: number; kv_shards: number; kv_slugs: string[]; schedule_slugs: string[] }> = [];
 
-    const list = Object.entries(namespaces).map(([name, ns]) => ({
-      namespace: name,
-      book_id: ns.book_id,
-      shards: ns.docs.length,
-      doc_ids: ns.docs,
-    }));
+    for (const domain of ["rss", "crawler"] as const) {
+      const namespaces = cfg[domain]?.namespaces || {};
+      for (const [name, ns] of Object.entries(namespaces)) {
+        list.push({
+          domain,
+          namespace: name,
+          book_id: ns.book_id,
+          kv_shards: ns.kv_slugs?.length ?? 0,
+          kv_slugs: ns.kv_slugs ?? [],
+          schedule_slugs: ns.schedule_slugs ?? [],
+        });
+      }
+    }
 
     return {
       content: [{

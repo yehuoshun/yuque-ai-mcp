@@ -5,21 +5,13 @@ import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { apiPost, apiPut, apiDelete, isErrorResult } from "../common/api-client.js";
 
-function resolveRepo(source?: string, paramRepo?: string): string {
+function resolveRepo(source?: string, paramRepo?: string): number | null {
   const cfg = loadConfig();
-  if (paramRepo) return paramRepo;
+  if (paramRepo) return parseInt(paramRepo, 10) || null;
   if (source && cfg.crawler?.namespaces?.[source]) {
-    return repoRefToString(cfg.crawler.namespaces[source]);
+    return cfg.crawler.namespaces[source].book_id ?? null;
   }
-  return "";
-}
-
-function repoRefToString(ref: { id?: number; book_id?: string; namespace?: string } | undefined): string {
-  if (!ref) return "";
-  if (ref.id) return String(ref.id);
-  if (ref.book_id) return ref.book_id;
-  if (ref.namespace) return ref.namespace;
-  return "";
+  return null;
 }
 
 function buildSlug(url: string): string {

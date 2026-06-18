@@ -2,6 +2,9 @@
  * config — 读取 config/config.json
  *
  * 所有工具模块通过此文件获取配置，不再依赖环境变量。
+ *
+ * slug 格式：`{book_id}/{doc_id}`，用 / 分割解析。
+ * kv_slugs / schedule_slugs 均为数组，支持多文档。
  */
 
 import { readFileSync, writeFileSync } from "fs";
@@ -10,33 +13,24 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface RepoRef {
-  book_id?: string;
-  namespace?: string;
-  id?: number;
+interface NamespaceConfig {
+  book_id: number;
+  kv_slugs?: string[];       // 去重 KV：`{book_id}/{doc_id}` 数组
+  schedule_slugs?: string[];  // 定时策略：`{book_id}/{doc_id}` 数组
 }
 
 interface RssConfig {
   enabled: boolean;
-  namespaces?: Record<string, RepoRef>;
-  schedule?: {
-    book_id: number;
-  };
-}
-
-interface KvNamespace {
-  book_id: number;
-  docs: number[];
+  namespaces?: Record<string, NamespaceConfig>;
 }
 
 interface KvConfig {
   enabled: boolean;
-  namespaces?: Record<string, KvNamespace>;
 }
 
 interface CrawlerConfig {
   enabled: boolean;
-  namespaces?: Record<string, RepoRef>;
+  namespaces?: Record<string, NamespaceConfig>;
 }
 
 interface Config {
@@ -72,9 +66,24 @@ export function loadConfig(): Config {
   return _config;
 }
 
-/** 持久化 config 到文件（目前仅用于更新 kv.namespaces） */
+/** 持久化 config 到文件 */
 export function saveConfig(): void {
   if (!_config) return;
   const configPath = resolve(__dirname, "../../../config/config.json");
   writeFileSync(configPath, JSON.stringify(_config, null, 2) + "\n", "utf-8");
+}
+
+/** 解析 slug：`{book_id}/{doc_id}` → { bookId, docId } */
+export function parseSlug(slug: string): { bookId: number; docId: number } | null {
+  const parts = slug.split("/");
+  if (parts.length !== 2) return null;
+  const bookId = parseInt(parts[0], 10);
+  const docId = parseInt(parts[1], 10);
+  if (isNaN(bookId) || isNaN(docId)) return null;
+  return { bookId, docId };
+}
+
+/** 组装 slug：bookId/docId */
+export function buildSlugStr(bookId: number, docId: number): string {
+  return `${bookId}/${docId}`;
 }
