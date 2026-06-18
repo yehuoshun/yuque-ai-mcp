@@ -97,6 +97,7 @@ interface YuqueNoteRaw {
 interface YuqueTocNodeRaw {
   title: string;
   uuid: string;
+  type?: string;
   doc_id?: number;
   level?: number;
   visible?: boolean;
@@ -263,6 +264,7 @@ export function formatToc(data: YuqueTocNodeRaw[]) {
   return data.map((item) => ({
     title: item.title,
     uuid: item.uuid,
+    type: item.type,
     doc_id: item.doc_id,
     level: item.level,
     visible: item.visible,

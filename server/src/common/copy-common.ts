@@ -62,7 +62,7 @@ export async function ensureDirectoryPath(
   if (cached) return cached;
 
   const parts = path.split("/").filter(Boolean);
-  let parentUuid = "";
+  let parentUuid: string | undefined;
 
   for (let i = 0; i < parts.length; i++) {
     const subPath = parts.slice(0, i + 1).join("/");
@@ -80,13 +80,14 @@ export async function ensureDirectoryPath(
       continue;
     }
 
-    const createResult = await apiPut(`/repos/${bookId}/toc`, {
+    const createPayload: Record<string, unknown> = {
       action: "appendNode",
       action_mode: "child",
       type: "TITLE",
       title: parts[i],
-      target_uuid: parentUuid,
-    }, `Create TOC dir: ${subPath}`);
+    };
+    if (parentUuid) createPayload.target_uuid = parentUuid;
+    const createResult = await apiPut(`/repos/${bookId}/toc`, createPayload, `Create TOC dir: ${subPath}`);
 
     if (isErrorResult(createResult)) return null;
 
@@ -97,7 +98,7 @@ export async function ensureDirectoryPath(
     parentUuid = newUuid;
   }
 
-  return parentUuid;
+  return parentUuid || null;
 }
 
 // ─── TOC 节点查找 ────────────────────────────────────────
@@ -105,13 +106,14 @@ export async function ensureDirectoryPath(
 function findTocNode(
   data: unknown,
   title: string,
-  parentUuid: string,
+  parentUuid: string | undefined,
 ): string | null {
   const nodes = extractTocNodes(data);
+  const targetParent = parentUuid || "";
   for (const node of nodes) {
     if (
       node.title === title &&
-      (node.parent_uuid || "") === parentUuid &&
+      (node.parent_uuid || "") === (targetParent || null ? node.parent_uuid || "" : "") &&
       node.type === "TITLE"
     ) {
       return node.uuid;

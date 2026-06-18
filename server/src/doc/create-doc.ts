@@ -3,6 +3,9 @@
  *
  * 端点：POST /api/v2/repos/:book_id/docs
  * 职责：在指定知识库中创建新文档，可选挂载到 TOC 指定节点下
+ *
+ * ⚠️ 重要：appendNode 的 target_uuid 不传时从 payload 中去掉该字段，
+ * 不能传空字符串 ""，否则语雀 API 可能清空整个目录结构。
  */
 
 import type { McpTool } from "../common/types.js";
@@ -11,9 +14,20 @@ import { check, requiredString } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
 
 /** 创建文档后追加到 TOC */
-async function appendToToc(bookId: string, docId: number, parentUuid: string): Promise<string | null> {
+async function appendToToc(
+  bookId: string,
+  docId: number,
+  parentUuid: string | undefined,
+): Promise<string | null> {
   try {
-    const payload = { action: "appendNode", action_mode: "child", target_uuid: parentUuid, type: "DOC", doc_ids: [docId] };
+    const payload: Record<string, unknown> = {
+      action: "appendNode",
+      action_mode: "child",
+      type: "DOC",
+      doc_ids: [docId],
+    };
+    // ⚠️ 不传 target_uuid 比传空字符串安全：空字符串可能被语雀解析为清空目录
+    if (parentUuid) payload.target_uuid = parentUuid;
     const res = await apiPut(`/repos/${bookId}/toc`, payload, "Append to TOC");
     if (res && typeof res === "object" && "isError" in res) {
       return `文档创建成功，但追加到目录失败。请手动在语雀网页端调整目录。`;
@@ -57,7 +71,7 @@ export const docCreate: McpTool = {
     const format = (args?.format as string) ?? "markdown";
     const body = args?.body as string;
     const isPublic = args?.public as number | undefined;
-    const parentUuid = (args?.parent_uuid as string) ?? "";
+    const parentUuid = args?.parent_uuid as string | undefined;
 
     const payload: Record<string, unknown> = { title, body, format };
     if (slug) payload.slug = slug;
