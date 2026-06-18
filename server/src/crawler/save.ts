@@ -103,7 +103,9 @@ export const crawlSave: McpTool = {
       };
     }
 
-    const docBody = `> 来源：${url} | 抓取时间：${new Date().toISOString()}\n\n${body}`;
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const docBody = `> 来源：${url} | 抓取时间：${ts}\n\n${body}`;
 
     const createResult = await apiPost(`/repos/${targetRepo}/docs`, {
       title,
