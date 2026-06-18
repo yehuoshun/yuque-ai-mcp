@@ -1,7 +1,7 @@
 {
   "name": "yuque-ai-mcp",
-  "version": "2.7.0",
-  "description": "语雀 MCP Server — 细粒度工具集",
+  "version": "2.7.1",
+  "description": "\u8bed\u96c0 MCP Server \u2014 \u7ec6\u7c92\u5ea6\u5de5\u5177\u96c6",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

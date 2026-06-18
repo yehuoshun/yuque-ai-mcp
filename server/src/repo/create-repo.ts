@@ -9,8 +9,6 @@ import type { McpTool } from "../common/types.js";
 import { apiPostWithFallback } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatRepo, handleApiCall } from "../common/format.js";
-import { generateSlug } from "../common/slug.js";
-
 
 export const repoCreate: McpTool = {
   name: "yuque_create_repo",
@@ -21,7 +19,7 @@ export const repoCreate: McpTool = {
     properties: {
       login: { type: "string", description: "User or group login / ID (required)" },
       name: { type: "string", description: "Repository name (required)" },
-      slug: { type: "string", description: "Repository slug, auto-generated from name if omitted. Rule: Chinese→pinyin initials, English→kebab-case, plus timestamp last 4 digits for uniqueness." },
+      slug: { type: "string", description: "Repository slug (optional, Yuque auto-generates if omitted)" },
       description: { type: "string", description: "Description" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public (default 0)" },
       enhancedPrivacy: { type: "boolean", description: "Enhanced privacy: non-admin members get no access by default" },
@@ -40,12 +38,13 @@ export const repoCreate: McpTool = {
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
     const name = args?.name as string;
-    const slug = (args?.slug as string) || generateSlug(name);
+    const slug = args?.slug as string | undefined;
     const description = args?.description as string | undefined;
     const isPublic = (args?.public as number) ?? 0;
     const enhancedPrivacy = args?.enhancedPrivacy as boolean | undefined;
 
-    const payload: Record<string, unknown> = { name, slug, public: isPublic };
+    const payload: Record<string, unknown> = { name, public: isPublic };
+    if (slug) payload.slug = slug;
     if (description) payload.description = description;
     if (enhancedPrivacy !== undefined) payload.enhancedPrivacy = enhancedPrivacy;
 
