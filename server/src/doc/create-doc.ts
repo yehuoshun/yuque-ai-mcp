@@ -2,21 +2,31 @@
  * doc/create — 创建文档
  *
  * 端点：POST /api/v2/repos/:book_id/docs
- * 职责：在指定知识库中创建新文档
- *
- * 注意：不再自动 appendNode 到 TOC。
- * 需要调整目录结构时，请使用 yuque_update_toc。
- * import_url / import_file 内部有自己的 appendNode 逻辑。
+ * 职责：在指定知识库中创建新文档，可选挂载到 TOC 指定节点下
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost } from "../common/api-client.js";
+import { apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
 
+/** 创建文档后追加到 TOC */
+async function appendToToc(bookId: string, docId: number, parentUuid: string): Promise<string | null> {
+  try {
+    const payload = { action: "appendNode", action_mode: "child", target_uuid: parentUuid, type: "DOC", doc_ids: [docId] };
+    const res = await apiPut(`/repos/${bookId}/toc`, payload, "Append to TOC");
+    if (res && typeof res === "object" && "isError" in res) {
+      return `文档创建成功，但追加到目录失败。请手动在语雀网页端调整目录。`;
+    }
+    return null;
+  } catch {
+    return "文档创建成功，但追加到目录时网络异常，请手动在语雀网页端调整目录。";
+  }
+}
+
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
-  description: "Create a document in a repo. TOC 不做自动处理，需要调整目录请用 yuque_update_toc。POST /repos/:id/docs. 详见 references/api/doc_api.md",
+  description: "Create a document in a repo. 传 parent_uuid 则挂到指定节点下，不传默认挂根目录。POST /repos/:id/docs. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",
@@ -27,6 +37,7 @@ export const docCreate: McpTool = {
       format: { type: "string", description: "Content format: markdown / html / lake, defaults to markdown" },
       body: { type: "string", description: "Document body content (required)" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public, defaults to repo setting" },
+      parent_uuid: { type: "string", description: "TOC parent node UUID. 指定后新文档挂到该节点下。不传默认挂根目录。" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["book_id", "body"],
@@ -46,6 +57,7 @@ export const docCreate: McpTool = {
     const format = (args?.format as string) ?? "markdown";
     const body = args?.body as string;
     const isPublic = args?.public as number | undefined;
+    const parentUuid = (args?.parent_uuid as string) ?? "";
 
     const payload: Record<string, unknown> = { title, body, format };
     if (slug) payload.slug = slug;
@@ -55,6 +67,14 @@ export const docCreate: McpTool = {
 
     const docId = (data as { data?: { id: number } })?.data?.id;
 
-    return handleApiCall(data, formatDoc, raw);
+    const result = handleApiCall(data, formatDoc, raw);
+    const content = result.content ? [...result.content] : [];
+
+    if (docId) {
+      const tocWarning = await appendToToc(bookId, docId, parentUuid);
+      if (tocWarning) content.push({ type: "text" as const, text: tocWarning });
+    }
+
+    return result;
   },
 };
