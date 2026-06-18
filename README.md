@@ -1,12 +1,12 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 60 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 61 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
 
 ## 与官方版对比
 
 | 对比项 | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
 |--------|------|------|
-| 工具数量 | 19 个 | **60 个** |
+| 工具数量 | 19 个 | **61 个** |
 | 工具粒度 | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
 | 团队管理 | ❌ 不支持 | ✅ group 域（成员列表/角色变更/删除） |
 | 回收站 | ❌ 不支持 | ✅ recycle 域（列表/恢复/彻底删除） |
@@ -131,7 +131,7 @@ npm run dev        # stdio 模式
 npm run dev:http   # HTTP SSE 模式（端口 3099）
 ```
 
-## 工具列表（60 个）
+## 工具列表（61 个）
 
 ### user — 用户信息
 | 工具 | 端点 |
@@ -271,6 +271,7 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 | `yuque_crawl_extract` | CSS 选择器从 HTML 提取内容/属性 |
 | `yuque_crawl_save` | 抓取→提取→去重→写入语雀一站式管道 |
 | `yuque_crawl_blog` | 博客园专用：抓取→cheerio HTML→Markdown→写入（语法高亮） |
+| `yuque_crawl_schedule` | 分析爬虫最近抓取频率，生成推荐抓取时间并写入配置知识库 |
 
 爬虫需在 `config.json` 中配置 `crawler` 段：
 

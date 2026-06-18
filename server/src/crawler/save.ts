@@ -283,10 +283,14 @@ export const crawlSave: McpTool = {
       } catch { /* TOC 失败不影响主流程 */ }
     }
 
-    // 7. 增量写入 KV 标记
+    // 7. 增量写入 KV 标记（含时间戳，供 schedule 分析用）
     if (enableKv) {
       try {
-        await kvIncrementalSet(kvNamespace, slug, finalUrl);
+        const kvMeta = JSON.stringify({
+          link: finalUrl,
+          date: new Date().toISOString(),
+        });
+        await kvIncrementalSet(kvNamespace, slug, kvMeta);
       } catch { /* KV 标记失败不影响主流程 */ }
     }
 
