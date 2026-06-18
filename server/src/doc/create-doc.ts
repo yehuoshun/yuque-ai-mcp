@@ -33,7 +33,7 @@ export const docCreate: McpTool = {
     properties: {
       book_id: { type: "string", description: "Repository ID (numeric) or namespace like group/book_slug (required)" },
       title: { type: "string", description: "Title, defaults to 'Untitled'" },
-      slug: { type: "string", description: "Document slug (optional, Yuque auto-generates if omitted)" },
+      slug: { type: "string", description: "Document slug. Rule: kebab-case, lowercase, no special chars. Auto-generated if omitted." },
       format: { type: "string", description: "Content format: markdown / html / lake, defaults to markdown" },
       body: { type: "string", description: "Document body content (required)" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public, defaults to repo setting" },

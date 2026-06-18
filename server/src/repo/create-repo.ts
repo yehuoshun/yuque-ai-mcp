@@ -19,7 +19,7 @@ export const repoCreate: McpTool = {
     properties: {
       login: { type: "string", description: "User or group login / ID (required)" },
       name: { type: "string", description: "Repository name (required)" },
-      slug: { type: "string", description: "Repository slug (optional, Yuque auto-generates if omitted)" },
+      slug: { type: "string", description: "Repository slug. Rule: kebab-case, lowercase, no special chars. Auto-generated if omitted." },
       description: { type: "string", description: "Description" },
       public: { type: "number", description: "Visibility: 0=private, 1=public, 2=team-public (default 0)" },
       enhancedPrivacy: { type: "boolean", description: "Enhanced privacy: non-admin members get no access by default" },
