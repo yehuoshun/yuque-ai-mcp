@@ -147,7 +147,7 @@ async function readScheduleDoc(
   // 从 body 中提取上次抓取时间
   const body = doc.body || "";
   const m = body.match(/上次抓取:\s*(.+)/);
-  const lastFetch = m ? m[1].trim() : null;
+  const lastFetch = m ? m[1].trim().slice(0, 10) : null;
 
   return { docId: doc.id, lastFetch };
 }
