@@ -50,6 +50,7 @@ interface ArticleMeta {
   author: string;
   date: Date;
   link: string;
+  feed: string;
 }
 
 function parseArticles(kvMap: Record<string, string>): ArticleMeta[] {
@@ -62,6 +63,7 @@ function parseArticles(kvMap: Record<string, string>): ArticleMeta[] {
           author: meta.author || "未知",
           date: new Date(meta.date),
           link: meta.link || "",
+          feed: meta.feed || "",
         });
       }
     } catch { /* 旧格式 */ }
@@ -274,9 +276,10 @@ export const rssSchedule: McpTool = {
     }> = [];
 
     for (const [feedKey, feed] of Object.entries(src.feeds)) {
-      const { count: recent7d, authors: authors7d } = countRecent(articles, 7, now);
-      const { count: recent14d } = countRecent(articles, 14, now);
-      const { count: recent30d } = countRecent(articles, 30, now);
+      const feedArticles = articles.filter((a) => a.feed === feedKey);
+      const { count: recent7d, authors: authors7d } = countRecent(feedArticles, 7, now);
+      const { count: recent14d } = countRecent(feedArticles, 14, now);
+      const { count: recent30d } = countRecent(feedArticles, 30, now);
       const band = classifyBand(recent7d, recent14d);
 
       let lastFetch: string | null = null;

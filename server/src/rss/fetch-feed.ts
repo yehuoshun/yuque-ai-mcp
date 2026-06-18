@@ -283,6 +283,7 @@ export const rssFetch: McpTool = {
           link: entry.link,
           author: entry.author || "未知",
           date: entry.published || new Date().toISOString(),
+          feed: feedType,
         });
         await kvIncrementalSet("rss", kvNamespace, entry.slug, kvMeta);
       }

@@ -5,7 +5,7 @@
  * 清洗由 Agent 负责，工具只做搬运
  */
 
-import { apiPut, isErrorResult } from "./api-client.js";
+import { apiGet, apiPut, isErrorResult } from "./api-client.js";
 
 // ─── 目录缓存（带 TTL） ──────────────────────────────────
 
@@ -72,7 +72,7 @@ export async function ensureDirectoryPath(
       continue;
     }
 
-    const tocData = await apiPut(`/repos/${bookId}/toc`, {}, "List TOC");
+    const tocData = await apiGet(`/repos/${bookId}/toc`, undefined, "List TOC");
     const existingUuid = findTocNode(tocData, parts[i], parentUuid);
     if (existingUuid) {
       cache.set(subPath, { uuid: existingUuid, expiresAt: Date.now() + CACHE_TTL_MS });
