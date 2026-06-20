@@ -87,3 +87,13 @@ export function parseSlug(slug: string): { bookId: number; docId: number } | nul
 export function buildSlugStr(bookId: number, docId: number): string {
   return `${bookId}/${docId}`;
 }
+
+/** 自动生成 slug：英文/拼音 + 时间戳，中文名兜底纯时间戳 */
+export function autoSlug(name: string): string {
+  const ascii = name
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const ts = Date.now().toString(36);
+  return ascii ? `${ascii.substring(0, 30)}-${ts}` : `repo-${ts}`;
+}
