@@ -20,6 +20,8 @@ function isRepoFullError(err: unknown): boolean {
   const msg = e.content[0].text.toLowerCase();
   // 语雀可能返回的各种"满了"消息
   const patterns = [
+    "cannot create more than",
+    "5000 documents",
     "文档数量已达上限",
     "quota",
     "exceeded",
