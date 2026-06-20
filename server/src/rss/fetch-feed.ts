@@ -13,6 +13,7 @@ import { RSS_SOURCES } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug } from "./dedup.js";
 import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
+import { createDocWithAutoExpand } from "../common/repo-capacity.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
@@ -67,14 +68,15 @@ function entryToMarkdown(entry: FeedEntry, sourceName: string): string {
   return lines.join("\n");
 }
 
-/** 创建一篇语雀文档 */
+/** 创建一篇语雀文档（带自动扩容） */
 async function createDoc(
   bookId: number,
   title: string,
   body: string,
   link: string,
   slug: string,
-): Promise<{ ok: boolean; id?: number; error?: string }> {
+  source: string,
+): Promise<{ ok: boolean; id?: number; expanded?: boolean; error?: string }> {
   const payload: Record<string, unknown> = {
     title,
     body,
@@ -84,26 +86,23 @@ async function createDoc(
     public: 0,
   };
 
-  const data = await apiPost(`/repos/${bookId}/docs`, payload, `Create doc: ${title}`);
-  if (isErrorResult(data)) {
-    return { ok: false, error: JSON.stringify(data) };
-  }
+  const result = await createDocWithAutoExpand(bookId, "rss", source, payload, `Create doc: ${title}`);
+  if (!result.ok) return result;
 
-  const docId = (data as { data?: { id: number } })?.data?.id;
-
-  // 加入目录
-  if (docId) {
+  // 加入目录（用扩容后的 book_id）
+  const targetBookId = result.book_id ?? bookId;
+  if (result.id) {
     try {
-      await apiPut(`/repos/${bookId}/toc`, {
+      await apiPut(`/repos/${targetBookId}/toc`, {
         action: "appendNode",
         action_mode: "sibling",
         type: "DOC",
-        doc_ids: [docId],
+        doc_ids: [result.id],
       }, `Add to TOC: ${title}`);
     } catch { /* TOC 失败不影响主流程 */ }
   }
 
-  return { ok: true, id: docId };
+  return result;
 }
 
 export const rssFetch: McpTool = {
@@ -278,7 +277,7 @@ export const rssFetch: McpTool = {
       const docTitle = `${titlePrefix}${entry.title}`;
       const body = entryToMarkdown(entry, src.name);
 
-      const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug);
+      const result = await createDoc(targetRepo, docTitle, body, entry.link, entry.slug, source);
       if (result.ok && enableKv) {
         // 增量写入 KV 标记（含时间戳和作者，供 schedule 分析用）
         const kvMeta = JSON.stringify({

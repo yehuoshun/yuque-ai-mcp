@@ -10,10 +10,11 @@
 
 import { createHash } from "crypto";
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
+import { isErrorResult, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
+import { createDocWithAutoExpand } from "../common/repo-capacity.js";
 
 /** 解析目标知识库 */
 function resolveRepo(source?: string, paramRepo?: string): number | null {
@@ -109,33 +110,41 @@ export const crawlSave: McpTool = {
     const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
     const docBody = `> 来源：${url} | 抓取时间：${ts}\n\n${body}`;
 
-    const createResult = await apiPost(`/repos/${targetRepo}/docs`, {
-      title,
-      body: docBody,
-      slug,
-      description: `原文链接: ${url}`,
-      format,
-      public: 0,
-    }, `Create doc: ${title}`);
+    const createResult = await createDocWithAutoExpand(
+      targetRepo,
+      "crawler",
+      source || "crawler",
+      {
+        title,
+        body: docBody,
+        slug,
+        description: `原文链接: ${url}`,
+        format,
+        public: 0,
+      },
+      `Create doc: ${title}`,
+    );
 
-    if (isErrorResult(createResult)) {
+    if (!createResult.ok) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           status: "failed",
           url,
           title,
-          error: JSON.stringify(createResult),
+          error: createResult.error,
+          expanded: createResult.expanded,
         }, null, 2) }],
         isError: true,
       };
     }
 
-    const docId = (createResult as { data?: { id: number } })?.data?.id;
+    const docId = createResult.id;
+    const finalRepo = createResult.book_id ?? targetRepo;
 
     // 加入目录
     if (docId) {
       try {
-        await apiPut(`/repos/${targetRepo}/toc`, {
+        await apiPut(`/repos/${finalRepo}/toc`, {
           action: "appendNode",
           action_mode: "sibling",
           type: "DOC",
