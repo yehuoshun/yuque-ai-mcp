@@ -40,7 +40,7 @@ export const crawlSave: McpTool = {
       url: { type: "string", description: "Source URL (for dedup slug + source footer)" },
       title: { type: "string", description: "Document title (required)" },
       body: { type: "string", description: "HTML body content to save (required)" },
-      source: { type: "string", description: "Source key for repo routing and KV namespace, e.g. 'cnblogs'" },
+      source: { type: "string", description: "Source key for repo routing and KV namespace. Matches config.json crawler.namespaces.{source}.book_id." },
       target_repo: { type: "string", description: "Target repo ID. Falls back to config crawler.namespaces.{source}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup. Defaults to source if set, otherwise 'crawler'." },
       format: { type: "string", description: "Content format: html (default) | markdown | lake" },

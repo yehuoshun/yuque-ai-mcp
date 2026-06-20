@@ -60,7 +60,7 @@ export const crawlSchedule: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      source: { type: "string", description: "Source key, e.g. 'cnblogs'." },
+      source: { type: "string", description: "Source key. Matches config.json crawler.namespaces.{source}.book_id." },
       kv_namespace: { type: "string", description: "KV namespace for dedup data. Defaults to source." },
       mode: { type: "string", description: "Mode: 'analyze' (analyze + write back, default) | 'dry_run' (analyze only, no write)" },
       raw: { type: "boolean", description: "Return raw full JSON (default false)" },

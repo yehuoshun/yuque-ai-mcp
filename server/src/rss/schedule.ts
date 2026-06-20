@@ -68,7 +68,7 @@ export const rssSchedule: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
+      source: { type: "string", description: "Source key. Use yuque_rss_list_sources to list available sources." },
       kv_namespace: { type: "string", description: "KV namespace for dedup data. Defaults to source key." },
       mode: { type: "string", description: "Mode: 'analyze' (analyze + write back, default) | 'dry_run' (analyze only, no write)" },
       raw: { type: "boolean", description: "Return raw full JSON (default false)" },

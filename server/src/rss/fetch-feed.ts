@@ -112,14 +112,14 @@ export const rssFetch: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      source: { type: "string", description: "Source key, e.g. 'cnblogs'. Use yuque_rss_list_sources to list available sources." },
+      source: { type: "string", description: "Source key. Use yuque_rss_list_sources to list available sources." },
       feed_type: { type: "string", description: "Feed type key, e.g. 'sitehome', 'picked', 'user'. Use yuque_rss_list_sources to see available feed types." },
       feed_params: { type: "string", description: "Template params for feeds with url_template. JSON string, e.g. '{\"username\":\"hsewr333\"}'" },
       target_repo: { type: "string", description: "RSS target repo ID. Optional — falls back to config.json rss.namespaces.{source}.book_id." },
-      kv_namespace: { type: "string", description: "KV namespace for dedup, e.g. 'cnblogs'. Defaults to source key." },
+      kv_namespace: { type: "string", description: "KV namespace for dedup. Defaults to source key." },
       max_items: { type: "number", description: "Max items to fetch and save (default 10, max 50)" },
       mode: { type: "string", description: "Mode: 'append' (save new docs, default) | 'dry_run' (preview only, no save)" },
-      title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[博客园] '" },
+      title_prefix: { type: "string", description: "Optional prefix for doc titles, e.g. '[SourceName] '" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
     },
     required: ["source", "feed_type"],

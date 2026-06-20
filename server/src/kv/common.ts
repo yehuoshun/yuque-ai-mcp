@@ -5,7 +5,7 @@
  * slug 格式：`{book_id}/{doc_id}`，config.json 中存为数组。
  *
  * config 结构：
- *   { "rss": { "namespaces": { "cnblogs": { "book_id": ..., "kv_slugs": ["80197550/274164064"], ... } } } }
+ *   { "rss": { "namespaces": { "my-source": { "book_id": ..., "kv_slugs": ["12345/67890"], ... } } } }
  *
  * set 流程：取最后一个 slug → GET 读 body → 判断大小 → PUT 更新或 POST 创建新分片 → push 新 slug 到 config
  * get 流程：遍历 kv_slugs 数组 → 逐个读 → 合并返回

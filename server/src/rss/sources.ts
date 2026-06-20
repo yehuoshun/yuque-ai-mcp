@@ -28,6 +28,8 @@ export interface RssSource {
 }
 
 export const RSS_SOURCES: Record<string, RssSource> = {
+  // 示例：博客园。新增数据源只需在此追加一个 key，无需改 tool 代码。
+  // Example: cnblogs. Add new sources by appending a key here — no tool code changes needed.
   cnblogs: {
     name: "博客园",
     description: "开发者的网上家园，技术博客聚合平台",
@@ -61,7 +63,7 @@ export const RSS_SOURCES: Record<string, RssSource> = {
         description: "指定用户的博客文章",
         url_template: "https://feed.cnblogs.com/blog/u/{username}/rss",
         params_schema: {
-          username: { type: "string", description: "博客园用户名，如 hsewr333", required: true },
+          username: { type: "string", description: "博客园用户名", required: true },
         },
       },
       category: {
@@ -70,6 +72,24 @@ export const RSS_SOURCES: Record<string, RssSource> = {
         url_template: "https://feed.cnblogs.com/blog/category/{category}/rss",
         params_schema: {
           category: { type: "string", description: "分类名，如 dotnet, python, web", required: true },
+        },
+      },
+    },
+  },
+
+  // 通用源：传 url 参数直接抓取任意 RSS/Atom Feed
+  // Generic source: pass url param to fetch any RSS/Atom feed directly
+  generic: {
+    name: "通用 RSS",
+    description: "通用 RSS/Atom Feed 抓取，传 url 参数指定 Feed 地址",
+    slugResolver: undefined,
+    feeds: {
+      custom: {
+        label: "自定义",
+        description: "传入任意 RSS/Atom Feed URL",
+        url_template: "{url}",
+        params_schema: {
+          url: { type: "string", description: "RSS/Atom Feed URL", required: true },
         },
       },
     },

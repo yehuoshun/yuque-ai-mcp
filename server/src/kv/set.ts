@@ -16,7 +16,7 @@ export const kvSet: McpTool = {
     type: "object",
     properties: {
       domain: { type: "string", description: "Domain: 'rss' or 'crawler'. Locates kv_slugs in config." },
-      namespace: { type: "string", description: "KV namespace, e.g. 'cnblogs'." },
+      namespace: { type: "string", description: "KV namespace key. Matches config.json rss/crawler namespaces." },
       key: { type: "string", description: "Key to set" },
       value: { type: "string", description: "Value to store" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns summary)" },
