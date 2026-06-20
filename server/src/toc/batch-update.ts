@@ -36,6 +36,7 @@ interface MoveNodeOp {
   action: "moveNode";
   node_uuid: string;
   target_uuid?: string;
+  target_title?: string;  // 按 TITLE 名称查找目标节点
   action_mode?: string;
   book_id?: string;
 }
@@ -57,6 +58,8 @@ interface OpResult {
   success: boolean;
   detail?: string;
   error?: string;
+  new_doc_id?: number;
+  new_node_uuid?: string;
 }
 
 // ─── 工具定义 ─────────────────────────────────────────────
@@ -180,7 +183,7 @@ async function executeOp(
   bookId: string,
   targetBookId: string,
   mode: string,
-): Promise<{ success: boolean; detail?: string; error?: string; new_doc_id?: number }> {
+): Promise<{ success: boolean; detail?: string; error?: string; new_doc_id?: number; new_node_uuid?: string }> {
   switch (op.action) {
     case "createTitle": {
       const opBookId = (op as any).book_id || targetBookId;
@@ -199,7 +202,14 @@ async function executeOp(
       if (isErrorResult(data)) {
         return { success: false, error: `创建目录失败: ${title}` };
       }
-      return { success: true, detail: `创建目录: ${title}` };
+      // 从返回的 TOC 中提取新创建节点的 uuid
+      const tocNodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
+      const created = tocNodes.find((n: Record<string, unknown>) =>
+        n.type === "TITLE" && n.title === title &&
+        (op.target_uuid ? n.parent_uuid === op.target_uuid : !n.parent_uuid)
+      );
+      const createdUuid = created?.uuid as string | undefined;
+      return { success: true, detail: `创建目录: ${title}`, new_node_uuid: createdUuid };
     }
 
     case "appendNode": {
@@ -248,10 +258,23 @@ async function executeOp(
       const opBookId = (op as any).book_id || bookId;
       if (!op.node_uuid) return { success: false, error: "moveNode 缺少 node_uuid 字段" };
 
-      // 移动 = 先查原节点信息 → 在不同 parent 下 append → 删原节点
-      // 简化：直接调语雀 TOC API，用 editNode 改 parent
-      // 语雀 API 不支持直接改 parent，需要 remove + append 重建
-      // 这里我们用 removeNode + appendNode 组合
+      // 解析 target_uuid：支持直接传 uuid，或传 target_title 按名称查找
+      let targetUuid = (op as any).target_uuid as string | undefined;
+      if (!targetUuid && (op as any).target_title) {
+        const tocData = await apiGet(`/repos/${opBookId}/toc`, undefined, "Get TOC for title lookup");
+        if (!isErrorResult(tocData)) {
+          const nodes = (tocData as { data?: Array<Record<string, unknown>> }).data || [];
+          const titleNode = nodes.find((n: Record<string, unknown>) =>
+            n.type === "TITLE" && n.title === (op as any).target_title
+          );
+          if (titleNode) targetUuid = titleNode.uuid as string;
+        }
+        if (!targetUuid) {
+          return { success: false, error: `找不到 TITLE: ${(op as any).target_title}` };
+        }
+      }
+
+      // 先查原节点信息
       const tocData = await apiGet(`/repos/${opBookId}/toc`, undefined, "Get TOC for move");
       if (isErrorResult(tocData)) {
         return { success: false, error: `获取 TOC 失败: ${op.node_uuid}` };
@@ -267,7 +290,17 @@ async function executeOp(
       const nodeTitle = node.title as string;
       const nodeDocId = node.doc_id as number;
 
-      // 先在目标位置 append
+      // 先删原节点（语雀 API appendNode 对已存在文档不改变 parent_uuid）
+      const removeResult = await apiPut(`/repos/${opBookId}/toc`, {
+        action: "removeNode",
+        action_mode: "sibling",
+        node_uuid: op.node_uuid,
+      }, `Move node: remove ${op.node_uuid}`);
+      if (isErrorResult(removeResult)) {
+        return { success: false, error: `移动节点 remove 失败: ${op.node_uuid}` };
+      }
+
+      // 再在目标位置 append
       const appendPayload: Record<string, unknown> = {
         action: "appendNode",
         action_mode: op.action_mode || "child",
@@ -281,21 +314,11 @@ async function executeOp(
         appendPayload.title = nodeTitle;
         appendPayload.url = node.url;
       }
-      if (op.target_uuid) appendPayload.target_uuid = op.target_uuid;
+      if (targetUuid) appendPayload.target_uuid = targetUuid;
 
       const appendResult = await apiPut(`/repos/${opBookId}/toc`, appendPayload, `Move node: append ${op.node_uuid}`);
       if (isErrorResult(appendResult)) {
-        return { success: false, error: `移动节点 append 失败: ${op.node_uuid}` };
-      }
-
-      // 再删原节点
-      const removeResult = await apiPut(`/repos/${opBookId}/toc`, {
-        action: "removeNode",
-        action_mode: "sibling",
-        node_uuid: op.node_uuid,
-      }, `Move node: remove ${op.node_uuid}`);
-      if (isErrorResult(removeResult)) {
-        return { success: false, error: `移动节点 remove 失败: ${op.node_uuid}（append 已成功）` };
+        return { success: false, error: `移动节点 append 失败: ${op.node_uuid}（remove 已执行，文档可能游离在根目录）` };
       }
 
       return { success: true, detail: `移动节点: ${op.node_uuid}` };
