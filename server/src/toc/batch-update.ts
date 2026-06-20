@@ -2,16 +2,16 @@
  * toc/batch-update — 批量更新知识库目录
  *
  * Agent 出变更计划（ops），Tool 原样执行，零决策。
- * 支持本库整理和跨库整理。
- * 端点：PUT /api/v2/repos/:book_id/toc + POST /api/v2/repos/:book_id/docs
+ * 纯 TOC 操作，跨库复制请用 yuque_copy_doc。
+ * 端点：PUT /api/v2/repos/:book_id/toc
  *
  * 目录缓存：每个知识库的 TOC 缓存 1 天，避免重复 API 调用。
  * createTitle 自动检查目标目录是否已存在，存在则复用 uuid。
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
-import { check, requiredString, oneOf } from "../common/validate.js";
+import { apiGet, apiPut, isErrorResult } from "../common/api-client.js";
+import { check, requiredString } from "../common/validate.js";
 
 // ─── op 类型 ──────────────────────────────────────────────
 
@@ -46,14 +46,7 @@ interface MoveNodeOp {
   book_id?: string;
 }
 
-interface CopyDocOp {
-  action: "copyDoc";
-  doc_id: number;
-  source_book_id?: string;
-  target_book_id?: string;
-}
-
-type TocOp = CreateTitleOp | AppendNodeOp | RemoveNodeOp | MoveNodeOp | CopyDocOp;
+type TocOp = CreateTitleOp | AppendNodeOp | RemoveNodeOp | MoveNodeOp;
 
 // ─── 结果类型 ─────────────────────────────────────────────
 
@@ -180,26 +173,18 @@ async function resolveTarget(
 
 export const tocBatchUpdate: McpTool = {
   name: "yuque_batch_update_toc",
-  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. Supports in-book and cross-book restructuring. TOC cached 1 day. createTitle auto-reuses existing dirs. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. 详见 references/api/toc_api.md",
+  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. For cross-book copy, use yuque_copy_doc instead.",
 
   inputSchema: {
     type: "object",
     properties: {
       book_id: {
         type: "string",
-        description: "Source repository ID or namespace (required)",
-      },
-      target_book_id: {
-        type: "string",
-        description: "Target repository ID or namespace. If set, cross-book mode: copyDoc ops copy to target. If omitted, in-book mode.",
+        description: "Repository ID or namespace (required)",
       },
       ops: {
         type: "string",
-        description: "JSON array of operations. Supported: createTitle, appendNode, removeNode, moveNode, copyDoc. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title for name-based lookup.",
-      },
-      mode: {
-        type: "string",
-        description: "Copy mode: 'copy' (default, keep source) or 'move' (delete source after copy). Only affects cross-book copyDoc ops.",
+        description: "JSON array of operations. Supported: createTitle, appendNode, removeNode, moveNode. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title for name-based lookup.",
       },
       confirm: {
         type: "string",
@@ -214,7 +199,6 @@ export const tocBatchUpdate: McpTool = {
       requiredString(args?.book_id, "book_id"),
       requiredString(args?.ops, "ops"),
       requiredString(args?.confirm, "confirm"),
-      oneOf(args?.mode, "mode", ["copy", "move"]),
     );
     if (v) return v;
 
@@ -227,8 +211,6 @@ export const tocBatchUpdate: McpTool = {
     }
 
     const bookId = args?.book_id as string;
-    const targetBookId = (args?.target_book_id as string) || bookId;
-    const mode = (args?.mode as string) || "copy";
 
     let ops: TocOp[];
     try {
@@ -254,7 +236,7 @@ export const tocBatchUpdate: McpTool = {
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
       try {
-        const result = await executeOp(op, bookId, targetBookId, mode);
+        const result = await executeOp(op, bookId);
         results.push({ index: i, action: op.action, ...result });
       } catch (err) {
         results.push({
@@ -270,8 +252,6 @@ export const tocBatchUpdate: McpTool = {
     return {
       content: [{ type: "text" as const, text: JSON.stringify({
         book_id: bookId,
-        target_book_id: targetBookId !== bookId ? targetBookId : undefined,
-        mode,
         total: results.length,
         success,
         failed,
@@ -286,12 +266,10 @@ export const tocBatchUpdate: McpTool = {
 async function executeOp(
   op: TocOp,
   bookId: string,
-  targetBookId: string,
-  mode: string,
 ): Promise<{ success: boolean; detail?: string; error?: string; new_doc_id?: number; new_node_uuid?: string }> {
   switch (op.action) {
     case "createTitle": {
-      const opBookId = (op as any).book_id || targetBookId;
+      const opBookId = (op as any).book_id || bookId;
       const title = op.title;
       if (!title) return { success: false, error: "createTitle 缺少 title 字段" };
 
@@ -304,7 +282,7 @@ async function executeOp(
     }
 
     case "appendNode": {
-      const opBookId = (op as any).book_id || targetBookId;
+      const opBookId = (op as any).book_id || bookId;
       let docIds: number[];
       try {
         docIds = JSON.parse(op.doc_ids);
@@ -400,51 +378,6 @@ async function executeOp(
 
       await refreshCache(opBookId);
       return { success: true, detail: `移动节点: ${op.node_uuid}` };
-    }
-
-    case "copyDoc": {
-      if (targetBookId === bookId) {
-        return { success: false, error: "copyDoc 需要 target_book_id 参数（跨库复制）" };
-      }
-      if (!op.doc_id) return { success: false, error: "copyDoc 缺少 doc_id 字段" };
-
-      const srcBookId = op.source_book_id || bookId;
-      const tgtBookId = op.target_book_id || targetBookId;
-
-      const srcDoc = await apiGet(`/repos/${srcBookId}/docs/${op.doc_id}`, { raw: "1" }, `Fetch doc ${op.doc_id}`);
-      if (isErrorResult(srcDoc)) {
-        return { success: false, error: `拉取文档 ${op.doc_id} 失败` };
-      }
-
-      const docData = (srcDoc as { data?: { title: string; body: string; slug: string; book?: { namespace: string } } }).data;
-      if (!docData) {
-        return { success: false, error: `文档 ${op.doc_id} 内容为空` };
-      }
-
-      const createResult = await apiPost(`/repos/${tgtBookId}/docs`, {
-        title: docData.title,
-        body: docData.body,
-        format: "markdown",
-      }, `Create copy of doc ${op.doc_id}`);
-      if (isErrorResult(createResult)) {
-        return { success: false, error: `创建文档副本失败: ${op.doc_id}` };
-      }
-
-      const newDoc = (createResult as { data?: { id: number; slug: string } }).data;
-      if (!newDoc?.id) {
-        return { success: false, error: `创建文档 ${op.doc_id} 返回无 ID` };
-      }
-
-      if (mode === "move") {
-        await apiPut(`/repos/${srcBookId}/toc`, {
-          action: "removeNode",
-          action_mode: "sibling",
-          node_uuid: `doc-${op.doc_id}`,
-        }, `Remove source doc ${op.doc_id} after move`);
-        await refreshCache(srcBookId);
-      }
-
-      return { success: true, detail: `复制文档 ${op.doc_id} → ${tgtBookId}/${newDoc.id}`, new_doc_id: newDoc.id };
     }
 
     default:
