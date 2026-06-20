@@ -1,75 +1,75 @@
-# yuque-ai-mcp / 语雀 AI MCP
+# yuque-ai-mcp
 
-语雀全功能 MCP Server，基于 [Model Context Protocol](https://modelcontextprotocol.io/) 协议，提供 61 个细粒度工具，覆盖语雀 OpenAPI 的全部能力。
+A full-featured Yuque MCP Server with 61 fine-grained tools covering the entire Yuque OpenAPI, built on the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-A full-featured Yuque MCP Server with 61 fine-grained tools covering the entire Yuque OpenAPI.
+[中文文档 / Chinese Documentation](README_CN.md)
 
-## 与官方版对比 / vs Official
+## vs Official
 
-| 对比项 / Feature | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)（官方） | yuque-ai-mcp（本项目） |
+| Feature | [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) (Official) | yuque-ai-mcp (This Project) |
 |--------|------|------|
-| 工具数量 / Tools | 19 个 | **61 个** |
-| 工具粒度 / Granularity | 粗粒度（如 `yuque_list_books`） | **细粒度**（每个 API 端点一个工具） |
-| 团队管理 / Group | ❌ | ✅ group 域（成员列表/角色变更/删除） |
-| 回收站 / Recycle | ❌ | ✅ recycle 域（列表/恢复/彻底删除） |
-| 文件上传 / Upload | ❌ | ✅ upload 域（图片/附件/视频） |
-| 统计数据 / Statistics | ❌ | ✅ statistic 域（4 个维度） |
-| 文档版本 / Versions | ❌ | ✅ versions + version_detail |
-| 知识库删除 / Delete Repo | ❌ | ✅ delete_repo |
-| 小记删除/恢复 / Note | ❌ | ✅ update_note(status=9/0) |
-| 架构 / Architecture | 单体 `src/index.ts` | **模块化**（按域拆分 + 域 barrel + 工具注册中心，15 个域） |
-| 配置方式 / Config | 环境变量 `YUQUE_PERSONAL_TOKEN` | **config.json**（Token + Cookie） |
-| 安装方式 / Install | `npx yuque-mcp`（npm 包） | 本地 clone + `npm install && npm run build` |
-| HTTP 解耦 / HTTP | ❌ 仅 stdio | ✅ **双模式**：stdio + HTTP SSE（共享注册中心） |
-| 配套 Skill 层 / Skills | ❌ | ✅ [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)（61 个使用指导） |
+| Tools | 19 | **61** |
+| Granularity | Coarse (e.g. `yuque_list_books`) | **Fine-grained** (one tool per API endpoint) |
+| Group Management | ❌ | ✅ group domain (list/role/delete) |
+| Recycle Bin | ❌ | ✅ recycle domain (list/restore/destroy) |
+| File Upload | ❌ | ✅ upload domain (image/attachment/video) |
+| Statistics | ❌ | ✅ statistic domain (4 dimensions) |
+| Doc Versions | ❌ | ✅ versions + version_detail |
+| Delete Repo | ❌ | ✅ delete_repo |
+| Note Delete/Restore | ❌ | ✅ update_note(status=9/0) |
+| Architecture | Monolithic `src/index.ts` | **Modular** (domain-split + barrel exports + registry, 15 domains) |
+| Config | Env var `YUQUE_PERSONAL_TOKEN` | **config.json** (Token + Cookie) |
+| Install | `npx yuque-mcp` (npm package) | Local clone + `npm install && npm run build` |
+| HTTP Decoupling | ❌ stdio only | ✅ **Dual mode**: stdio + HTTP SSE (shared registry) |
+| Skill Layer | ❌ | ✅ [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) (61 guides) |
 
-## 架构 / Architecture
+## Architecture
 
 ```
 server/
 ├── src/
-│   ├── common/              # 公共模块 / Shared modules
-│   │   ├── config.ts            # 配置加载 + autoSlug() + parseSlug()/buildSlugStr()
-│   │   ├── errors.ts            # 错误处理 + isBookFullError()
-│   │   ├── types.ts             # 类型定义
-│   │   ├── format.ts            # 输出格式化 + handleApiCall()
-│   │   ├── validate.ts          # 参数校验
-│   │   ├── api-client.ts        # HTTP 请求层（Token 认证，自动重试）
-│   │   ├── web-request.ts       # Web API 请求层（Cookie 认证）
-│   │   ├── register-tools.ts    # 工具注册中心（唯一真实来源）
-│   │   ├── copy-common.ts       # 跨库复制公共逻辑
-│   │   ├── export-common.ts     # 导出公共逻辑
-│   │   ├── schedule-common.ts   # 定时策略公共逻辑
-│   │   ├── repo-capacity.ts     # 仓库满了自动扩容
-│   │   ├── toc-cache.ts         # TOC 缓存（24h TTL）
-│   │   └── text-utils.ts        # HTML 实体编解码
-│   ├── user/                # 用户信息 / User（3 tools）
-│   ├── search/              # 搜索 / Search（2 tools）
-│   ├── group/               # 团队管理 / Group（3 tools）
-│   ├── doc/                 # 文档 CRUD / Doc（14 tools）
-│   ├── toc/                 # 目录导航 / TOC（3 tools）
-│   ├── repo/                # 知识库管理 / Repo（8 tools）
-│   ├── statistic/           # 统计数据 / Statistics（4 tools）
-│   ├── note/                # 小记 / Note（4 tools）
-│   ├── recycle/             # 回收站 / Recycle（3 tools）
-│   ├── upload/              # 文件上传 / Upload（1 tool）
-│   ├── board/               # 画板资源 / Board（3 tools）
-│   ├── rss/                 # RSS 抓取 / RSS（3 tools）
-│   ├── crawler/             # 网页爬虫 / Crawler（4 tools）
-│   ├── mine/                # 个人数据 / Mine（2 tools）
-│   ├── kv/                  # KV 键值存储 / KV（4 tools）
-│   ├── index.ts             # MCP Server 入口（stdio）
-│   └── http.ts              # HTTP Server 入口（SSE，端口 3099）
+│   ├── common/              # Shared modules
+│   │   ├── config.ts            # Config loading + autoSlug() + parseSlug()/buildSlugStr()
+│   │   ├── errors.ts            # Error handling + isBookFullError()
+│   │   ├── types.ts             # Type definitions
+│   │   ├── format.ts            # Output formatting + handleApiCall()
+│   │   ├── validate.ts          # Parameter validation
+│   │   ├── api-client.ts        # HTTP request layer (Token auth, auto-retry)
+│   │   ├── web-request.ts       # Web API request layer (Cookie auth)
+│   │   ├── register-tools.ts    # Tool registry (single source of truth)
+│   │   ├── copy-common.ts       # Cross-book copy logic
+│   │   ├── export-common.ts     # Export logic
+│   │   ├── schedule-common.ts   # Schedule strategy logic
+│   │   ├── repo-capacity.ts     # Auto-expand when repo is full
+│   │   ├── toc-cache.ts         # TOC cache (24h TTL)
+│   │   └── text-utils.ts        # HTML entity encode/decode
+│   ├── user/                # User (3 tools)
+│   ├── search/              # Search (2 tools)
+│   ├── group/               # Group (3 tools)
+│   ├── doc/                 # Doc (14 tools)
+│   ├── toc/                 # TOC (3 tools)
+│   ├── repo/                # Repo (8 tools)
+│   ├── statistic/           # Statistics (4 tools)
+│   ├── note/                # Note (4 tools)
+│   ├── recycle/             # Recycle (3 tools)
+│   ├── upload/              # Upload (1 tool)
+│   ├── board/               # Board (3 tools)
+│   ├── rss/                 # RSS (3 tools)
+│   ├── crawler/             # Crawler (4 tools)
+│   ├── mine/                # Mine (2 tools)
+│   ├── kv/                  # KV Store (4 tools)
+│   ├── index.ts             # MCP Server entry (stdio)
+│   └── http.ts              # HTTP Server entry (SSE, port 3099)
 ├── config/
 │   ├── config.example.json
 │   └── config.json
-├── references/api/          # API 文档参考（17 个域）
+├── references/api/          # API reference docs (17 domains)
 └── package.json
 ```
 
-## 快速开始 / Quick Start
+## Quick Start
 
-### 安装 / Install
+### Install
 
 ```bash
 cd server
@@ -77,143 +77,142 @@ npm install
 npm run build
 ```
 
-### 配置 / Config
+### Config
 
 ```bash
 cp config/config.example.json config/config.json
 ```
 
-编辑 `config/config.json`：
+Edit `config/config.json`:
 
 ```json
 {
-  "token": "你的语雀 API Token / Your Yuque API Token",
+  "token": "Your Yuque API Token",
   "api_base": "https://www.yuque.com/api/v2",
-  "cookie": "可选，回收站/上传功能需要 / Optional, for recycle/upload",
-  "ctoken": "可选，从 Cookie 中提取 / Optional, extracted from Cookie"
+  "cookie": "Optional, for recycle/upload features",
+  "ctoken": "Optional, extracted from Cookie"
 }
 ```
 
-### 运行 / Run
+### Run
 
 ```bash
-# 生产模式（编译后运行）
+# Production (compiled)
 npm start
 
-# 开发模式（tsx 热重载，无需编译）
-npm run dev        # stdio 模式
-npm run dev:http   # HTTP SSE 模式（端口 3099）
+# Development (tsx hot-reload)
+npm run dev        # stdio mode
+npm run dev:http   # HTTP SSE mode (port 3099)
 ```
 
-## 工具列表 / Tool List（61 个）
+## Tool List (61)
 
-### user — 用户信息 / User
-| 工具 / Tool | 端点 / Endpoint |
+### user — User
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_user` | `GET /api/v2/user` |
 | `yuque_hello` | `GET /api/v2/hello` |
 | `yuque_get_user_groups` | `GET /api/v2/users/:id/groups` |
 
-### search — 搜索 / Search
-| 工具 / Tool | 端点 / Endpoint |
+### search — Search
+| Tool | Endpoint |
 |------|------|
 | `yuque_search` | `GET /api/v2/search` |
-| `yuque_rag_search` | RAG 增强搜索：关键词过滤 + 并发多路搜索 + 文档内容获取 |
+| `yuque_rag_search` | RAG-enhanced search: keyword filter + concurrent multi-path + content fetch |
 
-### doc — 文档 / Doc
-| 工具 / Tool | 端点 / Endpoint |
+### doc — Doc
+| Tool | Endpoint |
 |------|------|
 | `yuque_list_docs` | `GET /api/v2/repos/:id/docs` |
 | `yuque_get_doc` | `GET /api/v2/repos/docs/:id` |
-| `yuque_export_doc` | 单篇导出 Markdown（含图片下载/降级） |
+| `yuque_export_doc` | Single doc export to Markdown (with image download/fallback) |
 | `yuque_create_doc` | `POST /api/v2/repos/:id/docs` |
 | `yuque_update_doc` | `PUT /api/v2/repos/:id/docs/:id` |
 | `yuque_delete_doc` | `DELETE /api/v2/repos/:id/docs/:id` |
 | `yuque_get_doc_versions` | `GET /api/v2/doc_versions` |
 | `yuque_get_doc_version_detail` | `GET /api/v2/doc_versions/:id` |
-| `yuque_embed_url` | 生成文档嵌入阅读器 URL |
-| `yuque_batch_get_docs` | 批量 GET（并发，max 20） |
-| `yuque_copy_doc` | 单文档跨库复制 |
-| `yuque_import_url` | 从网页 URL 导入（抓取+清洗+创建） |
-| `yuque_import_file` | 从本地文件导入（direct/upload_assets/embed_assets） |
-| `yuque_diff_doc_versions` | 版本内容 Diff（逐行对比，本地计算） |
+| `yuque_embed_url` | Generate embed reader URL |
+| `yuque_batch_get_docs` | Batch GET (concurrent, max 20) |
+| `yuque_copy_doc` | Single doc cross-book copy |
+| `yuque_import_url` | Import from web URL (fetch + clean + create) |
+| `yuque_import_file` | Import from local file (direct/upload_assets/embed_assets) |
+| `yuque_diff_doc_versions` | Version diff (line-by-line, local computation) |
 
-### repo — 知识库 / Repo
-| 工具 / Tool | 端点 / Endpoint |
+### repo — Repo
+| Tool | Endpoint |
 |------|------|
 | `yuque_list_repos` | `GET /api/v2/users/:login/repos` |
 | `yuque_get_repo` | `GET /api/v2/repos/:id` |
 | `yuque_create_repo` | `POST /api/v2/users/:login/repos` |
 | `yuque_update_repo` | `PUT /api/v2/repos/:id` |
 | `yuque_delete_repo` | `DELETE /api/v2/repos/:id` |
-| `yuque_batch_get_repos` | 批量 GET（并发，max 20） |
-| `yuque_export_repo` | 批量导出 Markdown（按TOC目录结构 + 标题命名 + INDEX/GRAPH） |
-| `yuque_copy_repo` | 批量跨库复制（LLM 分类 + 目录重建） |
+| `yuque_batch_get_repos` | Batch GET (concurrent, max 20) |
+| `yuque_export_repo` | Batch export to Markdown (TOC structure + named + INDEX/GRAPH) |
+| `yuque_copy_repo` | Batch cross-book copy (LLM classification + TOC rebuild) |
 
-### group — 团队 / Group
-| 工具 / Tool | 端点 / Endpoint |
+### group — Group
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_group_users` | `GET /api/v2/groups/:login/users` |
 | `yuque_update_group_user` | `PUT /api/v2/groups/:login/users/:id` |
 | `yuque_delete_group_user` | `DELETE /api/v2/groups/:login/users/:id` |
 
-### toc — 目录 / TOC
-| 工具 / Tool | 端点 / Endpoint |
+### toc — TOC
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_toc` | `GET /api/v2/repos/:id/toc` |
 | `yuque_update_toc` | `PUT /api/v2/repos/:id/toc` |
-| `yuque_batch_update_toc` | `PUT /api/v2/repos/:id/toc` (批量) |
+| `yuque_batch_update_toc` | `PUT /api/v2/repos/:id/toc` (batch) |
 
-### statistic — 统计 / Statistics
-| 工具 / Tool | 端点 / Endpoint |
+### statistic — Statistics
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_group_statistics` | `GET /api/v2/groups/:login/statistics` |
 | `yuque_get_book_statistics` | `GET /api/v2/groups/:login/statistics/books` |
 | `yuque_get_doc_statistics` | `GET /api/v2/groups/:login/statistics/docs` |
 | `yuque_get_member_statistics` | `GET /api/v2/groups/:login/statistics/members` |
 
-### note — 小记 / Note
-| 工具 / Tool | 端点 / Endpoint | 说明 / Note |
+### note — Note
+| Tool | Endpoint | Notes |
 |------|------|------|
-| `yuque_list_notes` | `GET /api/v2/notes` | 获取小记列表 |
-| `yuque_get_note` | `GET /api/v2/notes/:id` | 获取小记详情 |
-| `yuque_create_note` | `POST /api/v2/notes` | 创建小记 |
-| `yuque_update_note` | `PUT /api/v2/notes/:id` | 更新小记，也支持软删除（`status=9`）和恢复（`status=0`）。删除需 `confirm='DELETE'` |
+| `yuque_list_notes` | `GET /api/v2/notes` | List notes |
+| `yuque_get_note` | `GET /api/v2/notes/:id` | Get note detail |
+| `yuque_create_note` | `POST /api/v2/notes` | Create note |
+| `yuque_update_note` | `PUT /api/v2/notes/:id` | Update note, also supports soft-delete (`status=9`) and restore (`status=0`). Delete requires `confirm='DELETE'` |
 
-### mine — 个人数据 / Mine（Web API，Cookie 认证）
-| 工具 / Tool | 端点 / Endpoint |
+### mine — Mine (Web API, Cookie auth)
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_book_stacks` | `GET /api/mine/book_stacks` |
 | `yuque_get_editor_center` | `GET /api/mine/editor_center` |
 
-### recycle — 回收站 / Recycle
-| 工具 / Tool | 端点 / Endpoint | 认证 / Auth |
+### recycle — Recycle
+| Tool | Endpoint | Auth |
 |------|------|------|
 | `yuque_list_recycles` | `GET /api/mine/recycles` | Cookie |
 | `yuque_restore_recycle` | `PUT /api/mine/recycles/:id/restore` | Cookie |
 | `yuque_destroy_recycle` | `DELETE /api/mine/recycles/:id` | Cookie |
 
-### upload — 上传 / Upload
-| 工具 / Tool | 端点 / Endpoint | 认证 / Auth |
+### upload — Upload
+| Tool | Endpoint | Auth |
 |------|------|------|
 | `yuque_upload_attachment` | `POST /api/upload/attach` | Cookie |
 
-### board — 画板资源 / Board
-| 工具 / Tool | 端点 / Endpoint |
+### board — Board
+| Tool | Endpoint |
 |------|------|
 | `yuque_get_board` | `GET /api/v2/yfm/boards` |
 | `yuque_create_board` | `POST /api/v2/yfm/boards` |
 | `yuque_update_board` | `PUT /api/v2/yfm/boards` |
 
-### rss — RSS 抓取 / RSS
-| 工具 / Tool | 说明 / Description |
+### rss — RSS
+| Tool | Description |
 |------|------|
-| `yuque_rss_list_sources` | 列出所有可用 RSS 数据源及 feed 类型 |
-| `yuque_rss_fetch` | 抓取 RSS/Atom Feed，解析条目，语雀 KV 去重后写入知识库，自动加入目录 |
-| `yuque_rss_schedule` | 分析最近更新频率，生成推荐抓取时间并写入配置知识库，支持 KV 兜底 |
+| `yuque_rss_list_sources` | List all available RSS sources and feed types |
+| `yuque_rss_fetch` | Fetch RSS/Atom feed, parse entries, dedup via KV, save to Yuque repo, auto-add to TOC |
+| `yuque_rss_schedule` | Analyze update frequency, generate recommended fetch interval, write to config repo |
 
-RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识库、去重 KV 和定时策略文档。
-配置使用 slug 格式 `{book_id}/{doc_id}` 直接定位文档：
+RSS requires `rss` and `kv` sections in `config.json`. Uses slug format `{book_id}/{doc_id}`:
 
 ```json
 {
@@ -233,20 +232,20 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 }
 ```
 
-- `book_id`：目标知识库 ID 数组，最后一个为当前活跃仓库（满了自动扩容追加）
-- `kv_slugs`：KV 去重分片文档，数组支持多分片（单文档上限 250KB，超出自动创建新分片）
-- `schedule_slugs`：定时策略配置文档，数组支持多 feed
-- 去重策略：`kv.enabled=true` 时，使用 KV 域增量分片去重
+- `book_id`: Target repo ID array, last element is the active repo (auto-expands when full)
+- `kv_slugs`: KV dedup shard docs, array supports multiple shards (250KB limit per doc)
+- `schedule_slugs`: Schedule config docs, array supports multiple feeds
+- Dedup: when `kv.enabled=true`, uses KV domain incremental shard dedup
 
-### crawler — 网页爬虫 / Crawler
-| 工具 / Tool | 说明 / Description |
+### crawler — Crawler
+| Tool | Description |
 |------|------|
-| `yuque_crawl_fetch` | 抓取网页原始 HTML，返回响应头+状态码 |
-| `yuque_crawl_extract` | CSS 选择器从 HTML 提取内容/属性 |
-| `yuque_crawl_save` | 去重 + 写入语雀（接收 Agent 清洗后的内容） |
-| `yuque_crawl_schedule` | 分析爬虫最近抓取频率，生成推荐抓取时间并写入配置知识库 |
+| `yuque_crawl_fetch` | Fetch raw HTML, returns headers + status |
+| `yuque_crawl_extract` | CSS selector extraction from HTML |
+| `yuque_crawl_save` | Dedup + save to Yuque (receives Agent-cleaned content) |
+| `yuque_crawl_schedule` | Analyze crawl frequency, generate recommended schedule |
 
-爬虫需在 `config.json` 中配置 `crawler` 段，与 RSS 共用 kv_slugs/schedule_slugs 格式：
+Crawler requires `crawler` section in `config.json`, shares kv_slugs/schedule_slugs format with RSS:
 
 ```json
 {
@@ -263,37 +262,33 @@ RSS 抓取需在 `config.json` 中配置 `rss` 和 `kv` 段，指定目标知识
 }
 ```
 
-目标知识库优先级：`target_repo` 参数 → `crawler.namespaces.{source}.book_id`。
-去重依赖 `kv.enabled=true`，使用 KV 域增量分片去重。
+Target repo priority: `target_repo` param → `crawler.namespaces.{source}.book_id`.
+Dedup requires `kv.enabled=true`.
 
-### kv — KV 键值存储 / KV Store
-| 工具 / Tool | 说明 / Description |
+### kv — KV Store
+| Tool | Description |
 |------|------|
-| `yuque_kv_get` | 读取命名空间的完整 JSON key-value map（分片合并） |
-| `yuque_kv_set` | 增量设置 key-value，超 250KB 自动分片 |
-| `yuque_kv_delete` | 遍历分片查找并删除 key |
-| `yuque_kv_list` | 列出 config.json 中已配置的命名空间 |
+| `yuque_kv_get` | Read full JSON key-value map for a namespace (shard merging) |
+| `yuque_kv_set` | Incremental key-value set, auto-shard at 250KB |
+| `yuque_kv_delete` | Iterate shards to find and delete key |
+| `yuque_kv_list` | List configured namespaces from config.json |
 
-KV 存储方案：增量分片，配置分散在 rss/crawler 的 namespaces 中（`kv_slugs` 数组）。
-单文档 body 上限 250KB，超出自动创建新分片。RSS 和 crawler 的去重都依赖此域。
-KV 工具调用需指定 `domain` 参数（rss/crawler），定位对应 namespace 的 `kv_slugs`。
+KV storage: incremental sharding, config in rss/crawler namespaces (`kv_slugs` array).
+Single doc body limit 250KB, auto-creates new shards on overflow. RSS and crawler dedup both depend on this domain.
+KV tools require `domain` param (rss/crawler) to locate the namespace's `kv_slugs`.
 
-## 错误处理 / Error Handling
+## Error Handling
 
-统一错误处理，API 失败时返回结构化错误（状态码 + 中文描述 + 响应摘要）。
-- `book_full`：知识库超过 5000 篇文档，自动扩容创建新仓库并追加到 `book_id` 数组。
-详见 `references/api/errors.md`。
-
-Unified error handling with structured error responses (status code + description + response summary).
+Unified error handling with structured responses (status code + description + summary).
 - `book_full`: Auto-expand when repo exceeds 5000 docs — creates a new repo and appends to the `book_id` array.
 See `references/api/errors.md` for details.
 
-## 技术栈 / Tech Stack
+## Tech Stack
 
 - TypeScript + Node.js
 - @modelcontextprotocol/sdk v1.x
-- Zod（参数校验）
-- 语雀 OpenAPI v2 / Web API
+- Zod (parameter validation)
+- Yuque OpenAPI v2 / Web API
 
 ## License
 
