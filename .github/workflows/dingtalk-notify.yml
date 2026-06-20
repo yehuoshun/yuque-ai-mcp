@@ -1,5 +1,7 @@
 on:
-  push: { branches: [main] }
+  push:
+    branches: [main]
+    tags: ['v*']
   pull_request: { types: [opened, closed, reopened] }
   issues: { types: [opened, closed, reopened] }
 
