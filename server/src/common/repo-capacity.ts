@@ -26,11 +26,10 @@ async function expandRepo(
   const ids = cfg[domain]?.namespaces?.[namespace]?.book_id ?? [];
   const n = ids.length + 1;
   const repoName = `${namespace}-${domain}-${n}`;
-
-  // 创建新仓库
+  const repoSlug = `${repoName}-${Date.now().toString(36)}`;
   const result = await apiPost(
     `/users/yehuoshun/repos`,
-    { name: repoName, slug: repoName, public: 0 },
+    { name: repoName, slug: repoSlug, public: 0 },
     `Auto-expand: ${repoName}`,
   );
 

@@ -10,6 +10,17 @@ import { apiPostWithFallback } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatRepo, handleApiCall } from "../common/format.js";
 
+/** 自动生成 slug：取名字前 30 字符 + 时间戳 */
+function autoSlug(name: string): string {
+  const base = name
+    .replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 30);
+  const ts = Date.now().toString(36);
+  return `${base}-${ts}`;
+}
+
 export const repoCreate: McpTool = {
   name: "yuque_create_repo",
   description: "Create a repo, auto-detects user vs group endpoint. POST /users|groups/:login/repos. 详见 references/api/repo_api.md",
@@ -44,7 +55,7 @@ export const repoCreate: McpTool = {
     const enhancedPrivacy = args?.enhancedPrivacy as boolean | undefined;
 
     const payload: Record<string, unknown> = { name, public: isPublic };
-    if (slug) payload.slug = slug;
+    payload.slug = slug || autoSlug(name);
     if (description) payload.description = description;
     if (enhancedPrivacy !== undefined) payload.enhancedPrivacy = enhancedPrivacy;
 
