@@ -56,7 +56,6 @@ interface OpResult {
   success: boolean;
   detail?: string;
   error?: string;
-  new_doc_id?: number;
   new_node_uuid?: string;
 }
 
@@ -264,7 +263,7 @@ export const tocBatchUpdate: McpTool = {
 async function executeOp(
   op: TocOp,
   bookId: string,
-): Promise<{ success: boolean; detail?: string; error?: string; new_doc_id?: number; new_node_uuid?: string }> {
+): Promise<{ success: boolean; detail?: string; error?: string; new_node_uuid?: string }> {
   switch (op.action) {
     case "createTitle": {
       const opBookId = (op as any).book_id || bookId;
