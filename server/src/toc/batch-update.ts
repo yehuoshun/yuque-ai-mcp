@@ -45,6 +45,7 @@ interface RemoveNodeOp {
 interface MoveNodeOp {
   action: "moveNode";
   node_uuid: string;
+  doc_id?: number;
   target_uuid?: string;
   target_title?: string;
   action_mode?: string;
@@ -190,20 +191,61 @@ async function executeOp(
 
       const targetUuid = await resolveTarget(opBookId, op as any);
 
+      // 有目标目录时：先挂根再移（语雀 API 的 target_uuid 对 DOC 类型不可靠）
+      if (targetUuid) {
+        // Step 1: 挂到根目录
+        const rootResult = await apiPut(`/repos/${opBookId}/toc`, {
+          action: "appendNode",
+          action_mode: "child",
+          type: "DOC",
+          doc_ids: docIds,
+        }, `Append docs to root`);
+        if (isErrorResult(rootResult)) {
+          return { success: false, error: `挂载文档到根目录失败: ${docIds.join(",")}` };
+        }
+
+        // Step 2: 从 PUT 响应提取新节点 uuid，逐个 remove + append 到目标
+        const rootToc = (rootResult as { data?: Array<Record<string, unknown>> }).data || [];
+        invalidateTocCache(opBookId);
+
+        const moved: number[] = [];
+        for (const docId of docIds) {
+          const newNode = rootToc.find((n: Record<string, unknown>) => n.doc_id === docId && !n.parent_uuid);
+          if (!newNode?.uuid) continue;
+          await apiPut(`/repos/${opBookId}/toc`, {
+            action: "removeNode",
+            action_mode: "sibling",
+            node_uuid: newNode.uuid,
+          }, `Move: remove ${newNode.uuid}`);
+          await apiPut(`/repos/${opBookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            type: "DOC",
+            doc_ids: [docId],
+            target_uuid: targetUuid,
+          }, `Move: append ${docId}`);
+          moved.push(docId);
+        }
+
+        invalidateTocCache(opBookId);
+        return { success: true, detail: `挂载文档 ${moved.join(",")} 到目录（先挂根再移）` };
+      }
+
+      // 无目标目录：直接挂到根目录
       const payload: Record<string, unknown> = {
         action: "appendNode",
         action_mode: op.action_mode || "child",
         type: "DOC",
         doc_ids: docIds,
       };
-      if (targetUuid) payload.target_uuid = targetUuid;
 
       const data = await apiPut(`/repos/${opBookId}/toc`, payload, `Append docs to TOC`);
       if (isErrorResult(data)) {
         return { success: false, error: `挂载文档失败: ${docIds.join(",")}` };
       }
+
       invalidateTocCache(opBookId);
-      return { success: true, detail: `挂载文档 ${docIds.join(",")} 到目录` };
+      return { success: true, detail: `挂载文档 ${docIds.join(",")} 到根目录` };
     }
 
     case "removeNode": {
@@ -228,24 +270,58 @@ async function executeOp(
 
       const targetUuid = await resolveTarget(opBookId, op as any);
 
+      let nodeUuid = op.node_uuid;
+      let nodeType: string;
+      let nodeTitle: string;
+      let nodeDocId: number | undefined;
+
       const nodes = await getTocCached(opBookId);
       const node = nodes.find((n: Record<string, unknown>) => n.uuid === op.node_uuid);
-      if (!node) {
-        return { success: false, error: `节点不存在: ${op.node_uuid}` };
-      }
 
-      const nodeType = node.type as string;
-      const nodeTitle = node.title as string;
-      const nodeDocId = node.doc_id as number;
+      if (!node) {
+        // 节点不在 TOC 中：需要 doc_id 来先挂根再移
+        const docId = (op as MoveNodeOp).doc_id;
+        if (!docId) {
+          return { success: false, error: `节点不在 TOC 中: ${op.node_uuid}。请提供 doc_id 字段，工具会自动挂根再移` };
+        }
+
+        // 先挂到根目录
+        const rootResult = await apiPut(`/repos/${opBookId}/toc`, {
+          action: "appendNode",
+          action_mode: "child",
+          type: "DOC",
+          doc_ids: [docId],
+        }, `Move orphan: append to root ${docId}`);
+        if (isErrorResult(rootResult)) {
+          return { success: false, error: `游离文档挂根失败: ${docId}` };
+        }
+
+        // 从 PUT 响应提取新节点 uuid
+        const rootToc = (rootResult as { data?: Array<Record<string, unknown>> }).data || [];
+        invalidateTocCache(opBookId);
+        const newNode = rootToc.find((n: Record<string, unknown>) => n.doc_id === docId && !n.parent_uuid);
+        if (!newNode?.uuid) {
+          return { success: false, error: `挂根后找不到文档: ${docId}` };
+        }
+
+        nodeUuid = newNode.uuid as string;
+        nodeType = "DOC";
+        nodeTitle = newNode.title as string;
+        nodeDocId = docId;
+      } else {
+        nodeType = node.type as string;
+        nodeTitle = node.title as string;
+        nodeDocId = node.doc_id as number;
+      }
 
       // 先删原节点
       const removeResult = await apiPut(`/repos/${opBookId}/toc`, {
         action: "removeNode",
         action_mode: "sibling",
-        node_uuid: op.node_uuid,
-      }, `Move node: remove ${op.node_uuid}`);
+        node_uuid: nodeUuid,
+      }, `Move node: remove ${nodeUuid}`);
       if (isErrorResult(removeResult)) {
-        return { success: false, error: `移动节点 remove 失败: ${op.node_uuid}` };
+        return { success: false, error: `移动节点 remove 失败: ${nodeUuid}` };
       }
 
       // 再 append 到目标位置
@@ -260,17 +336,20 @@ async function executeOp(
         appendPayload.title = nodeTitle;
       } else if (nodeType === "LINK") {
         appendPayload.title = nodeTitle;
-        appendPayload.url = node.url;
+        appendPayload.url = (node as any)?.url;
       }
       if (targetUuid) appendPayload.target_uuid = targetUuid;
 
-      const appendResult = await apiPut(`/repos/${opBookId}/toc`, appendPayload, `Move node: append ${op.node_uuid}`);
+      const appendResult = await apiPut(`/repos/${opBookId}/toc`, appendPayload, `Move node: append ${nodeUuid}`);
       if (isErrorResult(appendResult)) {
-        return { success: false, error: `移动节点 append 失败: ${op.node_uuid}（remove 已执行，文档可能游离在根目录）` };
+        return { success: false, error: `移动节点 append 失败: ${nodeUuid}（remove 已执行，文档可能游离在根目录）` };
       }
 
       invalidateTocCache(opBookId);
-      return { success: true, detail: `移动节点: ${op.node_uuid}` };
+      const detail = !node
+        ? `移动游离节点: doc_id=${nodeDocId} → 目标目录`
+        : `移动节点: ${nodeUuid}`;
+      return { success: true, detail };
     }
 
     default:
