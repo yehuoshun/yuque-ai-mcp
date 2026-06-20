@@ -88,12 +88,6 @@ async function getTocCached(bookId: string): Promise<Array<Record<string, unknow
   return nodes;
 }
 
-/** 刷新缓存（写操作后调用） */
-async function refreshCache(bookId: string): Promise<void> {
-  tocCache.delete(bookId);
-  await getTocCached(bookId);
-}
-
 /** 在 TOC 中查找 TITLE 节点（按名称 + 可选父节点） */
 function findTitleNode(
   nodes: Array<Record<string, unknown>>,
@@ -119,7 +113,7 @@ async function ensureTitle(
     return { uuid: existing.uuid as string, created: false };
   }
 
-  // 不存在，创建
+  // 不存在，创建。PUT 返回完整 TOC，直接从中提取 uuid
   const payload: Record<string, unknown> = {
     action: "appendNode",
     action_mode: "child",
@@ -133,25 +127,17 @@ async function ensureTitle(
     throw new Error(`创建目录失败: ${title}`);
   }
 
-  // 从 API 响应中直接提取新节点的 uuid
+  // PUT 响应即完整 TOC，直接提取 uuid 并更新缓存
   const tocNodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
+  tocCache.set(bookId, { nodes: tocNodes, expiresAt: Date.now() + CACHE_TTL_MS });
+
   const created = tocNodes.find((n: Record<string, unknown>) =>
     n.type === "TITLE" && n.title === title &&
     (parentUuid ? n.parent_uuid === parentUuid : !n.parent_uuid)
   );
-  if (created?.uuid) {
-    // 刷新缓存
-    tocCache.delete(bookId);
-    return { uuid: created.uuid as string, created: true };
-  }
+  if (!created?.uuid) throw new Error(`创建目录后找不到: ${title}`);
 
-  // 兜底：刷新缓存后再查
-  tocCache.delete(bookId);
-  const freshNodes = await getTocCached(bookId);
-  const fallback = findTitleNode(freshNodes, title, parentUuid);
-  if (fallback) return { uuid: fallback.uuid as string, created: true };
-
-  throw new Error(`创建目录后找不到: ${title}`);
+  return { uuid: created.uuid as string, created: true };
 }
 
 /** 解析 target：支持 target_uuid 或 target_title */
@@ -308,7 +294,7 @@ async function executeOp(
         return { success: false, error: `挂载文档失败: ${docIds.join(",")}` };
       }
       // 写操作后刷新缓存
-      await refreshCache(opBookId);
+      tocCache.delete(opBookId);
       return { success: true, detail: `挂载文档 ${docIds.join(",")} 到目录` };
     }
 
@@ -324,7 +310,7 @@ async function executeOp(
       if (isErrorResult(data)) {
         return { success: false, error: `删除节点失败: ${op.node_uuid}` };
       }
-      await refreshCache(opBookId);
+      tocCache.delete(opBookId);
       return { success: true, detail: `删除节点: ${op.node_uuid}` };
     }
 
@@ -376,7 +362,7 @@ async function executeOp(
         return { success: false, error: `移动节点 append 失败: ${op.node_uuid}（remove 已执行，文档可能游离在根目录）` };
       }
 
-      await refreshCache(opBookId);
+      tocCache.delete(opBookId);
       return { success: true, detail: `移动节点: ${op.node_uuid}` };
     }
 
