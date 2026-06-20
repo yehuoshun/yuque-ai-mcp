@@ -10,7 +10,8 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
+import { ensureDirectoryPath } from "../common/toc-cache.js";
+import { appendSourceLink } from "../common/copy-common.js";
 
 export const docCopySingle: McpTool = {
   name: "yuque_copy_doc",

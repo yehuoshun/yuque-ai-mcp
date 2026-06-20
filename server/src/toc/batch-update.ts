@@ -5,13 +5,18 @@
  * 纯 TOC 操作，跨库复制请用 yuque_copy_doc。
  * 端点：PUT /api/v2/repos/:book_id/toc
  *
- * 目录缓存：每个知识库的 TOC 缓存 1 天，避免重复 API 调用。
- * createTitle 自动检查目标目录是否已存在，存在则复用 uuid。
+ * TOC 缓存 + 目录创建复用 common/toc-cache.ts。
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPut, isErrorResult } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
+import {
+  getTocCached,
+  invalidateTocCache,
+  ensureTitle,
+  resolveTarget,
+} from "../common/toc-cache.js";
 
 // ─── op 类型 ──────────────────────────────────────────────
 
@@ -26,7 +31,7 @@ interface AppendNodeOp {
   action: "appendNode";
   doc_ids: string;
   target_uuid?: string;
-  target_title?: string;  // 按 TITLE 名称查找目标节点
+  target_title?: string;
   action_mode?: string;
   book_id?: string;
 }
@@ -57,113 +62,6 @@ interface OpResult {
   detail?: string;
   error?: string;
   new_node_uuid?: string;
-}
-
-// ─── TOC 缓存（1 天 TTL） ─────────────────────────────────
-
-interface TocCacheEntry {
-  nodes: Array<Record<string, unknown>>;
-  expiresAt: number;
-}
-
-const tocCache = new Map<string, TocCacheEntry>();
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 1 天
-
-// 每小时清理过期缓存，防止内存泄漏
-const CLEANUP_INTERVAL = 60 * 60 * 1000;
-const cleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of tocCache) {
-    if (entry.expiresAt <= now) tocCache.delete(key);
-  }
-}, CLEANUP_INTERVAL);
-if (cleanupTimer && typeof cleanupTimer === "object" && "unref" in cleanupTimer) {
-  (cleanupTimer as NodeJS.Timeout).unref();
-}
-
-/** 获取知识库 TOC（优先缓存） */
-async function getTocCached(bookId: string): Promise<Array<Record<string, unknown>>> {
-  const cached = tocCache.get(bookId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.nodes;
-  }
-
-  const data = await apiGet(`/repos/${bookId}/toc`, undefined, "Get TOC (cached)");
-  if (isErrorResult(data)) {
-    // 缓存失败不阻塞，返回空数组让调用方处理
-    return [];
-  }
-
-  const nodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
-  tocCache.set(bookId, { nodes, expiresAt: Date.now() + CACHE_TTL_MS });
-  return nodes;
-}
-
-/** 在 TOC 中查找 TITLE 节点（按名称 + 可选父节点） */
-function findTitleNode(
-  nodes: Array<Record<string, unknown>>,
-  title: string,
-  parentUuid?: string,
-): Record<string, unknown> | undefined {
-  return nodes.find((n) =>
-    n.type === "TITLE" &&
-    n.title === title &&
-    (parentUuid ? n.parent_uuid === parentUuid : !n.parent_uuid)
-  );
-}
-
-/** 确保目录存在：有则复用 uuid，无则创建 */
-async function ensureTitle(
-  bookId: string,
-  title: string,
-  parentUuid?: string,
-): Promise<{ uuid: string; created: boolean }> {
-  const nodes = await getTocCached(bookId);
-  const existing = findTitleNode(nodes, title, parentUuid);
-  if (existing) {
-    return { uuid: existing.uuid as string, created: false };
-  }
-
-  // 不存在，创建。PUT 返回完整 TOC，直接从中提取 uuid
-  const payload: Record<string, unknown> = {
-    action: "appendNode",
-    action_mode: "child",
-    type: "TITLE",
-    title,
-  };
-  if (parentUuid) payload.target_uuid = parentUuid;
-
-  const data = await apiPut(`/repos/${bookId}/toc`, payload, `Create TITLE: ${title}`);
-  if (isErrorResult(data)) {
-    throw new Error(`创建目录失败: ${title}`);
-  }
-
-  // PUT 响应即完整 TOC，直接提取 uuid 并更新缓存
-  const tocNodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
-  tocCache.set(bookId, { nodes: tocNodes, expiresAt: Date.now() + CACHE_TTL_MS });
-
-  const created = tocNodes.find((n: Record<string, unknown>) =>
-    n.type === "TITLE" && n.title === title &&
-    (parentUuid ? n.parent_uuid === parentUuid : !n.parent_uuid)
-  );
-  if (!created?.uuid) throw new Error(`创建目录后找不到: ${title}`);
-
-  return { uuid: created.uuid as string, created: true };
-}
-
-/** 解析 target：支持 target_uuid 或 target_title */
-async function resolveTarget(
-  bookId: string,
-  op: { target_uuid?: string; target_title?: string },
-): Promise<string | undefined> {
-  if (op.target_uuid) return op.target_uuid;
-  if (op.target_title) {
-    const nodes = await getTocCached(bookId);
-    const node = findTitleNode(nodes, op.target_title);
-    if (!node) throw new Error(`找不到 TITLE: ${op.target_title}`);
-    return node.uuid as string;
-  }
-  return undefined;
 }
 
 // ─── 工具定义 ─────────────────────────────────────────────
@@ -304,8 +202,7 @@ async function executeOp(
       if (isErrorResult(data)) {
         return { success: false, error: `挂载文档失败: ${docIds.join(",")}` };
       }
-      // 写操作后刷新缓存
-      tocCache.delete(opBookId);
+      invalidateTocCache(opBookId);
       return { success: true, detail: `挂载文档 ${docIds.join(",")} 到目录` };
     }
 
@@ -321,7 +218,7 @@ async function executeOp(
       if (isErrorResult(data)) {
         return { success: false, error: `删除节点失败: ${op.node_uuid}` };
       }
-      tocCache.delete(opBookId);
+      invalidateTocCache(opBookId);
       return { success: true, detail: `删除节点: ${op.node_uuid}` };
     }
 
@@ -331,7 +228,6 @@ async function executeOp(
 
       const targetUuid = await resolveTarget(opBookId, op as any);
 
-      // 查原节点信息
       const nodes = await getTocCached(opBookId);
       const node = nodes.find((n: Record<string, unknown>) => n.uuid === op.node_uuid);
       if (!node) {
@@ -352,7 +248,7 @@ async function executeOp(
         return { success: false, error: `移动节点 remove 失败: ${op.node_uuid}` };
       }
 
-      // 再在目标位置 append
+      // 再 append 到目标位置
       const appendPayload: Record<string, unknown> = {
         action: "appendNode",
         action_mode: op.action_mode || "child",
@@ -373,7 +269,7 @@ async function executeOp(
         return { success: false, error: `移动节点 append 失败: ${op.node_uuid}（remove 已执行，文档可能游离在根目录）` };
       }
 
-      tocCache.delete(opBookId);
+      invalidateTocCache(opBookId);
       return { success: true, detail: `移动节点: ${op.node_uuid}` };
     }
 

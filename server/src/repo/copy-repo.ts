@@ -7,7 +7,8 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendSourceLink } from "../common/copy-common.js";
+import { ensureDirectoryPath } from "../common/toc-cache.js";
+import { appendSourceLink } from "../common/copy-common.js";
 
 /** 并发复制数：平衡速度与语雀 API 限流 */
 const COPY_CONCURRENCY = 5;
