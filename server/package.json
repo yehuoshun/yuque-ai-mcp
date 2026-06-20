@@ -1,16 +1,43 @@
 {
   "name": "yuque-ai-mcp",
   "version": "2.7.4",
-  "description": "\u8bed\u96c0 MCP Server \u2014 \u7ec6\u7c92\u5ea6\u5de5\u5177\u96c6",
+  "description": "Full-featured Yuque MCP Server — 61 fine-grained tools covering the entire Yuque OpenAPI",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "yuque-mcp": "dist/cli.js",
+    "yuque-mcp-http": "dist/cli-http.js"
+  },
+  "files": [
+    "dist/",
+    "config/config.example.json",
+    "references/api/",
+    "SKILL.md",
+    "README.md",
+    "README_CN.md"
+  ],
+  "keywords": [
+    "yuque",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "llm",
+    "claude",
+    "语雀"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "dev:http": "tsx watch src/http.ts",
     "start": "node dist/index.js",
-    "start:http": "node dist/http.js"
+    "start:http": "node dist/http.js",
+    "prepublishOnly": "npm run build"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yehuoshun/yuque-ai-mcp"
+  },
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },

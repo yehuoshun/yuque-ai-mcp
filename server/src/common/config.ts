@@ -7,11 +7,32 @@
  * kv_slugs / schedule_slugs 均为数组，支持多文档。
  */
 
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { homedir } from "os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** 查找 config 文件：--config 参数 → cwd → ~/.yuque-mcp → 开发路径 */
+function findConfigPath(): string {
+  // 1. 命令行参数 --config /path/to/config.json
+  const cliArg = process.argv.findIndex(a => a === "--config" || a === "-c");
+  if (cliArg !== -1 && process.argv[cliArg + 1]) {
+    return process.argv[cliArg + 1];
+  }
+  // 2. 当前工作目录
+  const cwdPath = resolve(process.cwd(), "yuque-config.json");
+  if (existsSync(cwdPath)) return cwdPath;
+  // 3. 用户目录
+  const homePath = resolve(homedir(), ".yuque-mcp", "config.json");
+  if (existsSync(homePath)) return homePath;
+  // 4. 开发模式（相对 dist/ 的路径）
+  const devPath = resolve(__dirname, "../../../config/config.json");
+  if (existsSync(devPath)) return devPath;
+  // 5. 包内默认
+  return resolve(homedir(), ".yuque-mcp", "config.json");
+}
 
 interface NamespaceConfig {
   book_id: number[];          // 目标知识库 ID 数组，最后一个为当前活跃仓库（满了就新增追加）
@@ -48,13 +69,14 @@ let _config: Config | null = null;
 export function loadConfig(): Config {
   if (_config) return _config;
 
-  const configPath = resolve(__dirname, "../../../config/config.json");
+  const configPath = findConfigPath();
   try {
     const raw = readFileSync(configPath, "utf-8");
     _config = JSON.parse(raw) as Config;
   } catch {
     throw new Error(
-      `无法读取 config/config.json。请复制 config/config.example.json 为 config/config.json 并填入 Token。`
+      `无法读取配置文件。请将 config.example.json 复制为 yuque-config.json（当前目录）或 ~/.yuque-mcp/config.json，并填入 Token。\n` +
+      `Cannot read config. Copy config.example.json to yuque-config.json (cwd) or ~/.yuque-mcp/config.json.`
     );
   }
 
@@ -69,7 +91,7 @@ export function loadConfig(): Config {
 /** 持久化 config 到文件 */
 export function saveConfig(): void {
   if (!_config) return;
-  const configPath = resolve(__dirname, "../../../config/config.json");
+  const configPath = findConfigPath();
   writeFileSync(configPath, JSON.stringify(_config, null, 2) + "\n", "utf-8");
 }
 
