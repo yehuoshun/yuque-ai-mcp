@@ -23,10 +23,12 @@ function getKvSlugs(domain: "rss" | "crawler", namespace: string): string[] {
   return cfg[domain]?.namespaces?.[namespace]?.kv_slugs ?? [];
 }
 
-/** 获取 domain 下 namespace 的 book_id（用于首次创建 KV 分片） */
+/** 获取 domain 下 namespace 的 book_id（取最后一个，为当前活跃仓库） */
 function getBookId(domain: "rss" | "crawler", namespace: string): number | null {
   const cfg = loadConfig();
-  return cfg[domain]?.namespaces?.[namespace]?.book_id ?? null;
+  const ids = cfg[domain]?.namespaces?.[namespace]?.book_id;
+  if (ids && ids.length > 0) return ids[ids.length - 1];
+  return null;
 }
 
 /** 更新 namespace 的 kv_slugs 数组并持久化 */
@@ -35,7 +37,7 @@ function setKvSlugs(domain: "rss" | "crawler", namespace: string, slugs: string[
   if (!cfg[domain]) cfg[domain] = { enabled: true, namespaces: {} } as never;
   if (!cfg[domain]!.namespaces) cfg[domain]!.namespaces = {};
   if (!cfg[domain]!.namespaces![namespace]) {
-    cfg[domain]!.namespaces![namespace] = { book_id: 0 };
+    cfg[domain]!.namespaces![namespace] = { book_id: [] };
   }
   cfg[domain]!.namespaces![namespace].kv_slugs = slugs;
   saveConfig();
@@ -47,7 +49,7 @@ export function setScheduleSlugs(domain: "rss" | "crawler", namespace: string, s
   if (!cfg[domain]) cfg[domain] = { enabled: true, namespaces: {} } as never;
   if (!cfg[domain]!.namespaces) cfg[domain]!.namespaces = {};
   if (!cfg[domain]!.namespaces![namespace]) {
-    cfg[domain]!.namespaces![namespace] = { book_id: 0 };
+    cfg[domain]!.namespaces![namespace] = { book_id: [] };
   }
   cfg[domain]!.namespaces![namespace].schedule_slugs = slugs;
   saveConfig();

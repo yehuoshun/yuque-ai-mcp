@@ -19,7 +19,9 @@ import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
 function resolveRepo(source?: string, paramRepo?: string): number | null {
   if (paramRepo) return parseInt(paramRepo, 10) || null;
   const cfg = loadConfig();
-  return cfg.crawler?.namespaces?.[source || ""]?.book_id ?? null;
+  const ids = cfg.crawler?.namespaces?.[source || ""]?.book_id;
+  if (ids && ids.length > 0) return ids[ids.length - 1];
+  return null;
 }
 
 /** 生成去重 slug（URL → md5 前 12 位） */

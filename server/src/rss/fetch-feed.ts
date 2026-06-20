@@ -38,12 +38,14 @@ function buildFeedUrl(source: string, feedType: string, params?: Record<string, 
 
 /**
  * 解析 RSS 目标知识库
- * 优先级：tool 参数 → config.rss.namespaces.{source}.book_id
+ * 优先级：tool 参数 → config.rss.namespaces.{source}.book_id（取最后一个）
  */
 function resolveRssRepo(source: string, paramRepo?: string): number | null {
   if (paramRepo) return parseInt(paramRepo, 10) || null;
   const cfg = loadConfig();
-  return cfg.rss?.namespaces?.[source]?.book_id ?? null;
+  const ids = cfg.rss?.namespaces?.[source]?.book_id;
+  if (ids && ids.length > 0) return ids[ids.length - 1];
+  return null;
 }
 
 /** 将 FeedEntry 转为语雀文档 Markdown body */

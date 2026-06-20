@@ -19,7 +19,7 @@ export const kvList: McpTool = {
 
   async handler() {
     const cfg = loadConfig();
-    const list: Array<{ domain: string; namespace: string; book_id: number; kv_shards: number; kv_slugs: string[]; schedule_slugs: string[] }> = [];
+    const list: Array<{ domain: string; namespace: string; book_id: number[]; kv_shards: number; kv_slugs: string[]; schedule_slugs: string[] }> = [];
 
     for (const domain of ["rss", "crawler"] as const) {
       const namespaces = cfg[domain]?.namespaces || {};

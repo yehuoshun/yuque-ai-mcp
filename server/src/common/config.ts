@@ -14,9 +14,9 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 interface NamespaceConfig {
-  book_id: number;
-  kv_slugs?: string[];       // 去重 KV：`{book_id}/{doc_id}` 数组
-  schedule_slugs?: string[];  // 定时策略：`{book_id}/{doc_id}` 数组
+  book_id: number[];          // 目标知识库 ID 数组，最后一个为当前活跃仓库（满了就新增追加）
+  kv_slugs?: string[];        // 去重 KV：`{book_id}/{doc_id}` 数组
+  schedule_slugs?: string[];   // 定时策略：`{book_id}/{doc_id}` 数组
 }
 
 interface RssConfig {

@@ -7,26 +7,22 @@
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": "可选，博客园 RSS 知识库数字 ID",
-        "namespace": "可选，知识库 namespace，如 my-group/my-repo"
+        "book_id": [80197497],
+        "kv_slugs": ["80197550/274164064"],
+        "schedule_slugs": ["80278170/274357940"]
       }
     }
   },
   "kv": {
-    "enabled": false,
-    "namespaces": {
-      "cnblogs": {
-        "book_id": "可选，KV 去重知识库数字 ID（enabled=true 时必填）",
-        "docs": ["可选，分片文档的 doc_id 数组"]
-      }
-    }
+    "enabled": true
   },
   "crawler": {
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": "可选，爬虫目标知识库数字 ID",
-        "namespace": "可选，知识库 namespace，如 my-group/my-repo"
+        "book_id": [80197497],
+        "kv_slugs": ["80197550/274164064"],
+        "schedule_slugs": ["80278170/274358465"]
       }
     }
   }
