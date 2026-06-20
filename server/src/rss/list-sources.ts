@@ -6,14 +6,14 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { RSS_SOURCES } from "./sources.js";
+import { getRssSources } from "./sources.js";
 
 export const rssListSources: McpTool = {
   name: "yuque_rss_list_sources",
   description: "List all available RSS sources and their feed types. Call before yuque_rss_fetch. 详见 references/api/extended_api.md",
 
   async handler() {
-    const sources = Object.entries(RSS_SOURCES).map(([key, src]) => ({
+    const sources = Object.entries(getRssSources()).map(([key, src]) => ({
       key,
       name: src.name,
       description: src.description,

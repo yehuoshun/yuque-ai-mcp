@@ -5,6 +5,8 @@
  *
  * slug 格式：`{book_id}/{doc_id}`，用 / 分割解析。
  * kv_slugs / schedule_slugs 均为数组，支持多文档。
+ *
+ * RSS 源定义在 config.json 的 rss.sources 中，不硬编码在代码里。
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
@@ -16,32 +18,48 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** 查找 config 文件：--config 参数 → cwd → ~/.yuque-mcp → 开发路径 */
 function findConfigPath(): string {
-  // 1. 命令行参数 --config /path/to/config.json
   const cliArg = process.argv.findIndex(a => a === "--config" || a === "-c");
   if (cliArg !== -1 && process.argv[cliArg + 1]) {
     return process.argv[cliArg + 1];
   }
-  // 2. 当前工作目录
   const cwdPath = resolve(process.cwd(), "yuque-config.json");
   if (existsSync(cwdPath)) return cwdPath;
-  // 3. 用户目录
   const homePath = resolve(homedir(), ".yuque-mcp", "config.json");
   if (existsSync(homePath)) return homePath;
-  // 4. 开发模式（相对 dist/ 的路径）
   const devPath = resolve(__dirname, "../../../config/config.json");
   if (existsSync(devPath)) return devPath;
-  // 5. 包内默认
   return resolve(homedir(), ".yuque-mcp", "config.json");
 }
 
+// ── 类型定义 ──
+
 interface NamespaceConfig {
-  book_id: number[];          // 目标知识库 ID 数组，最后一个为当前活跃仓库（满了就新增追加）
-  kv_slugs?: string[];        // 去重 KV：`{book_id}/{doc_id}` 数组
-  schedule_slugs?: string[];   // 定时策略：`{book_id}/{doc_id}` 数组
+  book_id: number[];
+  kv_slugs?: string[];
+  schedule_slugs?: string[];
+}
+
+/** RSS Feed 定义（config.json 中配置） */
+export interface RssFeedDef {
+  label: string;
+  description?: string;
+  url?: string;
+  url_template?: string;
+  params_schema?: Record<string, { type: "string" | "number"; description: string; required?: boolean; default?: string | number }>;
+}
+
+/** RSS 源定义（config.json 中配置） */
+export interface RssSourceDef {
+  name: string;
+  description?: string;
+  feeds: Record<string, RssFeedDef>;
+  /** 从文章链接提取站点文章 ID 的正则，capture group 1 即为 slug。不配则 fallback 到 md5 */
+  slug_pattern?: string;
 }
 
 interface RssConfig {
   enabled: boolean;
+  sources?: Record<string, RssSourceDef>;
   namespaces?: Record<string, NamespaceConfig>;
 }
 
@@ -86,6 +104,11 @@ export function loadConfig(): Config {
 
   _config.api_base = _config.api_base || "https://www.yuque.com/api/v2";
   return _config;
+}
+
+/** 从 config 加载 RSS 源定义 */
+export function loadRssSources(): Record<string, RssSourceDef> {
+  return loadConfig().rss?.sources ?? {};
 }
 
 /** 持久化 config 到文件 */

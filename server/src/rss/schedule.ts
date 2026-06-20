@@ -14,7 +14,7 @@
 import type { McpTool } from "../common/types.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { RSS_SOURCES } from "./sources.js";
+import { getRssSources } from "./sources.js";
 import { loadKvMap } from "../kv/common.js";
 import {
   BANDS,
@@ -86,7 +86,7 @@ export const rssSchedule: McpTool = {
     const cfg = loadConfig();
     const enableKv = !!(cfg.kv?.enabled);
 
-    const src = RSS_SOURCES[source];
+    const src = getRssSources()[source];
     if (!src) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({

@@ -5,6 +5,29 @@
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
     "enabled": true,
+    "sources": {
+      "cnblogs": {
+        "name": "博客园",
+        "description": "开发者的网上家园，技术博客聚合平台",
+        "slug_pattern": "/p/(\\d+)",
+        "feeds": {
+          "sitehome": { "label": "首页最新", "url": "https://feed.cnblogs.com/blog/sitehome/rss" },
+          "picked": { "label": "编辑推荐", "url": "https://feed.cnblogs.com/blog/sitehome/picked" },
+          "48h": { "label": "48小时阅读排行", "url": "https://feed.cnblogs.com/blog/sitehome/48h" },
+          "10d": { "label": "10天推荐排行", "url": "https://feed.cnblogs.com/blog/sitehome/10d" },
+          "user": {
+            "label": "用户博客",
+            "url_template": "https://feed.cnblogs.com/blog/u/{username}/rss",
+            "params_schema": { "username": { "type": "string", "description": "博客园用户名", "required": true } }
+          },
+          "category": {
+            "label": "分类",
+            "url_template": "https://feed.cnblogs.com/blog/category/{category}/rss",
+            "params_schema": { "category": { "type": "string", "description": "分类名", "required": true } }
+          }
+        }
+      }
+    },
     "namespaces": {
       "cnblogs": {
         "book_id": [80197497],

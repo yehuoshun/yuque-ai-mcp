@@ -9,7 +9,7 @@ import type { McpTool } from "../common/types.js";
 import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { RSS_SOURCES } from "./sources.js";
+import { getRssSources } from "./sources.js";
 import { parseFeed, type FeedEntry } from "./parser.js";
 import { buildSlug } from "./dedup.js";
 import { loadKvMap, kvIncrementalSet } from "../kv/common.js";
@@ -17,7 +17,7 @@ import { createDocWithAutoExpand } from "../common/repo-capacity.js";
 
 /** 构建 feed URL */
 function buildFeedUrl(source: string, feedType: string, params?: Record<string, unknown>): string | null {
-  const src = RSS_SOURCES[source];
+  const src = getRssSources()[source];
   if (!src) return null;
   const feed = src.feeds[feedType];
   if (!feed) return null;
@@ -150,7 +150,7 @@ export const rssFetch: McpTool = {
     const enableKv = !!(cfg.kv?.enabled);
 
     // 1. 查数据源配置
-    const src = RSS_SOURCES[source];
+    const src = getRssSources()[source];
     if (!src) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
