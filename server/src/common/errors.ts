@@ -39,6 +39,7 @@ const YUQUE_CODE_MAP: Record<string, string> = {
   membership_required: "Membership required — upgrade to access this feature",
   body_parse_failed: "Request body parse failed — check JSON format",
   too_many_requests: "Too many requests — back off and retry",
+  book_full: "cannot create more than 5000 documents in a book from api",
 };
 
 /** 解析语雀业务 code */
@@ -162,4 +163,12 @@ export function checkConfirmation(
     };
   }
   return null;
+}
+
+/** 检测是否为语雀"知识库已满"的错误（超过 5000 文档） */
+export function isBookFullError(err: unknown): boolean {
+  const e = err as { isError?: boolean; content?: Array<{ type: string; text: string }> };
+  if (!e?.isError || !e?.content?.[0]?.text) return false;
+  const msg = e.content[0].text.toLowerCase();
+  return msg.includes(YUQUE_CODE_MAP.book_full);
 }

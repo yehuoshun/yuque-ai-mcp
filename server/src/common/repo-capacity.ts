@@ -9,28 +9,10 @@
 
 import { loadConfig, saveConfig } from "./config.js";
 import { apiPost, apiGet, isErrorResult } from "./api-client.js";
+import { isBookFullError } from "./errors.js";
 
 /** 语雀 API 可用节点上限（超过此数量 API 不可用） */
 const REPO_DOC_LIMIT = 5000;
-
-/** 检测是否为"仓库满了"的错误 */
-function isRepoFullError(err: unknown): boolean {
-  const e = err as { isError?: boolean; content?: Array<{ type: string; text: string }> };
-  if (!e?.isError || !e?.content?.[0]?.text) return false;
-  const msg = e.content[0].text.toLowerCase();
-  // 语雀可能返回的各种"满了"消息
-  const patterns = [
-    "cannot create more than",
-    "5000 documents",
-    "文档数量已达上限",
-    "quota",
-    "exceeded",
-    "limit reached",
-    "too many documents",
-    "full",
-  ];
-  return patterns.some((p) => msg.includes(p));
-}
 
 /**
  * 扩容：创建新仓库 → 追加 book_id → 保存 config → 返回新 book_id
@@ -130,7 +112,7 @@ export async function createDocWithAutoExpand(
   }
 
   // 检查是否是"满了"错误
-  if (!isRepoFullError(result)) {
+  if (!isBookFullError(result)) {
     // 不是满的错误，直接返回失败
     return { ok: false, error: JSON.stringify(result) };
   }
