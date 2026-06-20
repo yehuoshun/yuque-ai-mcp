@@ -10,15 +10,14 @@ import { apiPostWithFallback } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { formatRepo, handleApiCall } from "../common/format.js";
 
-/** 自动生成 slug：取名字前 30 字符 + 时间戳 */
+/** 自动生成 slug：英文/拼音 + 时间戳，中文名兜底纯时间戳 */
 function autoSlug(name: string): string {
-  const base = name
-    .replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "-")
+  const ascii = name
+    .replace(/[^a-zA-Z0-9]/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .substring(0, 30);
+    .replace(/^-|-$/g, "");
   const ts = Date.now().toString(36);
-  return `${base}-${ts}`;
+  return ascii ? `${ascii.substring(0, 30)}-${ts}` : `repo-${ts}`;
 }
 
 export const repoCreate: McpTool = {
