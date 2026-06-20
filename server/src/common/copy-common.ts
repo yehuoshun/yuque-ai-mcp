@@ -113,7 +113,7 @@ function findTocNode(
   for (const node of nodes) {
     if (
       node.title === title &&
-      (node.parent_uuid || "") === (targetParent || null ? node.parent_uuid || "" : "") &&
+      (node.parent_uuid || "") === targetParent &&
       node.type === "TITLE"
     ) {
       return node.uuid;
