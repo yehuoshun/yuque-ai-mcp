@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { positiveInt, check } from "../common/validate.js";
 
 // ─── 简单 LCS diff（不依赖外部库） ──────────────────────────
 
@@ -89,8 +89,8 @@ export const docDiff: McpTool = {
   async handler(args) {
     // @validate
     const __v = check(
-      requiredString(args?.version_id_1?.toString(), "version_id_1"),
-      requiredString(args?.version_id_2?.toString(), "version_id_2"),
+      positiveInt(args?.version_id_1, "version_id_1"),
+      positiveInt(args?.version_id_2, "version_id_2"),
     );
     if (__v) return __v;
 
