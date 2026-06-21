@@ -8,6 +8,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { requiredString } from "../common/validate.js";
 
 export const docEmbedUrl: McpTool = {
   name: "yuque_embed_url",
@@ -50,6 +51,9 @@ export const docEmbedUrl: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.from, "from");
+    if (__v) return __v;
     const from = args?.from as string;
     const url = args?.url as string | undefined;
     const docId = args?.doc_id as string | undefined;
