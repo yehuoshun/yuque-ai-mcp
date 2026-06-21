@@ -15,7 +15,7 @@ interface TocCacheEntry {
 }
 
 const tocCache = new Map<string, TocCacheEntry>();
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 1 天
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 小时
 
 // 每小时清理过期缓存
 const CLEANUP_INTERVAL = 60 * 60 * 1000;
