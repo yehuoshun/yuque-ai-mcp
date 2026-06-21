@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost } from "../common/api-client.js";
 import { handleApiCall } from "../common/format.js";
-import { requiredString } from "../common/validate.js";
+import { check, requiredString } from "../common/validate.js";
 
 export const boardCreate: McpTool = {
   name: "yuque_create_board",
@@ -27,7 +27,10 @@ export const boardCreate: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.dsl, "dsl");
+    const __v = check(
+      requiredString(args?.type, "type"),
+      requiredString(args?.dsl, "dsl"),
+    );
     if (__v) return __v;
     const docId = args?.doc_id as number | undefined;
     const url = args?.url as string | undefined;
