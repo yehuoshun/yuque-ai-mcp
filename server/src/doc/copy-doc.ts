@@ -59,10 +59,6 @@ export const docCopySingle: McpTool = {
         type: "string",
         description: "Source document title for the footer link. In mode 2, uses source doc title if not provided.",
       },
-      raw: {
-        type: "boolean",
-        description: "Return raw full JSON",
-      },
     },
     required: ["target_book_id", "paths"],
   },
@@ -76,7 +72,6 @@ export const docCopySingle: McpTool = {
     let format = args?.format as string | undefined;
     let sourceUrl = args?.source_url as string | undefined;
     let sourceTitle = args?.source_title as string | undefined;
-    const raw = args?.raw as boolean | undefined;
 
     // 校验必填
     const __v = check(
