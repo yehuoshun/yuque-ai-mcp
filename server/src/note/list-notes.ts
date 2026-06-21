@@ -24,7 +24,6 @@ export const noteList: McpTool = {
   },
 
   async handler(args) {
-    const raw = args?.raw as boolean | undefined;
     const status = args?.status as number | undefined;
     const page = (args?.page as number) ?? 1;
     const limit = (args?.limit as number) ?? 20;
@@ -41,6 +40,6 @@ export const noteList: McpTool = {
       pin_notes: (notes?.pin_notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
       notes: (notes?.notes ?? []).map((n) => formatNoteSummary(n as Parameters<typeof formatNoteSummary>[0])),
     };
-    return handleApiCall(raw ? data : formatted, undefined as any, raw);
+    return handleApiCall(formatted, undefined as any);
   },
 };

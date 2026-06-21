@@ -7,7 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
-import { apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPut } from "../common/api-client.js";
+import { positiveInt, optionalBoolean } from "../common/validate.js";
 import { formatNote, handleApiCall } from "../common/format.js";
 
 
@@ -28,6 +29,10 @@ export const noteUpdate: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = positiveInt(args?.note_id, "note_id")
+      || optionalBoolean(args?.raw, "raw");
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const noteId = args?.note_id as number;
     const body = args?.body as string | undefined;
