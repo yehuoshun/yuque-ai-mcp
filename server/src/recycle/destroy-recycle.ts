@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { webRequest } from "../common/web-request.js";
+import { positiveInt } from "../common/validate.js";
 import { MINE_BASE } from "./common.js";
 
 const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
@@ -26,6 +27,9 @@ export const recycleDestroy: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = positiveInt(args?.recycle_id, "recycle_id");
+    if (__v) return __v;
     const confirmed = checkConfirmation(args);
     if (confirmed) return confirmed;
 
