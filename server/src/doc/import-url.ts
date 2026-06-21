@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath, appendDocToToc } from "../common/toc-cache.js";
+import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 import { escapeHtml } from "../common/text-utils.js";
 
@@ -132,11 +132,12 @@ export const docImportUrl: McpTool = {
 
     for (const path of paths) {
       try {
-        const dirUuid = await ensureDirectoryPath(bookId, path);
-        if (!dirUuid) {
-          results.push({ path, error: "目录创建失败" });
+        const dirResult = await ensureDirectoryPath(bookId, path);
+        if (!dirResult.uuid) {
+          results.push({ path, error: dirResult.error || "目录创建失败" });
           continue;
         }
+        const dirUuid = dirResult.uuid;
 
         const payload: Record<string, unknown> = { title, body: finalBody, format };
         const data = await apiPost(`/repos/${bookId}/docs`, payload, `Import URL doc to ${path}`);

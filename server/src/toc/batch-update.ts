@@ -14,9 +14,12 @@ import { check, requiredString } from "../common/validate.js";
 import {
   getTocCached,
   invalidateTocCache,
+  setTocCache,
+} from "../common/toc-cache.js";
+import {
   ensureTitle,
   resolveTarget,
-} from "../common/toc-cache.js";
+} from "../common/toc-ops.js";
 
 // ─── op 类型 ──────────────────────────────────────────────
 

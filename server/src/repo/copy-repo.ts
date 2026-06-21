@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath } from "../common/toc-cache.js";
+import { ensureDirectoryPath } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
 /** 并发复制数：平衡速度与语雀 API 限流 */
@@ -108,10 +108,11 @@ export const repoCopy: McpTool = {
           const pathResults = await Promise.all(
             paths.map(async (path): Promise<{ path: string; doc_id?: number; slug?: string; error?: string }> => {
               try {
-                const dirUuid = await ensureDirectoryPath(targetBookId, path);
-                if (!dirUuid) {
-                  return { path, error: "目录创建失败" };
+                const dirResult = await ensureDirectoryPath(targetBookId, path);
+                if (!dirResult.uuid) {
+                  return { path, error: dirResult.error || "目录创建失败" };
                 }
+                const dirUuid = dirResult.uuid;
 
                 const payload: Record<string, unknown> = { title, body, format };
                 const data = await apiPost(`/repos/${targetBookId}/docs`, payload, `Copy doc to ${path}`);

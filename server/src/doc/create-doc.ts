@@ -12,7 +12,7 @@ import type { McpTool } from "../common/types.js";
 import { apiPost } from "../common/api-client.js";
 import { check, requiredString, optionalBoolean, oneOf } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
-import { appendDocToToc } from "../common/toc-cache.js";
+import { appendDocToToc } from "../common/toc-ops.js";
 
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
