@@ -29,7 +29,7 @@ if (cleanupTimer && typeof cleanupTimer === "object" && "unref" in cleanupTimer)
   (cleanupTimer as NodeJS.Timeout).unref();
 }
 
-/** 获取知识库 TOC（优先缓存，24h TTL） */
+/** 获取知识库 TOC（优先缓存，24h TTL）。失败时 throw，不静默返回空数组 */
 export async function getTocCached(bookId: string): Promise<Array<Record<string, unknown>>> {
   const cached = tocCache.get(bookId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -38,7 +38,7 @@ export async function getTocCached(bookId: string): Promise<Array<Record<string,
 
   const data = await apiGet(`/repos/${bookId}/toc`, undefined, "Get TOC (cached)");
   if (isErrorResult(data)) {
-    return [];
+    throw new Error(`获取 TOC 失败: ${bookId}`);
   }
 
   const nodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
@@ -99,10 +99,7 @@ export async function ensureTitle(
   const tocNodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
   tocCache.set(bookId, { nodes: tocNodes, expiresAt: Date.now() + CACHE_TTL_MS });
 
-  const created = tocNodes.find((n: Record<string, unknown>) =>
-    n.type === "TITLE" && n.title === title &&
-    (parentUuid ? n.parent_uuid === parentUuid : !n.parent_uuid)
-  );
+  const created = findTitleNode(tocNodes, title, parentUuid);
   if (!created?.uuid) throw new Error(`创建目录后找不到: ${title}`);
 
   return { uuid: created.uuid as string, created: true };
@@ -129,6 +126,43 @@ export async function ensureDirectoryPath(
   }
 
   return parentUuid || null;
+}
+
+// ─── 文档追加到 TOC（公共） ──────────────────────────────
+
+/**
+ * 将文档追加到 TOC 指定节点下。
+ * 供 create_doc / copy_doc / import_url / import_file 共用，
+ * 避免 doc 域重复造轮子。
+ */
+export async function appendDocToToc(
+  bookId: string,
+  docId: number,
+  parentUuid?: string,
+): Promise<{ ok: boolean; warning?: string }> {
+  try {
+    const payload: Record<string, unknown> = {
+      action: "appendNode",
+      action_mode: "child",
+      type: "DOC",
+      doc_ids: [docId],
+    };
+    if (parentUuid) payload.target_uuid = parentUuid;
+    const res = await apiPut(`/repos/${bookId}/toc`, payload, "Append doc to TOC");
+    if (isErrorResult(res)) {
+      return { ok: false, warning: "文档创建成功，但追加到目录失败。请手动在语雀网页端调整目录。" };
+    }
+    invalidateTocCache(bookId);
+    return { ok: true };
+  } catch {
+    return { ok: false, warning: "文档创建成功，但追加到目录时网络异常，请手动在语雀网页端调整目录。" };
+  }
+}
+
+/** 销毁缓存定时器（进程退出时调用） */
+export function destroyTocCache(): void {
+  clearInterval(cleanupTimer);
+  tocCache.clear();
 }
 
 /** 解析 target：支持 target_uuid 或 target_title */

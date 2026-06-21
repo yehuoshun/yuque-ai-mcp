@@ -9,34 +9,10 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost, apiPut } from "../common/api-client.js";
-import { check, requiredString } from "../common/validate.js";
+import { apiPost } from "../common/api-client.js";
+import { check, requiredString, optionalBoolean, oneOf } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
-
-/** 创建文档后追加到 TOC */
-async function appendToToc(
-  bookId: string,
-  docId: number,
-  parentUuid: string | undefined,
-): Promise<string | null> {
-  try {
-    const payload: Record<string, unknown> = {
-      action: "appendNode",
-      action_mode: "child",
-      type: "DOC",
-      doc_ids: [docId],
-    };
-    // ⚠️ 不传 target_uuid 比传空字符串安全：空字符串可能被语雀解析为清空目录
-    if (parentUuid) payload.target_uuid = parentUuid;
-    const res = await apiPut(`/repos/${bookId}/toc`, payload, "Append to TOC");
-    if (res && typeof res === "object" && "isError" in res) {
-      return `文档创建成功，但追加到目录失败。请手动在语雀网页端调整目录。`;
-    }
-    return null;
-  } catch {
-    return "文档创建成功，但追加到目录时网络异常，请手动在语雀网页端调整目录。";
-  }
-}
+import { appendDocToToc } from "../common/toc-cache.js";
 
 export const docCreate: McpTool = {
   name: "yuque_create_doc",
@@ -62,6 +38,9 @@ export const docCreate: McpTool = {
     const __v = check(
       requiredString(args?.book_id, "book_id"),
       requiredString(args?.body, "body"),
+      oneOf(args?.format, "format", ["markdown", "html", "lake"]),
+      oneOf(args?.public, "public", [0, 1, 2]),
+      optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
@@ -82,11 +61,12 @@ export const docCreate: McpTool = {
     const docId = (data as { data?: { id: number } })?.data?.id;
 
     const result = handleApiCall(data, formatDoc, raw);
-    const content = result.content ? [...result.content] : [];
 
-    if (docId) {
-      const tocWarning = await appendToToc(bookId, docId, parentUuid);
-      if (tocWarning) content.push({ type: "text" as const, text: tocWarning });
+    if (docId && !("isError" in result)) {
+      const { warning } = await appendDocToToc(bookId, docId, parentUuid);
+      if (warning) {
+        return { ...result, content: [...result.content, { type: "text" as const, text: warning }] };
+      }
     }
 
     return result;

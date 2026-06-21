@@ -13,10 +13,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, basename } from "node:path";
 import type { McpTool } from "../common/types.js";
-import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
-import { ensureDirectoryPath } from "../common/toc-cache.js";
+import { ensureDirectoryPath, appendDocToToc } from "../common/toc-cache.js";
 import {
   type ImportMode,
   uploadImage,
@@ -330,15 +330,8 @@ export const docImportFile: McpTool = {
           continue;
         }
 
-        await apiPut(`/repos/${bookId}/toc`, {
-          action: "appendNode",
-          action_mode: "child",
-          type: "DOC",
-          doc_ids: [newDoc.id],
-          target_uuid: dirUuid,
-        }, `Append doc to TOC: ${path}`);
-
-        results.push({ path, doc_id: newDoc.id, slug: newDoc.slug });
+        const { warning } = await appendDocToToc(bookId, newDoc.id, dirUuid);
+        results.push({ path, doc_id: newDoc.id, slug: newDoc.slug, ...(warning ? { warning } : {}) });
       } catch (err) {
         results.push({ path, error: err instanceof Error ? err.message : String(err) });
       }

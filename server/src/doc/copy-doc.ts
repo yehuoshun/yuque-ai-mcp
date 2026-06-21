@@ -8,9 +8,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiGet, apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath } from "../common/toc-cache.js";
+import { ensureDirectoryPath, appendDocToToc } from "../common/toc-cache.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
 export const docCopySingle: McpTool = {
@@ -223,15 +223,8 @@ export const docCopySingle: McpTool = {
         }
 
         // 挂到目录节点下
-        await apiPut(`/repos/${targetBookId}/toc`, {
-          action: "appendNode",
-          action_mode: "child",
-          type: "DOC",
-          doc_ids: [newDoc.id],
-          target_uuid: dirUuid,
-        }, `Append doc to TOC: ${path}`);
-
-        results.push({ path, doc_id: newDoc.id, slug: newDoc.slug });
+        const { warning } = await appendDocToToc(targetBookId, newDoc.id, dirUuid);
+        results.push({ path, doc_id: newDoc.id, slug: newDoc.slug, ...(warning ? { warning } : {}) });
       } catch (err) {
         results.push({ path, error: err instanceof Error ? err.message : String(err) });
       }
