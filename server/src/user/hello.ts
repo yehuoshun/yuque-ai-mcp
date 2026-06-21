@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
-import { handleApiCall } from "../common/format.js";
+import { formatHello, handleApiCall } from "../common/format.js";
 
 
 export const userHello: McpTool = {
@@ -16,6 +16,6 @@ export const userHello: McpTool = {
 
   async handler() {
     const data = await apiGet("/hello");
-    return handleApiCall(data, undefined as any);
+    return handleApiCall(data, formatHello);
   },
 };

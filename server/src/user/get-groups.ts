@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, oneOf, optionalBoolean } from "../common/validate.js";
 import { formatUserGroup, handleApiCall } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
@@ -27,7 +27,9 @@ export const userGetGroups: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.id, "id");
+    const __v = requiredString(args?.id, "id")
+      || oneOf(args?.role, "role", [0, 1])
+      || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const id = args?.id as string;
     const role = args?.role as number | undefined;
@@ -38,9 +40,6 @@ export const userGetGroups: McpTool = {
     if (role !== undefined) params.role = String(role);
 
     const data = await apiGet(`/users/${id}/groups`, params, "Get user groups");
-
-    const items = (data as { data?: unknown[] })?.data ?? data;
-    const formatted = Array.isArray(items) ? items.map(formatUserGroup) : items;
-    return handleApiCall(raw ? data : formatted, undefined as any, raw);
+    return handleApiCall(data, formatUserGroup, raw);
   },
 };

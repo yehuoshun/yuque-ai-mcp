@@ -37,6 +37,14 @@ export function optionalString(value: unknown, name: string): ErrorResult | null
   return null;
 }
 
+/** 可选布尔值 */
+export function optionalBoolean(value: unknown, name: string): ErrorResult | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "boolean")
+    return fail(`${name} 必须是布尔值`, `${name} must be a boolean`);
+  return null;
+}
+
 /** 正整数 */
 export function positiveInt(value: unknown, name: string): ErrorResult | null {
   if (value === undefined || value === null) return null;

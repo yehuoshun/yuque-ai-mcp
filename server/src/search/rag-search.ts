@@ -8,12 +8,13 @@
  *   4. 并发调语雀搜索
  *   5. 按 doc_id 去重合并
  *   6. 获取前 N 篇文档的完整内容
- *   7. 返回搜索结果 + 文档内容，由 Agent 侧 LLM 总结
+ *   7. 返回搜索结果 + 文档内容 + 错误汇总，由 Agent 侧 LLM 总结
  *
  * 端点：复用 GET /api/v2/search + GET /api/v2/repos/docs/:id
  */
 
 import type { McpTool } from "../common/types.js";
+import { positiveInt, maxValue } from "../common/validate.js";
 import {
   normalizeKeywords,
   searchYuque,
@@ -41,11 +42,11 @@ export const searchRag: McpTool = {
       creator: { type: "string", description: "Filter by author login" },
       max_results: {
         type: "number",
-        description: "Max search results (default 10)",
+        description: "Max search results (default 10, max 50)",
       },
       fetch_docs: {
         type: "number",
-        description: "Fetch full content of top N documents (default 3, max 5)",
+        description: "Fetch full content of top N documents (default 3, max 10)",
       },
     },
     required: ["keywords"],
@@ -55,8 +56,16 @@ export const searchRag: McpTool = {
     const keywordsStr = args?.keywords as string;
     const scope = args?.scope as string | undefined;
     const creator = args?.creator as string | undefined;
+
+    // @validate
+    const __v = positiveInt(args?.max_results, "max_results")
+      || maxValue(args?.max_results, "max_results", 50)
+      || positiveInt(args?.fetch_docs, "fetch_docs")
+      || maxValue(args?.fetch_docs, "fetch_docs", 10);
+    if (__v) return __v;
+
     const maxResults = (args?.max_results as number) ?? 10;
-    const fetchDocs = Math.min((args?.fetch_docs as number) ?? 3, 5);
+    const fetchDocs = Math.min((args?.fetch_docs as number) ?? 3, 10);
 
     // 解析关键词
     const rawKeywords = keywordsStr
@@ -69,7 +78,7 @@ export const searchRag: McpTool = {
         content: [{
           type: "text" as const,
           text: JSON.stringify({
-            meta: { total: 0, method: "rag_search", keywords_used: [] },
+            meta: { total: 0, method: "rag_search", keywords_used: [], errors: [] },
             data: [],
             docs: [],
           }, null, 2),
@@ -85,14 +94,16 @@ export const searchRag: McpTool = {
       keywords.map((kw) => searchYuque(kw, scope, creator)),
     );
 
-    // 按 doc_id 去重合并
+    // 收集错误 + 合并结果
+    const errors: string[] = [];
     const seen = new Set<number>();
     const merged: SearchResult[] = [];
-    for (const results of allResults) {
-      for (const r of results) {
-        if (!seen.has(r.doc_id)) {
-          seen.add(r.doc_id);
-          merged.push(r);
+    for (const r of allResults) {
+      if (r.error) errors.push(r.error);
+      for (const item of r.results) {
+        if (!seen.has(item.doc_id)) {
+          seen.add(item.doc_id);
+          merged.push(item);
         }
       }
     }
@@ -101,9 +112,14 @@ export const searchRag: McpTool = {
 
     // 获取前 N 篇文档的完整内容
     const docsToFetch = finalResults.slice(0, fetchDocs);
-    const docs = (await Promise.all(
+    const fetchResults = await Promise.all(
       docsToFetch.map((r) => fetchDoc(r.doc_id)),
-    )).filter(Boolean) as DocContent[];
+    );
+    const docs: DocContent[] = [];
+    for (const fr of fetchResults) {
+      if (fr.error) errors.push(fr.error);
+      if (fr.doc) docs.push(fr.doc);
+    }
 
     return {
       content: [{
@@ -115,6 +131,7 @@ export const searchRag: McpTool = {
             keywords_used: keywords,
             raw_keywords: rawKeywords,
             docs_fetched: docs.length,
+            errors: errors.length > 0 ? errors : undefined,
           },
           data: finalResults,
           docs,

@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, oneOf, optionalBoolean } from "../common/validate.js";
 import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
@@ -28,7 +28,9 @@ export const groupListUsers: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.login, "login");
+    const __v = requiredString(args?.login, "login")
+      || oneOf(args?.role, "role", [0, 1, 2])
+      || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
@@ -39,7 +41,8 @@ export const groupListUsers: McpTool = {
     if (role !== undefined) params.role = String(role);
 
     const data = await apiGet(`/groups/${login}/users`, params, "Get group users");
-    const items = (data as { data?: Record<string, unknown>[] })?.data ?? data;
-    return handleApiCall(Array.isArray(items) ? items : items, formatGroupUser, raw);
+    // 语雀返回纯数组，包装成 { data: [...] } 让 wrapResult 正确 map
+    const wrapped = Array.isArray(data) ? { data } : data;
+    return handleApiCall(wrapped, formatGroupUser, raw);
   },
 };

@@ -7,8 +7,8 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
-import { handleApiCall } from "../common/format.js";
-import { requiredString } from "../common/validate.js";
+import { formatSearchResult, handleApiCall } from "../common/format.js";
+import { requiredString, oneOf } from "../common/validate.js";
 
 
 export const searchGeneral: McpTool = {
@@ -29,7 +29,8 @@ export const searchGeneral: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.q, "q");
+    const __v = requiredString(args?.q, "q")
+      || oneOf(args?.type, "type", ["doc", "repo"]);
     if (__v) return __v;
     const q = args?.q as string;
     const type = args?.type as string;
@@ -42,6 +43,6 @@ export const searchGeneral: McpTool = {
     if (creator) params.creator = creator;
 
     const data = await apiGet("/search", params, "Search");
-    return handleApiCall(data, undefined as any);
+    return handleApiCall(data, formatSearchResult);
   },
 };

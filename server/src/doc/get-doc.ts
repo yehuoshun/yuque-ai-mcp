@@ -6,8 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { apiGet } from "../common/api-client.js";
+import { requiredString, positiveInt, maxValue, optionalBoolean } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
 
 
@@ -28,7 +28,11 @@ export const docGet: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.id, "id");
+    const __v = requiredString(args?.id, "id")
+      || positiveInt(args?.page_size, "page_size")
+      || maxValue(args?.page_size, "page_size", 200)
+      || positiveInt(args?.page, "page")
+      || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const id = args?.id as string;
     const pageSize = (args?.page_size as number) ?? 100;

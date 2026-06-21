@@ -123,6 +123,52 @@ interface ApiResponse<T> {
   meta?: unknown;
 }
 
+// ── Hello ─────────────────────────────────────────────────────
+
+export function formatHello(data: ApiResponse<{ message: string }> | { message: string }) {
+  const d = (data as ApiResponse<{ message: string }>).data ?? (data as { message: string });
+  return { message: d.message };
+}
+
+// ── Search ────────────────────────────────────────────────────
+
+interface YuqueSearchResultRaw {
+  id: number;
+  type?: string;
+  title: string;
+  summary?: string;
+  url?: string;
+  info?: string;
+  target?: {
+    id: number;
+    slug?: string;
+    title?: string;
+    book_id?: number;
+    word_count?: number;
+    updated_at?: string;
+    content_updated_at?: string;
+    book?: { id?: number; name?: string; slug?: string; namespace?: string };
+  };
+}
+
+export function formatSearchResult(data: YuqueSearchResultRaw) {
+  return {
+    id: data.id,
+    title: data.title?.replace(/<em>|<\/em>/g, "") ?? "",
+    summary: data.summary?.replace(/<em>|<\/em>/g, "") ?? "",
+    url: data.url ?? "",
+    info: data.info ?? "",
+    doc_id: data.target?.id ?? data.id,
+    slug: data.target?.slug ?? "",
+    book_id: data.target?.book_id,
+    book_name: data.target?.book?.name ?? "",
+    book_slug: data.target?.book?.slug ?? "",
+    namespace: data.target?.book?.namespace ?? "",
+    word_count: data.target?.word_count,
+    updated_at: data.target?.content_updated_at ?? data.target?.updated_at ?? "",
+  };
+}
+
 // ── User ──────────────────────────────────────────────────────
 
 export function formatUser(data: ApiResponse<YuqueUserRaw> | YuqueUserRaw) {

@@ -17,6 +17,9 @@ const MAX_RETRIES = 3;
 /** 基延迟（ms） */
 const BASE_DELAY = 1000;
 
+/** 单次请求超时（ms） */
+const REQUEST_TIMEOUT = 30_000;
+
 /** 是否应该重试：网络异常、429、5xx */
 function shouldRetry(res: Response | null): boolean {
   if (!res) return true; // 网络异常
@@ -35,8 +38,10 @@ async function fetchWithRetry(
   context: string,
   attempt = 1,
 ): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, { ...options, signal: controller.signal });
     if (shouldRetry(res) && attempt <= MAX_RETRIES) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
       // 重试日志仅在 DEBUG 环境变量设置时输出
@@ -53,6 +58,8 @@ async function fetchWithRetry(
       return fetchWithRetry(url, options, context, attempt + 1);
     }
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

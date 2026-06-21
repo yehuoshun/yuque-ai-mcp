@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, optionalBoolean } from "../common/validate.js";
 import { apiDelete } from "../common/api-client.js";
 import { formatGroupUser, handleApiCall } from "../common/format.js";
 
@@ -32,6 +32,7 @@ export const groupDeleteUser: McpTool = {
     const __v = check(
       requiredString(args?.login, "login"),
       requiredString(args?.id, "id"),
+      optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
     const confirmed = checkConfirmation(args);

@@ -3,8 +3,8 @@
  *
  * 从 rag-search.ts 拆分出来的工具函数：
  * - normalizeKeywords：过滤语雀分词器不支持的符号
- * - searchYuque：调语雀搜索 API
- * - fetchDoc：获取文档完整内容
+ * - searchYuque：调语雀搜索 API（失败时返回 error 字符串而非静默吞掉）
+ * - fetchDoc：获取文档完整内容（失败时返回 error 字符串而非静默吞掉）
  */
 
 import { apiGet, isErrorResult } from "../common/api-client.js";
@@ -49,31 +49,41 @@ export interface SearchResult {
   updated_at: string;
 }
 
+export interface SearchYuqueResult {
+  results: SearchResult[];
+  error?: string;
+}
+
 export async function searchYuque(
   q: string,
   scope: string | undefined,
   creator: string | undefined,
-): Promise<SearchResult[]> {
+): Promise<SearchYuqueResult> {
   const params: Record<string, string> = { q, type: "doc", page: "1" };
   if (scope) params.scope = scope;
   if (creator) params.creator = creator;
 
   const data = await apiGet("/search", params, `RAG search: ${q}`);
-  if (isErrorResult(data)) return [];
+  if (isErrorResult(data)) {
+    const errText = data.content?.[0]?.text ?? "unknown error";
+    return { results: [], error: `search "${q}" failed: ${errText.substring(0, 200)}` };
+  }
 
   const typed = data as { data?: unknown[] };
-  if (!typed?.data) return [];
+  if (!typed?.data) return { results: [] };
 
-  return typed.data.map((item: any) => ({
-    id: item.id,
-    doc_id: item.target?.id ?? item.id,
-    title: item.title?.replace(/<em>|<\/em>/g, "") ?? "",
-    summary: item.summary?.replace(/<em>|<\/em>/g, "") ?? "",
-    url: item.url ?? "",
-    book_name: item.target?.book?.name ?? "",
-    book_slug: item.target?.book?.slug ?? "",
-    updated_at: item.target?.content_updated_at ?? item.target?.updated_at ?? "",
-  }));
+  return {
+    results: typed.data.map((item: any) => ({
+      id: item.id,
+      doc_id: item.target?.id ?? item.id,
+      title: item.title?.replace(/<em>|<\/em>/g, "") ?? "",
+      summary: item.summary?.replace(/<em>|<\/em>/g, "") ?? "",
+      url: item.url ?? "",
+      book_name: item.target?.book?.name ?? "",
+      book_slug: item.target?.book?.slug ?? "",
+      updated_at: item.target?.content_updated_at ?? item.target?.updated_at ?? "",
+    })),
+  };
 }
 
 // ─── 获取文档内容 ────────────────────────────────
@@ -86,22 +96,32 @@ export interface DocContent {
   book_name: string;
 }
 
+export interface FetchDocResult {
+  doc: DocContent | null;
+  error?: string;
+}
+
 export async function fetchDoc(
   docId: number,
-): Promise<DocContent | null> {
+): Promise<FetchDocResult> {
   const data = await apiGet(`/repos/docs/${docId}`, undefined, `RAG fetch doc: ${docId}`);
-  if (isErrorResult(data)) return null;
+  if (isErrorResult(data)) {
+    const errText = data.content?.[0]?.text ?? "unknown error";
+    return { doc: null, error: `fetch doc ${docId} failed: ${errText.substring(0, 200)}` };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const typed = data as { data?: Record<string, any> };
-  const doc = typed?.data;
-  if (!doc) return null;
+  const d = typed?.data;
+  if (!d) return { doc: null };
 
   return {
-    doc_id: docId,
-    title: doc.title ?? "",
-    body: doc.body ?? "",
-    url: `https://www.yuque.com/${doc.book?.namespace ?? ""}/${doc.slug ?? ""}`,
-    book_name: doc.book?.name ?? "",
+    doc: {
+      doc_id: docId,
+      title: d.title ?? "",
+      body: d.body ?? "",
+      url: `https://www.yuque.com/${d.book?.namespace ?? ""}/${d.slug ?? ""}`,
+      book_name: d.book?.name ?? "",
+    },
   };
 }

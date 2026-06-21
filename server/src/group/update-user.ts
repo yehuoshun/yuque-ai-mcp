@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPut } from "../common/api-client.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, oneOf, optionalBoolean } from "../common/validate.js";
 import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
@@ -31,6 +31,8 @@ export const groupUpdateUser: McpTool = {
     const __v = check(
       requiredString(args?.login, "login"),
       requiredString(args?.id, "id"),
+      oneOf(args?.role, "role", [0, 1, 2]),
+      optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
@@ -39,7 +41,6 @@ export const groupUpdateUser: McpTool = {
     const role = (args?.role as number) ?? 1;
 
     const data = await apiPut(`/groups/${login}/users/${id}`, { role }, "Update group user");
-    const item = (data as { data?: Record<string, unknown> })?.data ?? data;
-    return handleApiCall(item, formatGroupUser, raw);
+    return handleApiCall(data, formatGroupUser, raw);
   },
 };

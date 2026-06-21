@@ -6,8 +6,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
+import { apiGet } from "../common/api-client.js";
 import { formatUser, handleApiCall } from "../common/format.js";
+import { optionalBoolean } from "../common/validate.js";
 
 export const userGet: McpTool = {
   name: "yuque_get_user",
@@ -21,6 +22,9 @@ export const userGet: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = optionalBoolean(args?.raw, "raw");
+    if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const data = await apiGet("/user", undefined, "Get user");
     return handleApiCall(data, formatUser, raw);
