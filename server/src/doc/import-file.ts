@@ -63,10 +63,6 @@ export const docImportFile: McpTool = {
         type: "string",
         description: "Content format: markdown / html, defaults to markdown",
       },
-      raw: {
-        type: "boolean",
-        description: "Return raw full JSON",
-      },
     },
     required: ["file_path", "book_id", "paths"],
   },

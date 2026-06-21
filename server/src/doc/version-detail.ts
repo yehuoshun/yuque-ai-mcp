@@ -6,8 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { apiGet } from "../common/api-client.js";
+import { positiveInt, optionalBoolean, check } from "../common/validate.js";
 import { formatDocVersion, handleApiCall } from "../common/format.js";
 
 
@@ -27,7 +27,8 @@ export const docVersionDetail: McpTool = {
   async handler(args) {
     // @validate
     const __v = check(
-      requiredString(args?.id?.toString(), "id"),
+      positiveInt(args?.id, "id"),
+      optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
 

@@ -38,10 +38,6 @@ export const docImportUrl: McpTool = {
         type: "string",
         description: "Content format: markdown / html, defaults to markdown",
       },
-      raw: {
-        type: "boolean",
-        description: "Return raw full JSON",
-      },
     },
     required: ["book_id", "url", "paths"],
   },
