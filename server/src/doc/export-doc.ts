@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, check } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import {
   extractResources,
@@ -55,6 +55,13 @@ export const docExportSingle: McpTool = {
 
   async handler(args) {
     const cfg = loadConfig();
+
+    // @validate
+    const __v = check(
+      requiredString(args?.id, "id"),
+    );
+    if (__v) return __v;
+
     const id = args?.id as string;
     const downloadImages = args?.download_images !== false;
     const rawBody = args?.raw_body === true;

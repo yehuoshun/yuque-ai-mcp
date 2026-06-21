@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, check } from "../common/validate.js";
 import { formatDocVersion, handleApiCall } from "../common/format.js";
 
 
@@ -26,13 +26,12 @@ export const docVersionDetail: McpTool = {
 
   async handler(args) {
     // @validate
+    const __v = check(
+      requiredString(args?.id?.toString(), "id"),
+    );
+    if (__v) return __v;
+
     const id = args?.id as number;
-    if (!id) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "id 是必填参数 / id is required" }, null, 2) }],
-        isError: true,
-      };
-    }
     const raw = args?.raw as boolean | undefined;
 
     const data = await apiGet(`/doc_versions/${id}`, undefined, "Get version detail");

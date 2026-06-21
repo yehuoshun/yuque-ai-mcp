@@ -9,7 +9,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, check } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
@@ -79,8 +79,10 @@ export const docCopySingle: McpTool = {
     const raw = args?.raw as boolean | undefined;
 
     // 校验必填
-    const err = requiredString(targetBookId, "target_book_id");
-    if (err) return err;
+    const __v = check(
+      requiredString(targetBookId, "target_book_id"),
+    );
+    if (__v) return __v;
 
     // ─── 模式 2：工具内部拉取源文档 ───
     if (docId) {
@@ -154,10 +156,12 @@ export const docCopySingle: McpTool = {
 
     // 校验模式1必填
     if (!docId) {
-      for (const [val, name] of [[title, "title"], [body, "body"], [format, "format"]] as const) {
-        const err2 = requiredString(val as string, name);
-        if (err2) return err2;
-      }
+      const __v2 = check(
+        requiredString(title, "title"),
+        requiredString(body, "body"),
+        requiredString(format, "format"),
+      );
+      if (__v2) return __v2;
     }
 
     // 解析 paths

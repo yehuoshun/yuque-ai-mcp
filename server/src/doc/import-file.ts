@@ -14,7 +14,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, basename } from "node:path";
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString, oneOf } from "../common/validate.js";
+import { requiredString, oneOf, check } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import {
@@ -81,10 +81,11 @@ export const docImportFile: McpTool = {
     const format = (args?.format as string) || "markdown";
 
     // 校验
-    for (const [val, name] of [[filePath, "file_path"], [bookId, "book_id"]] as const) {
-      const err = requiredString(val, name);
-      if (err) return err;
-    }
+    const __v = check(
+      requiredString(filePath, "file_path"),
+      requiredString(bookId, "book_id"),
+    );
+    if (__v) return __v;
     const modeErr = oneOf(mode, "mode", ["direct", "upload_assets", "embed_assets"]);
     if (modeErr) return modeErr;
 

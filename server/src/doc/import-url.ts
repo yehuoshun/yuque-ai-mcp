@@ -6,7 +6,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, check } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 import { escapeHtml } from "../common/text-utils.js";
@@ -52,10 +52,11 @@ export const docImportUrl: McpTool = {
     const format = (args?.format as string) || "markdown";
 
     // 校验
-    for (const [val, name] of [[bookId, "book_id"], [url, "url"]] as const) {
-      const err = requiredString(val, name);
-      if (err) return err;
-    }
+    const __v = check(
+      requiredString(bookId, "book_id"),
+      requiredString(url, "url"),
+    );
+    if (__v) return __v;
 
     // 解析 paths
     const pathsErr = requiredString(args?.paths as string, "paths");
