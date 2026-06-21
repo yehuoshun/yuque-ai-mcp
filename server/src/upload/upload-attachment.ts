@@ -11,6 +11,7 @@
 import { readFileSync, statSync } from "fs";
 import type { McpTool } from "../common/types.js";
 import { loadConfig } from "../common/config.js";
+import { requiredString } from "../common/validate.js";
 
 const LIMITS: Record<string, { max: number; label: string }> = {
   image: { max: 50, label: "50MB" },
@@ -86,6 +87,9 @@ export const uploadAttachment: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = requiredString(args?.file_path, "file_path");
+    if (__v) return __v;
     const cfg = loadConfig();
     const filePath = args?.file_path as string;
     const type = (args?.type as string) || "attachment";
