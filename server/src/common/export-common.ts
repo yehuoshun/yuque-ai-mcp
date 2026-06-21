@@ -16,8 +16,8 @@ export interface ResourceRef {
   type: "image" | "attachment";
 }
 
-/** 从 body_html 中提取所有资源引用 */
-export function extractResources(bodyHtml: string, imagesDir: string, attachmentsDir: string): ResourceRef[] {
+/** 从 body_html 中提取所有资源引用。localPath 为相对于 outputDir 的路径（如 images/foo.png） */
+export function extractResources(bodyHtml: string): ResourceRef[] {
   const resources: ResourceRef[] = [];
   const seen = new Set<string>();
 
@@ -29,7 +29,7 @@ export function extractResources(bodyHtml: string, imagesDir: string, attachment
     if (seen.has(url)) continue;
     seen.add(url);
     const name = urlToFilename(url);
-    resources.push({ url, localPath: join(imagesDir, name), type: "image" });
+    resources.push({ url, localPath: join("images", name), type: "image" });
   }
 
   // 提取 Markdown 图片 ![](url)
@@ -39,7 +39,7 @@ export function extractResources(bodyHtml: string, imagesDir: string, attachment
     if (seen.has(url)) continue;
     seen.add(url);
     const name = urlToFilename(url);
-    resources.push({ url, localPath: join(imagesDir, name), type: "image" });
+    resources.push({ url, localPath: join("images", name), type: "image" });
   }
 
   return resources;

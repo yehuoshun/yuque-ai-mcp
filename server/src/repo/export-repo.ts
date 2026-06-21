@@ -286,7 +286,7 @@ async function exportSingleDoc(
   let resourceMap = new Map<string, { url: string; localPath: string; success: boolean }>();
 
   if (downloadImages && bodyHtml) {
-    const resources = extractResources(bodyHtml, imagesDir, attachmentsDir);
+    const resources = extractResources(bodyHtml);
 
     for (const res of resources) {
       const destPath = join(outputDir, res.localPath);

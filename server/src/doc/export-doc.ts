@@ -99,7 +99,7 @@ export const docExportSingle: McpTool = {
     let imagesFailed = 0;
 
     if (downloadImages && bodyHtml) {
-      const resources = extractResources(bodyHtml, imagesDir, attachmentsDir);
+      const resources = extractResources(bodyHtml);
 
       for (const res of resources) {
         const destPath = join(outputDir, res.localPath);

@@ -83,11 +83,13 @@ interface Config {
 }
 
 let _config: Config | null = null;
+let _configPath: string | null = null;
 
 export function loadConfig(): Config {
   if (_config) return _config;
 
   const configPath = findConfigPath();
+  _configPath = configPath;
   try {
     const raw = readFileSync(configPath, "utf-8");
     _config = JSON.parse(raw) as Config;
@@ -111,10 +113,10 @@ export function loadRssSources(): Record<string, RssSourceDef> {
   return loadConfig().rss?.sources ?? {};
 }
 
-/** 持久化 config 到文件 */
+/** 持久化 config 到文件（记住首次加载路径，避免写到不同文件） */
 export function saveConfig(): void {
   if (!_config) return;
-  const configPath = findConfigPath();
+  const configPath = _configPath || findConfigPath();
   writeFileSync(configPath, JSON.stringify(_config, null, 2) + "\n", "utf-8");
 }
 
