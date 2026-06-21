@@ -6,7 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPost, apiPut } from "../common/api-client.js";
+import { isErrorResult, apiPut } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { getRssSources } from "./sources.js";

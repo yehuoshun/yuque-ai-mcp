@@ -14,7 +14,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { positiveInt, maxValue } from "../common/validate.js";
+import { check, requiredString, positiveInt, maxValue } from "../common/validate.js";
 import {
   normalizeKeywords,
   searchYuque,
@@ -53,17 +53,19 @@ export const searchRag: McpTool = {
   },
 
   async handler(args) {
+    // @validate
+    const __v = check(
+      requiredString(args?.keywords, "keywords"),
+      positiveInt(args?.max_results, "max_results"),
+      maxValue(args?.max_results, "max_results", 50),
+      positiveInt(args?.fetch_docs, "fetch_docs"),
+      maxValue(args?.fetch_docs, "fetch_docs", 10),
+    );
+    if (__v) return __v;
+
     const keywordsStr = args?.keywords as string;
     const scope = args?.scope as string | undefined;
     const creator = args?.creator as string | undefined;
-
-    // @validate
-    const __v = positiveInt(args?.max_results, "max_results")
-      || maxValue(args?.max_results, "max_results", 50)
-      || positiveInt(args?.fetch_docs, "fetch_docs")
-      || maxValue(args?.fetch_docs, "fetch_docs", 10);
-    if (__v) return __v;
-
     const maxResults = (args?.max_results as number) ?? 10;
     const fetchDocs = Math.min((args?.fetch_docs as number) ?? 3, 10);
 

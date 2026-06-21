@@ -52,7 +52,6 @@ export const repoCopy: McpTool = {
     if (__v2) return __v2;
 
     const targetBookId = args?.target_book_id as string;
-    const raw = args?.raw as boolean | undefined;
 
     let documents: CopyDocument[];
     try {

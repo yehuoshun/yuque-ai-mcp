@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPostWithFallback } from "../common/api-client.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, optionalBoolean } from "../common/validate.js";
 import { formatRepo, handleApiCall } from "../common/format.js";
 import { autoSlug } from "../common/config.js";
 
@@ -34,6 +34,7 @@ export const repoCreate: McpTool = {
     const __v = check(
       requiredString(args?.login, "login"),
       requiredString(args?.name, "name"),
+      optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;

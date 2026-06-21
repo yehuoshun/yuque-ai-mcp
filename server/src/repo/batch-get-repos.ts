@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { requiredString } from "../common/validate.js";
 
 
 export const repoBatchGet: McpTool = {

@@ -6,8 +6,8 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiGetWithFallback, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { apiGetWithFallback } from "../common/api-client.js";
+import { requiredString, optionalBoolean } from "../common/validate.js";
 import { formatRepo, handleApiCall } from "../common/format.js";
 
 
@@ -30,7 +30,8 @@ export const repoList: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.login, "login");
+    const __v = requiredString(args?.login, "login")
+      || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
     const login = args?.login as string;
