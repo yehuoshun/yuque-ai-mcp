@@ -8,6 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
+import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoBatchGet: McpTool = {
@@ -63,13 +64,21 @@ export const repoBatchGet: McpTool = {
       };
     }
 
+    // 并发获取，复用 formatRepo + wrapResult（与其他 repo 工具统一管道）
     const results = await Promise.all(
-      ids.map((id) =>
-        apiGet(`/repos/${encodeURIComponent(String(id))}`, undefined, `Get repo ${id}`).then((data: unknown) => {
+      ids.map(async (id) => {
+        try {
+          const data = await apiGet(
+            `/repos/${encodeURIComponent(String(id))}`,
+            undefined,
+            `Get repo ${id}`
+          );
           if (isErrorResult(data)) return { id, error: true, detail: data };
-          return { id, ok: true, data };
-        })
-      )
+          return { id, ok: true, data: wrapResult(data, formatRepo, false) };
+        } catch (err) {
+          return { id, error: true, detail: err };
+        }
+      })
     );
 
     const output: Record<string, unknown> = {};
@@ -79,7 +88,7 @@ export const repoBatchGet: McpTool = {
       if (r.error) {
         errors.push({ id: r.id as string | number, detail: (r as any).detail });
       } else if (r.ok && r.data) {
-        output[String(r.id)] = (r.data as any)?.data ?? r.data;
+        output[String(r.id)] = r.data;
       }
     }
 
