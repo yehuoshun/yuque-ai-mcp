@@ -5,9 +5,9 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost, apiPut, isErrorResult } from "../common/api-client.js";
+import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString } from "../common/validate.js";
-import { ensureDirectoryPath } from "../common/toc-ops.js";
+import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
 /** 并发复制数：平衡速度与语雀 API 限流 */
@@ -125,15 +125,8 @@ export const repoCopy: McpTool = {
                   return { path, error: "文档创建返回无 ID" };
                 }
 
-                await apiPut(`/repos/${targetBookId}/toc`, {
-                  action: "appendNode",
-                  action_mode: "child",
-                  type: "DOC",
-                  doc_ids: [newDoc.id],
-                  target_uuid: dirUuid,
-                }, `Append doc to TOC: ${path}`);
-
-                return { path, doc_id: newDoc.id, slug: newDoc.slug };
+                const { warning } = await appendDocToToc(targetBookId, newDoc.id, dirUuid);
+                return { path, doc_id: newDoc.id, slug: newDoc.slug, ...(warning ? { warning } : {}) };
               } catch (err) {
                 return { path, error: err instanceof Error ? err.message : String(err) };
               }
