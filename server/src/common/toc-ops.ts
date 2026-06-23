@@ -230,7 +230,15 @@ export interface MoveNodeOp {
   book_id?: string;
 }
 
-export type TocOp = CreateTitleOp | AppendNodeOp | RemoveNodeOp | MoveNodeOp;
+export interface PrependDocOp {
+  action: "prependDoc";
+  doc_ids: string;
+  target_uuid?: string;
+  target_title?: string;
+  book_id?: string;
+}
+
+export type TocOp = CreateTitleOp | AppendNodeOp | RemoveNodeOp | MoveNodeOp | PrependDocOp;
 
 export interface OpResult {
   index: number;
@@ -334,6 +342,61 @@ export async function executeOp(
 
       invalidateTocCache(opBookId);
       return { success: true, detail: `挂载文档 ${docIds.join(",")} 到根目录` };
+    }
+
+    case "prependDoc": {
+      const opBookId = (op as any).book_id || bookId;
+      let docIds: number[];
+      try {
+        docIds = JSON.parse(op.doc_ids);
+        if (!Array.isArray(docIds) || docIds.length === 0) {
+          return { success: false, error: "prependDoc doc_ids 必须是非空 JSON 数组" };
+        }
+      } catch {
+        return { success: false, error: "prependDoc doc_ids 格式无效" };
+      }
+
+      const targetUuid = await resolveTarget(opBookId, op as any);
+      if (!targetUuid) {
+        return { success: false, error: "prependDoc 需要 target_uuid 或 target_title（不能首插到根目录）" };
+      }
+
+      // Step 1: appendNode 到根目录 → 拿到新节点 uuid
+      const rootResult = await apiPut(`/repos/${opBookId}/toc`, {
+        action: "appendNode",
+        action_mode: "child",
+        type: "DOC",
+        doc_ids: docIds,
+      }, `Prepend: append to root`);
+      if (isErrorResult(rootResult)) {
+        return { success: false, error: `prependDoc 挂根失败: ${docIds.join(",")}` };
+      }
+
+      const rootToc = (rootResult as { data?: Array<Record<string, unknown>> }).data || [];
+      invalidateTocCache(opBookId);
+
+      // Step 2: 逐个 remove + prependNode 到目标最前面
+      const moved: number[] = [];
+      for (const docId of docIds) {
+        const newNode = rootToc.find((n: Record<string, unknown>) => n.doc_id === docId && !n.parent_uuid);
+        if (!newNode?.uuid) continue;
+        await apiPut(`/repos/${opBookId}/toc`, {
+          action: "removeNode",
+          action_mode: "sibling",
+          node_uuid: newNode.uuid,
+        }, `Prepend: remove ${newNode.uuid}`);
+        await apiPut(`/repos/${opBookId}/toc`, {
+          action: "prependNode",
+          action_mode: "child",
+          type: "DOC",
+          doc_ids: [docId],
+          target_uuid: targetUuid,
+        }, `Prepend: prepend ${docId}`);
+        moved.push(docId);
+      }
+
+      invalidateTocCache(opBookId);
+      return { success: true, detail: `首插文档 ${moved.join(",")} 到目录（先挂根再 prepend）` };
     }
 
     case "removeNode": {
