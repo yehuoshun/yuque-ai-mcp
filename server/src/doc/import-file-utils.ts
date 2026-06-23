@@ -5,11 +5,13 @@
  * - uploadImage / uploadAttachment：上传文件到语雀 CDN
  * - isEmbeddable / parseAttachmentContent：附件内容解析（docx/xlsx/pptx/pdf）
  * - extractLocalRefs：从 Markdown 中提取本地引用
+ * - processAssets：按模式处理引用（direct/upload_assets/embed_assets）
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname, basename } from "node:path";
 import { execSync } from "node:child_process";
+import { apiPost, isErrorResult } from "../common/api-client.js";
 
 // ─── 类型 ──────────────────────────────────────────────
 
@@ -299,4 +301,163 @@ export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
   }
 
   return refs;
+}
+
+// ─── 按模式处理引用 ──────────────────────────────────
+
+export interface AssetResult {
+  original: string;
+  type: string;
+  cdnUrl?: string;
+  embedDocId?: number;
+  embedDocSlug?: string;
+  error?: string;
+}
+
+/**
+ * 按模式处理所有本地引用，返回处理结果列表。
+ * 从 import-file.ts handler 中抽离，保持 handler 简洁。
+ */
+export async function processAssets(
+  mode: ImportMode,
+  refs: AssetRef[],
+  bookId: string,
+  cfg: { cookie?: string; ctoken?: string; token: string; api_base: string },
+): Promise<AssetResult[]> {
+  const results: AssetResult[] = [];
+
+  if (mode === "direct") {
+    for (const ref of refs) {
+      results.push({ original: ref.originalPath, type: ref.type });
+    }
+    return results;
+  }
+
+  if (mode === "upload_assets") {
+    const cookie = cfg.cookie || "";
+    const ctoken = cfg.ctoken || "";
+    const hasCookie = !!cookie && !!ctoken;
+
+    if (!hasCookie) {
+      return [{ original: "", type: "error", error: "upload_assets 模式需要配置 Cookie 和 ctoken" }];
+    }
+
+    // 获取 user_id
+    let userId = "";
+    try {
+      const userRes = await fetch(`${cfg.api_base}/user`, {
+        headers: { "X-Auth-Token": cfg.token },
+      });
+      if (userRes.ok) {
+        const userData = (await userRes.json()) as { data: { id: number } };
+        userId = String(userData.data.id);
+      }
+    } catch { /* 继续 */ }
+
+    for (const ref of refs) {
+      if (!existsSync(ref.absolutePath)) {
+        results.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
+        continue;
+      }
+
+      if (ref.type === "image") {
+        const result = await uploadImage(ref.absolutePath, cookie, ctoken, userId);
+        if (result.ok) {
+          results.push({ original: ref.originalPath, type: "image", cdnUrl: result.url });
+        } else {
+          results.push({ original: ref.originalPath, type: "image", error: result.error });
+        }
+      } else {
+        const result = await uploadAttachmentFile(ref.absolutePath, cookie, ctoken, userId);
+        if (result.ok) {
+          results.push({ original: ref.originalPath, type: "attachment", cdnUrl: result.url });
+        } else {
+          results.push({ original: ref.originalPath, type: "attachment", error: result.error });
+        }
+      }
+    }
+    return results;
+  }
+
+  if (mode === "embed_assets") {
+    for (const ref of refs) {
+      try {
+        if (!existsSync(ref.absolutePath)) {
+          results.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
+          continue;
+        }
+
+        if (ref.type === "image") {
+          results.push({ original: ref.originalPath, type: "image" });
+          continue;
+        }
+
+        if (!isEmbeddable(ref.ext)) {
+          results.push({
+            original: ref.originalPath,
+            type: "attachment",
+            error: `不支持转义的格式: ${ref.ext}`,
+          });
+          continue;
+        }
+
+        let content: string;
+        try {
+          content = parseAttachmentContent(ref.absolutePath, ref.ext);
+        } catch (parseErr) {
+          const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+          content = `*（${basename(ref.absolutePath)} 解析异常: ${errMsg}，请手动查看附件）*`;
+          results.push({
+            original: ref.originalPath,
+            type: "attachment",
+            error: `解析异常: ${errMsg}`,
+          });
+          continue;
+        }
+
+        const assetTitle = basename(ref.absolutePath).replace(/\.[^.]+$/, "");
+
+        const payload: Record<string, unknown> = {
+          title: assetTitle,
+          body: content,
+          format: "markdown",
+        };
+        const data = await apiPost(`/repos/${bookId}/docs`, payload, `Create embed doc: ${assetTitle}`);
+        if (isErrorResult(data)) {
+          results.push({
+            original: ref.originalPath,
+            type: "attachment",
+            error: "创建子文档失败",
+          });
+          continue;
+        }
+
+        const newDoc = (data as { data?: { id: number; slug: string } }).data;
+        if (!newDoc?.id) {
+          results.push({
+            original: ref.originalPath,
+            type: "attachment",
+            error: "子文档创建返回无 ID",
+          });
+          continue;
+        }
+
+        results.push({
+          original: ref.originalPath,
+          type: "attachment",
+          embedDocId: newDoc.id,
+          embedDocSlug: newDoc.slug,
+        });
+      } catch (err) {
+        results.push({
+          original: ref.originalPath,
+          type: ref.type,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return results;
+  }
+
+  return results;
 }

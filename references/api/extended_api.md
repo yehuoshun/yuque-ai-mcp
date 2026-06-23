@@ -10,7 +10,8 @@
 |------|-----|------|
 | `yuque_import_file` | doc | 从本地文件导入文档（三种模式） |
 | `yuque_import_url` | doc | 从网页 URL 导入文档 |
-| `yuque_export_doc` | doc | 导出单篇文档为 Markdown |
+| `yuque_export_doc` | doc | 导出单篇文档为 Markdown 文件（不含资源下载） |
+| `yuque_export_resources` | doc | 下载文档中的图片/附件到本地目录 |
 | `yuque_export_repo` | repo | 批量导出知识库为 Markdown |
 | `yuque_copy_doc` | doc | 单文档跨知识库复制 |
 | `yuque_copy_repo` | repo | 批量跨知识库复制 |
@@ -110,33 +111,71 @@
 
 `GET /api/v2/repos/docs/:id`（获取文档内容）
 
-### 流程
+### 职责
 
-1. 获取文档详情（body + body_html）
-2. 解析 body_html 中的图片/附件
-3. 下载图片/附件到本地
-4. 输出 Markdown 文件 + 资源目录 + 导出报告
+取文档 → 转 Markdown → 加 frontmatter → 写磁盘。资源下载已拆分到 `yuque_export_resources`。
 
 ### 参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `id` | string | ✅ | 文档 ID 或 slug |
-| `output_dir` | string | ❌ | 输出目录，默认 `/tmp/yuque-export/<doc_id>` |
-| `download_images` | boolean | ❌ | 是否下载图片/附件，默认 `true` |
-| `raw` | boolean | ❌ | 返回原始 JSON，默认 `false` |
+| `output_dir` | string | ✅ | 输出目录路径 |
+| `raw_body` | boolean | ❌ | 直接输出原始 body 字段，默认 false |
 
 ### 返回
 
 ```json
 {
-  "doc_id": 123456,
-  "title": "文档标题",
-  "output_dir": "/tmp/yuque-export/123456",
-  "markdown_file": "/tmp/yuque-export/123456/文档标题.md",
-  "images_downloaded": 5,
-  "images_failed": 0,
-  "front_matter": { "title": "...", "created_at": "..." }
+  "status": "done",
+  "doc": { "id": "123", "slug": "my-doc", "title": "文档标题", "format": "markdown" },
+  "output_dir": "./export/my-doc",
+  "file": "./export/my-doc/文档标题.md",
+  "word_count": 1500,
+  "note": "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_export_resources"
+}
+```
+
+### 与 yuque_export_resources 搭配
+
+```
+1. yuque_export_doc → 拿到 .md（图片为 CDN URL）
+2. yuque_export_resources → 下载资源到本地
+3. Agent 替换 .md 中的 CDN URL 为本地路径
+```
+
+---
+
+## yuque_export_resources — 下载文档资源
+
+### 端点
+
+`GET /api/v2/repos/docs/:id`（获取 body_html）
+
+### 职责
+
+解析文档 body_html → 提取图片/附件 → 下载到本地 → 返回 URL→路径映射
+
+### 参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | string | ✅ | 文档 ID 或 slug |
+| `output_dir` | string | ✅ | 资源保存目录 |
+
+### 返回
+
+```json
+{
+  "status": "done",
+  "doc": { "id": "123", "title": "文档标题" },
+  "output_dir": "./export/my-doc",
+  "resources_total": 3,
+  "downloaded": 2,
+  "failed": 1,
+  "mapping": [
+    { "url": "https://cdn.../img.png", "localPath": "images/img.png", "type": "image", "success": true }
+  ]
 }
 ```
 
@@ -186,56 +225,38 @@
 
 ### 端点
 
-`GET /api/v2/repos/docs/:id`（获取源文档）  
 `POST /api/v2/repos/:book_id/docs`（创建目标文档）  
 `PUT /api/v2/repos/:book_id/toc`（挂载到目录）
 
-### 两种模式
+### 流程
 
-| 模式 | 说明 | 适用场景 |
-|------|------|---------|
-| 模式 1 | Agent 传入清洗后的 title/body/format/paths，工具创建文档 | 小文档（<30KB） |
-| 模式 2 | Agent 传入 doc_id+source_book_id，工具拉取源文档返回给 Agent 清洗，Agent 再调模式 1 | 大文档（>30KB），避免 mcporter CLI 传 body 不稳定 |
+Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工具创建副本。
 
-### 参数（模式 1）
+### 参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `target_book_id` | string | ✅ | 目标知识库 ID 或 namespace |
 | `title` | string | ✅ | 文档标题 |
-| `body` | string | ✅ | 文档内容 |
+| `body` | string | ✅ | 文档内容（Agent 清洗后） |
 | `format` | string | ✅ | 格式：`markdown` / `lake` / `html` |
 | `paths` | string | ✅ | JSON 数组，1-5 个目录路径 |
-| `slug` | string | ❌ | 自定义 slug |
-| `public` | number | ❌ | 可见性 |
+| `source_url` | string | ❌ | 源文档 URL，追尾为脚注链接 |
+| `source_title` | string | ❌ | 源文档标题，用于脚注 |
 
-### 参数（模式 2）
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `target_book_id` | string | ✅ | 目标知识库 ID 或 namespace |
-| `source_book_id` | string | ✅ | 源知识库 ID 或 namespace |
-| `doc_id` | string | ✅ | 源文档 ID |
-
-### 返回（模式 1）
+### 返回
 
 ```json
 {
-  "doc_id": 123456,
   "title": "文档标题",
-  "path": "目标目录/子目录"
-}
-```
-
-### 返回（模式 2）
-
-```json
-{
-  "mode": "fetch",
-  "doc_id": 123456,
-  "title": "源文档标题",
-  "body": "原始 Markdown 内容（供 Agent 清洗）",
-  "format": "markdown"
+  "target_book_id": "80346623",
+  "paths": ["Java/Spring"],
+  "results": [
+    { "path": "Java/Spring", "doc_id": 123456, "slug": "abc123" }
+  ],
+  "total": 1,
+  "success": 1,
+  "failed": 0
 }
 ```
 

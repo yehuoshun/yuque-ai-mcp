@@ -1,17 +1,13 @@
 /**
  * doc/import-file — 从本地文件导入文档到语雀（三种模式）
  *
- * 模式：
- * 1. direct       — 原样导入，不处理附件和外部图片
- * 2. upload_assets — 本地图片/附件上传到语雀 CDN，替换路径后导入
- * 3. embed_assets  — 附件（docx/xlsx/pptx/pdf）解析内容创建子文档，
- *                    替换引用为语雀文档链接后导入原文档
+ * 职责：读文件 → 提取引用 → 按模式处理 → 替换引用 → 创建文档 → 挂载 TOC
  *
- * 所有模式均在内存中处理，不修改源文件。
+ * 模式处理逻辑在 import-file-utils.ts 的 processAssets() 中。
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { dirname, basename } from "node:path";
+import { basename } from "node:path";
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf, check } from "../common/validate.js";
@@ -19,14 +15,9 @@ import { loadConfig } from "../common/config.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import {
   type ImportMode,
-  uploadImage,
-  uploadAttachmentFile,
-  isEmbeddable,
-  parseAttachmentContent,
   extractLocalRefs,
+  processAssets,
 } from "./import-file-utils.js";
-
-// ─── 主工具 ────────────────────────────────────────────
 
 export const docImportFile: McpTool = {
   name: "yuque_import_file",
@@ -131,157 +122,22 @@ export const docImportFile: McpTool = {
       };
     }
 
-    // ── 2. 提取本地引用 ──
-    const baseDir = dirname(filePath);
-    const refs = extractLocalRefs(body, baseDir);
-    const assetResults: Array<{
-      original: string;
-      type: string;
-      cdnUrl?: string;
-      embedDocId?: number;
-      embedDocSlug?: string;
-      error?: string;
-    }> = [];
+    // ── 2. 提取引用 + 按模式处理 ──
+    const refs = extractLocalRefs(body, filePath);
+    const assetResults = await processAssets(mode, refs, bookId, cfg);
 
-    // ── 3. 按模式处理引用 ──
-
-    if (mode === "direct") {
-      for (const ref of refs) {
-        assetResults.push({ original: ref.originalPath, type: ref.type });
-      }
+    // 如果 processAssets 返回了错误（如 NO_COOKIE），直接返回
+    if (assetResults.length === 1 && assetResults[0].type === "error") {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "NO_COOKIE",
+          message: assetResults[0].error,
+        }, null, 2) }],
+        isError: true,
+      };
     }
 
-    if (mode === "upload_assets") {
-      const cookie = cfg.cookie || "";
-      const ctoken = cfg.ctoken || "";
-      const hasCookie = !!cookie && !!ctoken;
-
-      if (!hasCookie) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({
-            error: "NO_COOKIE",
-            message: "upload_assets 模式需要配置 Cookie 和 ctoken",
-          }, null, 2) }],
-          isError: true,
-        };
-      }
-
-      // 获取 user_id
-      let userId = "";
-      try {
-        const userRes = await fetch(`${cfg.api_base}/user`, {
-          headers: { "X-Auth-Token": cfg.token },
-        });
-        if (userRes.ok) {
-          const userData = (await userRes.json()) as { data: { id: number } };
-          userId = String(userData.data.id);
-        }
-      } catch { /* 继续 */ }
-
-      for (const ref of refs) {
-        if (!existsSync(ref.absolutePath)) {
-          assetResults.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
-          continue;
-        }
-
-        if (ref.type === "image") {
-          const result = await uploadImage(ref.absolutePath, cookie, ctoken, userId);
-          if (result.ok) {
-            assetResults.push({ original: ref.originalPath, type: "image", cdnUrl: result.url });
-          } else {
-            assetResults.push({ original: ref.originalPath, type: "image", error: result.error });
-          }
-        } else {
-          const result = await uploadAttachmentFile(ref.absolutePath, cookie, ctoken, userId);
-          if (result.ok) {
-            assetResults.push({ original: ref.originalPath, type: "attachment", cdnUrl: result.url });
-          } else {
-            assetResults.push({ original: ref.originalPath, type: "attachment", error: result.error });
-          }
-        }
-      }
-    }
-
-    if (mode === "embed_assets") {
-      for (const ref of refs) {
-        try {
-          if (!existsSync(ref.absolutePath)) {
-            assetResults.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
-            continue;
-          }
-
-          if (ref.type === "image") {
-            assetResults.push({ original: ref.originalPath, type: "image" });
-            continue;
-          }
-
-          if (!isEmbeddable(ref.ext)) {
-            assetResults.push({
-              original: ref.originalPath,
-              type: "attachment",
-              error: `不支持转义的格式: ${ref.ext}`,
-            });
-            continue;
-          }
-
-          let content: string;
-          try {
-            content = parseAttachmentContent(ref.absolutePath, ref.ext);
-          } catch (parseErr) {
-            const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-            content = `*（${basename(ref.absolutePath)} 解析异常: ${errMsg}，请手动查看附件）*`;
-            assetResults.push({
-              original: ref.originalPath,
-              type: "attachment",
-              error: `解析异常: ${errMsg}`,
-            });
-            continue;
-          }
-
-          const assetTitle = basename(ref.absolutePath).replace(/\.[^.]+$/, "");
-
-          const payload: Record<string, unknown> = {
-            title: assetTitle,
-            body: content,
-            format: "markdown",
-          };
-          const data = await apiPost(`/repos/${bookId}/docs`, payload, `Create embed doc: ${assetTitle}`);
-          if (isErrorResult(data)) {
-            assetResults.push({
-              original: ref.originalPath,
-              type: "attachment",
-              error: "创建子文档失败",
-            });
-            continue;
-          }
-
-          const newDoc = (data as { data?: { id: number; slug: string } }).data;
-          if (!newDoc?.id) {
-            assetResults.push({
-              original: ref.originalPath,
-              type: "attachment",
-              error: "子文档创建返回无 ID",
-            });
-            continue;
-          }
-
-          assetResults.push({
-            original: ref.originalPath,
-            type: "attachment",
-            embedDocId: newDoc.id,
-            embedDocSlug: newDoc.slug,
-          });
-        } catch (err) {
-          assetResults.push({
-            original: ref.originalPath,
-            type: ref.type,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }
-    }
-
-    // ── 4. 替换引用（在内存中，不修改源文件） ──
+    // ── 3. 替换引用 ──
     let finalBody = body;
     let assetsUploaded = 0;
     let assetsEmbedded = 0;
@@ -300,7 +156,7 @@ export const docImportFile: McpTool = {
       }
     }
 
-    // ── 5. 逐路径创建文档 ──
+    // ── 4. 逐路径创建文档 ──
     const results: Array<{ path: string; doc_id?: number; slug?: string; error?: string }> = [];
 
     for (const path of paths) {

@@ -78,16 +78,21 @@ export const docBatchGet: McpTool = {
       };
     }
 
-    // 并发获取
+    // 并发获取，复用 formatDoc + wrapResult（与其他 doc 工具统一管道）
     const results = await Promise.all(
-      ids.map((id) =>
-        apiGet(`/repos/${bookId}/docs/${encodeURIComponent(String(id))}`, {
-          raw: raw ? "1" : "0",
-        }, `Get doc ${id}`).then((data: unknown) => {
+      ids.map(async (id) => {
+        try {
+          const data = await apiGet(
+            `/repos/${bookId}/docs/${encodeURIComponent(String(id))}`,
+            { raw: raw ? "1" : "0" },
+            `Get doc ${id}`
+          );
           if (isErrorResult(data)) return { id, error: true, detail: data };
-          return { id, ok: true, data };
-        })
-      )
+          return { id, ok: true, data: wrapResult(data, formatDoc, raw) };
+        } catch (err) {
+          return { id, error: true, detail: err };
+        }
+      })
     );
 
     // 组装结果
@@ -98,8 +103,7 @@ export const docBatchGet: McpTool = {
       if (r.error) {
         errors.push({ id: r.id as string | number, detail: (r as any).detail });
       } else if (r.ok && r.data) {
-        const rawData = (r.data as any)?.data ?? r.data;
-        output[String(r.id)] = raw ? rawData : wrapResult(r.data, formatDoc, false);
+        output[String(r.id)] = r.data;
       }
     }
 

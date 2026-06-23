@@ -1,22 +1,18 @@
 /**
- * doc/export-doc — 导出单篇文档为 Markdown
+ * doc/export-doc — 导出单篇文档为 Markdown 文件
  *
- * 流程：
- *   1. 获取文档详情（body + body_html）
- *   2. 解析 body_html 中的图片/附件 → 尝试下载 → 成功替换为本地路径，失败保留原链接
- *   3. 输出 Markdown 文件 + 资源目录 + 导出报告
+ * 职责：取文档 → 转 Markdown → 加 frontmatter → 写磁盘
+ * 资源下载已拆到 yuque_export_resources，本工具不负责。
+ *
+ * 端点：GET /api/v2/repos/docs/:id（复用 yuque_get_doc）
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { requiredString, check } from "../common/validate.js";
-import { loadConfig } from "../common/config.js";
 import {
-  extractResources,
-  downloadFile,
   formatFrontMatter,
   sanitizeFilename,
   htmlToMarkdown,
@@ -24,7 +20,7 @@ import {
 
 export const docExportSingle: McpTool = {
   name: "yuque_export_doc",
-  description: "Export a single document as Markdown with images/attachments downloaded. Failed downloads fall back to CDN URLs. 详见 references/api/extended_api.md",
+  description: "Export a single document as Markdown file. Fetches doc → converts body_html to Markdown → adds frontmatter → writes to disk. Resource download is separate (yuque_export_resources). 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -39,31 +35,26 @@ export const docExportSingle: McpTool = {
       },
       output_dir: {
         type: "string",
-        description: "Output directory path. Defaults to ./yuque-export/<doc_slug>/",
-      },
-      download_images: {
-        type: "boolean",
-        description: "Download images to local (default true). Set false to skip download.",
+        description: "Output directory path (required). The file will be saved as <output_dir>/<title>.md",
       },
       raw_body: {
         type: "boolean",
-        description: "Use raw body field instead of converting body_html to markdown (default false)",
+        description: "Use raw body field instead of converting body_html to markdown (default false). Useful for markdown-format docs.",
       },
     },
-    required: ["id"],
+    required: ["id", "output_dir"],
   },
 
   async handler(args) {
-    const cfg = loadConfig();
-
     // @validate
     const __v = check(
       requiredString(args?.id, "id"),
+      requiredString(args?.output_dir, "output_dir"),
     );
     if (__v) return __v;
 
     const id = args?.id as string;
-    const downloadImages = args?.download_images !== false;
+    const outputDir = args?.output_dir as string;
     const rawBody = args?.raw_body === true;
 
     // ── 获取文档详情 ──
@@ -82,35 +73,8 @@ export const docExportSingle: McpTool = {
     const wordCount = (doc.word_count as number) || 0;
     const description = (doc.description as string) || "";
 
-    const outputDir = (args?.output_dir as string) || `./yuque-export/${slug}`;
-    const imagesDir = join(outputDir, "images");
-    const attachmentsDir = join(outputDir, "attachments");
-
     // ── 创建输出目录 ──
     await mkdir(outputDir, { recursive: true });
-    if (downloadImages) {
-      await mkdir(imagesDir, { recursive: true });
-      await mkdir(attachmentsDir, { recursive: true });
-    }
-
-    // ── 提取资源并下载 ──
-    let resourceMap = new Map<string, { url: string; localPath: string; success: boolean; error?: string }>();
-    let imagesDownloaded = 0;
-    let imagesFailed = 0;
-
-    if (downloadImages && bodyHtml) {
-      const resources = extractResources(bodyHtml);
-
-      for (const res of resources) {
-        const destPath = join(outputDir, res.localPath);
-        if (existsSync(destPath)) {
-          resourceMap.set(res.url, { url: res.url, localPath: res.localPath, success: true });
-          continue;
-        }
-        const result = await downloadFile(res.url, destPath, cfg.token);
-        resourceMap.set(res.url, result);
-      }
-    }
 
     // ── 生成 Markdown 内容 ──
     let markdown = "";
@@ -121,16 +85,6 @@ export const docExportSingle: McpTool = {
       markdown = htmlToMarkdown(bodyHtml);
     } else {
       markdown = body || JSON.stringify(doc, null, 2);
-    }
-
-    // 替换图片引用为本地路径
-    for (const [url, result] of resourceMap) {
-      if (result.success) {
-        imagesDownloaded++;
-        markdown = markdown.replaceAll(url, result.localPath);
-      } else {
-        imagesFailed++;
-      }
     }
 
     // 添加 frontmatter
@@ -149,8 +103,8 @@ export const docExportSingle: McpTool = {
       doc: { id, slug, title, format },
       output_dir: outputDir,
       file: filePath,
-      images_downloaded: imagesDownloaded,
-      images_failed: imagesFailed,
+      word_count: wordCount,
+      note: "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_export_resources",
     };
 
     return {
