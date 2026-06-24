@@ -6,6 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
@@ -19,7 +20,10 @@ export const mineBookStacks: McpTool = {
   },
 
   async handler() {
-    const data = (await webRequest(`${MINE_BASE}/book_stacks`)) as {
+    const result = await webRequest(`${MINE_BASE}/book_stacks`);
+    if (isErrorResult(result)) return result;
+
+    const data = result as {
       data?: Array<{
         id: number;
         name: string;

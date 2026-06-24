@@ -11,7 +11,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname, basename } from "node:path";
 import { execSync } from "node:child_process";
-import { apiPost, isErrorResult } from "../common/api-client.js";
+import { apiPost, apiGet, isErrorResult, fetchWithRetry } from "../common/api-client.js";
 
 // ─── 类型 ──────────────────────────────────────────────
 
@@ -44,10 +44,7 @@ export async function uploadImage(
 
     const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=image&ctoken=${ctoken}`;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
-
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "POST",
       headers: {
         Cookie: cookie,
@@ -57,10 +54,7 @@ export async function uploadImage(
         "User-Agent": "Mozilla/5.0",
       },
       body: form,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
+    }, `Upload image: ${fileName}`);
 
     if (!res.ok) {
       const text = await res.text();
@@ -97,10 +91,7 @@ export async function uploadAttachmentFile(
 
     const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=file&ctoken=${ctoken}`;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60_000);
-
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "POST",
       headers: {
         Cookie: cookie,
@@ -110,10 +101,7 @@ export async function uploadAttachmentFile(
         "User-Agent": "Mozilla/5.0",
       },
       body: form,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
+    }, `Upload attachment: ${fileName}`);
 
     if (!res.ok) {
       const text = await res.text();
@@ -345,12 +333,9 @@ export async function processAssets(
     // 获取 user_id
     let userId = "";
     try {
-      const userRes = await fetch(`${cfg.api_base}/user`, {
-        headers: { "X-Auth-Token": cfg.token },
-      });
-      if (userRes.ok) {
-        const userData = (await userRes.json()) as { data: { id: number } };
-        userId = String(userData.data.id);
+      const userData = await apiGet("/user", undefined, "Get user for upload");
+      if (!isErrorResult(userData)) {
+        userId = String((userData as { data: { id: number } }).data.id);
       }
     } catch { /* 继续 */ }
 

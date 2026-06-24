@@ -77,7 +77,74 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **kv** | 4 | 增删查列——增量分片，单文档 250KB 上限 |
 | **合计** | **62** | |
 
-完整工具文档见 [SKILL.md](SKILL.md) 或 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)。
+### 全部 62 个工具
+
+| 工具 | 域 | 说明 |
+|------|--------|-------------|
+| `yuque_hello` | user | 心跳检测，验证 Token 有效性 |
+| `yuque_get_user` | user | 获取当前 Token 的用户详情 |
+| `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
+| `yuque_search` | search | 通用搜索文档/知识库 |
+| `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
+| `yuque_get_group_users` | group | 获取团队成员列表 |
+| `yuque_update_group_user` | group | 变更团队成员角色 |
+| `yuque_delete_group_user` | group | 删除团队成员 |
+| `yuque_list_docs` | doc | 获取知识库文档列表 |
+| `yuque_create_doc` | doc | 创建文档 |
+| `yuque_get_doc` | doc | 获取文档详情（支持 ID 或 slug） |
+| `yuque_update_doc` | doc | 更新文档 |
+| `yuque_delete_doc` | doc | 删除文档 |
+| `yuque_batch_get_docs` | doc | 批量获取文档详情（max 20） |
+| `yuque_get_doc_versions` | doc | 获取文档历史版本列表 |
+| `yuque_get_doc_version_detail` | doc | 获取文档历史版本详情 |
+| `yuque_diff_doc_versions` | doc | 对比两个版本的行级差异 |
+| `yuque_copy_doc` | doc | 单文档跨库复制 |
+| `yuque_export_doc` | doc | 导出单篇文档为 Markdown 文件 |
+| `yuque_export_resources` | doc | 下载文档中的图片/附件到本地 |
+| `yuque_import_url` | doc | 从网页 URL 导入文档 |
+| `yuque_import_file` | doc | 从本地文件导入文档 |
+| `yuque_embed_url` | doc | 生成文档嵌入阅读器 URL |
+| `yuque_get_toc` | toc | 获取知识库目录 |
+| `yuque_update_toc` | toc | 更新知识库目录 |
+| `yuque_batch_update_toc` | toc | 批量更新目录（createTitle/appendNode/removeNode/moveNode/prependDoc） |
+| `yuque_list_repos` | repo | 获取知识库列表（用户/团队） |
+| `yuque_create_repo` | repo | 创建知识库 |
+| `yuque_get_repo` | repo | 获取知识库详情 |
+| `yuque_update_repo` | repo | 更新知识库 |
+| `yuque_delete_repo` | repo | 删除知识库 |
+| `yuque_batch_get_repos` | repo | 批量获取知识库详情（max 20） |
+| `yuque_copy_repo` | repo | 批量跨库复制（LLM 分类 + 目录重建） |
+| `yuque_export_repo` | repo | 批量导出知识库为 Markdown（按 TOC 目录结构） |
+| `yuque_get_group_statistics` | statistic | 获取团队汇总统计数据 |
+| `yuque_get_member_statistics` | statistic | 获取团队成员统计数据 |
+| `yuque_get_book_statistics` | statistic | 获取团队知识库统计数据 |
+| `yuque_get_doc_statistics` | statistic | 获取团队文档统计数据 |
+| `yuque_list_notes` | note | 获取小记列表 |
+| `yuque_get_note` | note | 获取小记详情 |
+| `yuque_create_note` | note | 创建小记 |
+| `yuque_update_note` | note | 更新小记 |
+| `yuque_list_recycles` | recycle | 列出回收站项目 |
+| `yuque_restore_recycle` | recycle | 恢复回收站项目 |
+| `yuque_destroy_recycle` | recycle | 彻底删除回收站项目 |
+| `yuque_upload_attachment` | upload | 上传文件到语雀 CDN |
+| `yuque_get_board` | board | 获取文档中的画板资源 |
+| `yuque_create_board` | board | 在文档中创建画板资源 |
+| `yuque_update_board` | board | 更新文档中的画板资源 |
+| `yuque_rss_list_sources` | rss | 列出所有可用 RSS 数据源及 feed 类型 |
+| `yuque_rss_fetch` | rss | 抓取 RSS/Atom Feed，解析后去重写入语雀 |
+| `yuque_rss_schedule` | rss | 分析更新频率，生成推荐抓取时间 |
+| `yuque_crawl_fetch` | crawler | 抓取网页原始 HTML |
+| `yuque_crawl_extract` | crawler | CSS 选择器从 HTML 提取内容 |
+| `yuque_crawl_save` | crawler | 去重 + 写入语雀 |
+| `yuque_crawl_schedule` | crawler | 分析爬虫抓取频率，生成推荐抓取时间 |
+| `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
+| `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
+| `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map（分片合并） |
+| `yuque_kv_set` | kv | 增量设置 key-value，超 250KB 自动分片 |
+| `yuque_kv_delete` | kv | 遍历分片查找并删除 key |
+| `yuque_kv_list` | kv | 列出已配置的 KV 命名空间 |
+
+完整工具文档（含参数和示例）见 [SKILL.md](SKILL.md) 或 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)。
 
 ## 与官方对比
 
@@ -97,7 +164,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 server/src/
 ├── common/              # 公共：config, errors, types, format, validate,
 │                        # api-client, web-request, register-tools, copy/export/schedule,
-│                        # repo-capacity（自动扩容）, toc-cache（24h TTL）, text-utils
+│                        # repo-capacity（自动扩容）, toc-cache（可配置 TTL）, text-utils
 ├── user/ search/ group/ doc/ toc/ repo/ statistic/
 ├── note/ recycle/ upload/ board/ rss/ crawler/ mine/ kv/
 ├── index.ts             # stdio 入口
@@ -126,8 +193,8 @@ server/src/
     },
     "namespaces": {
       "cnblogs": {
-        "book_id": [80197497],
-        "kv_slugs": ["80197550/274164064"],
+        "book_id": [0],
+        "kv_slugs": [],
         "schedule_slugs": []
       }
     }
@@ -136,8 +203,8 @@ server/src/
     "enabled": true,
     "namespaces": {
       "my-source": {
-        "book_id": [80197497],
-        "kv_slugs": ["80197550/274164064"],
+        "book_id": [0],
+        "kv_slugs": [],
         "schedule_slugs": []
       }
     }
@@ -148,6 +215,7 @@ server/src/
 - `book_id`：目标知识库 ID 数组，最后一个为当前活跃仓库。满 5000 篇自动扩容追加。
 - `kv_slugs`：KV 去重分片文档（`{book_id}/{doc_id}` 格式）
 - `schedule_slugs`：定时策略配置文档
+- `toc_cache_ttl_minutes`：TOC 缓存 TTL（分钟），默认 60。调大可减少 API 调用，调小可获取更新鲜的数据。
 
 ## 错误处理
 

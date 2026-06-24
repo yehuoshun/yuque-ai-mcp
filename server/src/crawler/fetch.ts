@@ -6,6 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { fetchWithRetry } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 
 /** 抓取结果 */
@@ -45,23 +46,17 @@ export const crawlFetch: McpTool = {
       try { customHeaders = JSON.parse(args.headers); } catch { /* ignore */ }
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-
     const startedAt = Date.now();
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithRetry(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; YuqueCrawler/1.0)",
           "Accept": "text/html,application/xhtml+xml,*/*",
           "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
           ...customHeaders,
         },
-        signal: controller.signal,
         redirect: "follow",
-      });
-
-      clearTimeout(timer);
+      }, `Crawl: ${url}`, 1, timeout);
 
       const body = await res.text();
       const elapsed = Date.now() - startedAt;
@@ -86,10 +81,9 @@ export const crawlFetch: McpTool = {
         }],
       };
     } catch (err) {
-      clearTimeout(timer);
       const elapsed = Date.now() - startedAt;
       const message = err instanceof Error ? err.message : String(err);
-      const isTimeout = err instanceof DOMException && err.name === "AbortError";
+      const isTimeout = message.includes("aborted") || message.includes("AbortError");
 
       return {
         content: [{

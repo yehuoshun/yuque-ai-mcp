@@ -80,9 +80,9 @@ Agent 拿到原始 HTML 后，必须按以下规范清洗后再传给 `yuque_cra
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": 80197497,
-        "kv_slugs": ["80197550/274164064"],
-        "schedule_slugs": ["80278170/274358465"]
+        "book_id": 0,
+        "kv_slugs": ["0/0"],
+        "schedule_slugs": ["0/0"]
       }
     }
   }

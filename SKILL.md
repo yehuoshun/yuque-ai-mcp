@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，61 个工具 / 15 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
+语雀全功能 MCP Server，62 个工具 / 15 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
 
 ## 触发场景
 
@@ -161,19 +161,19 @@
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": 80197497,
-        "kv_slugs": ["80197550/274164064"],
-        "schedule_slugs": ["80278170/274357940"]
+        "book_id": 0,
+        "kv_slugs": [],
+        "schedule_slugs": []
       }
     }
   },
   "crawler": {
     "enabled": true,
     "namespaces": {
-      "cnblogs": {
-        "book_id": 80197497,
-        "kv_slugs": ["80197550/274164064"],
-        "schedule_slugs": ["80278170/274358465"]
+      "my-source": {
+        "book_id": 0,
+        "kv_slugs": [],
+        "schedule_slugs": []
       }
     }
   }

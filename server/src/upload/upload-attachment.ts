@@ -12,6 +12,7 @@ import { readFileSync, statSync } from "fs";
 import type { McpTool } from "../common/types.js";
 import { loadConfig } from "../common/config.js";
 import { requiredString } from "../common/validate.js";
+import { apiGet, isErrorResult, fetchWithRetry } from "../common/api-client.js";
 
 const LIMITS: Record<string, { max: number; label: string }> = {
   image: { max: 50, label: "50MB" },
@@ -33,11 +34,8 @@ async function doUpload(
 
   const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
-
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: "POST",
       headers: {
         Cookie: cookie,
@@ -47,8 +45,7 @@ async function doUpload(
         "User-Agent": "Mozilla/5.0",
       },
       body: form,
-      signal: controller.signal,
-    });
+    }, `Upload: ${fileName}`);
 
     const text = await res.text();
     if (!res.ok) {
@@ -67,8 +64,11 @@ async function doUpload(
       ok: true,
       result: { success: true, url: urlResult, filekey, extname, type },
     };
-  } finally {
-    clearTimeout(timer);
+  } catch (err) {
+    return {
+      ok: false,
+      result: { error: "NETWORK_ERROR", message: err instanceof Error ? err.message : String(err) },
+    };
   }
 }
 
@@ -169,12 +169,9 @@ export const uploadAttachment: McpTool = {
     let userId = (args?.user_id as string) || "";
     if (!userId) {
       try {
-        const userRes = await fetch(`${cfg.api_base}/user`, {
-          headers: { "X-Auth-Token": cfg.token },
-        });
-        if (userRes.ok) {
-          const userData = (await userRes.json()) as { data: { id: number } };
-          userId = String(userData.data.id);
+        const userData = await apiGet("/user", undefined, "Get user for upload");
+        if (!isErrorResult(userData)) {
+          userId = String((userData as { data: { id: number } }).data.id);
         }
       } catch {
         // 获取失败，继续用空字符串尝试

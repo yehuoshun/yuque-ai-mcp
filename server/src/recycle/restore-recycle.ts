@@ -5,6 +5,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
 import { positiveInt } from "../common/validate.js";
 import { MINE_BASE } from "./common.js";
@@ -29,7 +30,8 @@ export const recycleRestore: McpTool = {
     if (__v) return __v;
     const recycleId = args?.recycle_id as number;
 
-    await webRequest(`${MINE_BASE}/${recycleId}/restore`, { method: "PUT", referer: RECYCLE_REFERER });
+    const restoreResult = await webRequest(`${MINE_BASE}/${recycleId}/restore`, { method: "PUT", referer: RECYCLE_REFERER });
+    if (isErrorResult(restoreResult)) return restoreResult;
 
     return {
       content: [

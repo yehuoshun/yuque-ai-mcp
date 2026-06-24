@@ -169,6 +169,7 @@ export function checkConfirmation(
 export function isBookFullError(err: unknown): boolean {
   const e = err as { isError?: boolean; content?: Array<{ type: string; text: string }> };
   if (!e?.isError || !e?.content?.[0]?.text) return false;
-  const msg = e.content[0].text.toLowerCase();
-  return msg.includes(YUQUE_CODE_MAP.book_full);
+  const msg = e.content[0].text;
+  // 优先匹配语雀业务 code（book_full），比匹配英文描述更可靠
+  return msg.includes("book_full") || msg.toLowerCase().includes("cannot create more than 5000");
 }

@@ -6,7 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { isErrorResult, apiPut } from "../common/api-client.js";
+import { isErrorResult, apiPut, fetchWithRetry } from "../common/api-client.js";
 import { check, requiredString } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { getRssSources } from "./sources.js";
@@ -189,7 +189,7 @@ export const rssFetch: McpTool = {
     // 3. 抓取 RSS
     let xml: string;
     try {
-      const res = await fetch(feedUrl);
+      const res = await fetchWithRetry(feedUrl, {}, `RSS: ${feedUrl}`);
       if (!res.ok) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({

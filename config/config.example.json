@@ -1,6 +1,7 @@
 {
   "token": "在此填入语雀 API Token",
   "api_base": "https://www.yuque.com/api/v2",
+  "toc_cache_ttl_minutes": 60,
   "cookie": "可选，回收站/上传功能需要。浏览器登录后 F12 → Application → Cookies → 复制完整 Cookie 字符串",
   "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
   "rss": {
@@ -30,8 +31,8 @@
     },
     "namespaces": {
       "cnblogs": {
-        "book_id": [80197497],
-        "kv_slugs": ["80197550/274164064"],
+        "book_id": [0],
+        "kv_slugs": [],
         "schedule_slugs": []
       }
     }
@@ -42,9 +43,9 @@
   "crawler": {
     "enabled": true,
     "namespaces": {
-      "cnblogs": {
-        "book_id": [80197497],
-        "kv_slugs": ["80197550/274164064"],
+      "my-source": {
+        "book_id": [0],
+        "kv_slugs": [],
         "schedule_slugs": []
       }
     }

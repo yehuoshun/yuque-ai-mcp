@@ -28,7 +28,7 @@ KV 知识库 (repo)
 {
   "kv": {
     "enabled": true,
-    "default_repo": { "id": 80197550 }
+    "default_repo": { "id": 0 }
   }
 }
 ```

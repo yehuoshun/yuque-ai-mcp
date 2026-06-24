@@ -9,6 +9,13 @@
 
 import { loadConfig } from "./config.js";
 
+function mcpError(msg: string): unknown {
+  return {
+    content: [{ type: "text" as const, text: msg }],
+    isError: true,
+  };
+}
+
 export async function webRequest(
   url: string,
   opts: { method?: "GET" | "PUT" | "DELETE"; body?: unknown; referer?: string } = {},
@@ -18,7 +25,7 @@ export async function webRequest(
   const ctoken = cfg.ctoken || "";
 
   if (!cookie || !ctoken) {
-    throw new Error(
+    return mcpError(
       "此 API 需要 Cookie 登录态，请在 config/config.json 中配置 cookie 和 ctoken 字段。" +
       "获取方式：浏览器打开 yuque.com 登录 → F12 → Application → Cookies → 复制 _yuque_session 和 yuque_ctoken",
     );
@@ -53,10 +60,15 @@ export async function webRequest(
       } catch {
         msg += `: ${text.slice(0, 200)}`;
       }
-      throw new Error(msg);
+      return mcpError(msg);
     }
 
     return JSON.parse(text);
+  } catch (err) {
+    return mcpError(
+      `网络请求失败: ${err instanceof Error ? err.message : String(err)}` +
+      " / Network request failed",
+    );
   } finally {
     clearTimeout(timer);
   }

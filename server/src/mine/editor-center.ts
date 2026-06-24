@@ -7,6 +7,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
@@ -20,7 +21,10 @@ export const mineEditorCenter: McpTool = {
   },
 
   async handler() {
-    const data = (await webRequest(`${MINE_BASE}/editor_center`)) as {
+    const result = await webRequest(`${MINE_BASE}/editor_center`);
+    if (isErrorResult(result)) return result;
+
+    const data = result as {
       data?: {
         books_count: number;
         books_count_30: number;

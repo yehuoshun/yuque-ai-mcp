@@ -7,7 +7,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { apiPost, isErrorResult } from "../common/api-client.js";
+import { apiPost, isErrorResult, fetchWithRetry } from "../common/api-client.js";
 import { requiredString, check } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
@@ -82,12 +82,12 @@ export const docImportUrl: McpTool = {
     let pageBody: string;
 
     try {
-      const fetchRes = await fetch(url, {
+      const fetchRes = await fetchWithRetry(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; YuqueMCP/1.0; +https://github.com/yehuoshun/yuque-ai-mcp)",
         },
         redirect: "follow",
-      });
+      }, `Import URL: ${url}`);
 
       if (!fetchRes.ok) {
         return {

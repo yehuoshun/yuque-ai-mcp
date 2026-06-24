@@ -9,8 +9,6 @@
 import { loadConfig } from "./config.js";
 import { handleApiError } from "./errors.js";
 
-const cfg = loadConfig();
-
 /** 最大重试次数 */
 const MAX_RETRIES = 3;
 
@@ -31,15 +29,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** 执行 fetch 并自动重试 */
-async function fetchWithRetry(
+/** 执行 fetch 并自动重试。导出供外部 URL 请求（crawler/rss/import-url）复用 */
+export async function fetchWithRetry(
   url: string,
   options: RequestInit,
   context: string,
   attempt = 1,
+  timeoutMs = REQUEST_TIMEOUT,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
     if (shouldRetry(res) && attempt <= MAX_RETRIES) {
@@ -47,7 +46,7 @@ async function fetchWithRetry(
       // 重试日志仅在 DEBUG 环境变量设置时输出
       if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次失败 (${res.status})，${delay}ms 后重试`);
       await sleep(delay);
-      return fetchWithRetry(url, options, context, attempt + 1);
+      return fetchWithRetry(url, options, context, attempt + 1, timeoutMs);
     }
     return res;
   } catch (err) {
@@ -55,7 +54,7 @@ async function fetchWithRetry(
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
       if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次网络异常，${delay}ms 后重试`);
       await sleep(delay);
-      return fetchWithRetry(url, options, context, attempt + 1);
+      return fetchWithRetry(url, options, context, attempt + 1, timeoutMs);
     }
     throw err;
   } finally {
@@ -71,7 +70,7 @@ export function isErrorResult(
 }
 
 /** 网络异常 → 结构化错误（避免未捕获异常炸到 AI 侧） */
-function networkError(context: string, err: unknown) {
+function networkError(context: string, err: unknown): { content: Array<{ type: "text"; text: string }>; isError: true } {
   const message = err instanceof Error ? err.message : String(err);
   return {
     content: [{
@@ -83,18 +82,18 @@ function networkError(context: string, err: unknown) {
         hint: "请检查网络连接、api_base 配置或语雀服务状态 / Check network, api_base config, or Yuque service status",
       }, null, 2),
     }],
-    isError: true,
+    isError: true as const,
   };
 }
 
 /** 标准请求头（Token 认证） */
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
-  return { "X-Auth-Token": cfg.token, ...extra };
+  return { "X-Auth-Token": loadConfig().token, ...extra };
 }
 
 /** 构建完整 URL */
 function buildUrl(path: string, params?: Record<string, string>): string {
-  const url = `${cfg.api_base}${path}`;
+  const url = `${loadConfig().api_base}${path}`;
   if (!params || Object.keys(params).length === 0) return url;
   const qs = new URLSearchParams(params);
   return `${url}?${qs}`;
@@ -125,7 +124,7 @@ export async function apiPost(
 ): Promise<unknown> {
   const ctx = context ?? `POST ${path}`;
   try {
-    const url = `${cfg.api_base}${path}`;
+    const url = `${loadConfig().api_base}${path}`;
     const res = await fetchWithRetry(url, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
@@ -146,7 +145,7 @@ export async function apiPut(
 ): Promise<unknown> {
   const ctx = context ?? `PUT ${path}`;
   try {
-    const url = `${cfg.api_base}${path}`;
+    const url = `${loadConfig().api_base}${path}`;
     const res = await fetchWithRetry(url, {
       method: "PUT",
       headers: authHeaders({ "Content-Type": "application/json" }),
@@ -166,13 +165,51 @@ export async function apiDelete(
 ): Promise<unknown> {
   const ctx = context ?? `DELETE ${path}`;
   try {
-    const url = `${cfg.api_base}${path}`;
+    const url = `${loadConfig().api_base}${path}`;
     const res = await fetchWithRetry(url, {
       method: "DELETE",
       headers: authHeaders(),
     }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
     return res.json();
+  } catch (err) {
+    return networkError(ctx, err);
+  }
+}
+
+/** 上传文件到语雀 CDN（FormData，不设 Content-Type 让浏览器自动设 boundary） */
+export async function apiUpload(
+  path: string,
+  formData: FormData,
+  context?: string,
+): Promise<unknown> {
+  const ctx = context ?? `UPLOAD ${path}`;
+  try {
+    const url = `${loadConfig().api_base}${path}`;
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    }, ctx);
+    if (!res.ok) return handleApiError(res, ctx);
+    return res.json();
+  } catch (err) {
+    return networkError(ctx, err);
+  }
+}
+
+/** 下载文件（返回 ArrayBuffer，用于导出文件下载） */
+export async function apiDownload(
+  path: string,
+  params?: Record<string, string>,
+  context?: string,
+): Promise<ArrayBuffer | { content: Array<{ type: "text"; text: string }>; isError: true }> {
+  const ctx = context ?? `DOWNLOAD ${path}`;
+  try {
+    const url = buildUrl(path, params);
+    const res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
+    if (!res.ok) return handleApiError(res, ctx);
+    return res.arrayBuffer();
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -187,8 +224,7 @@ export async function apiPostWithFallback(
 ): Promise<unknown> {
   const ctx = context ?? `POST ${path}`;
   try {
-    const cfg = loadConfig();
-    let url = `${cfg.api_base}${path}`;
+    let url = `${loadConfig().api_base}${path}`;
     let res = await fetchWithRetry(url, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
@@ -196,7 +232,7 @@ export async function apiPostWithFallback(
     }, ctx);
 
     if (res.status === 404) {
-      url = `${cfg.api_base}${fallbackPath}`;
+      url = `${loadConfig().api_base}${fallbackPath}`;
       res = await fetchWithRetry(url, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
@@ -220,16 +256,15 @@ export async function apiGetWithFallback(
 ): Promise<unknown> {
   const ctx = context ?? `GET ${path}`;
   try {
-    const cfg = loadConfig();
     const qs = params && Object.keys(params).length > 0
       ? `?${new URLSearchParams(params)}`
       : "";
 
-    let url = `${cfg.api_base}${path}${qs}`;
+    let url = `${loadConfig().api_base}${path}${qs}`;
     let res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
 
     if (res.status === 404) {
-      url = `${cfg.api_base}${fallbackPath}${qs}`;
+      url = `${loadConfig().api_base}${fallbackPath}${qs}`;
       res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
     }
 

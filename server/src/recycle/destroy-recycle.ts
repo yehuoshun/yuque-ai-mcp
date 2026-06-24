@@ -6,6 +6,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
+import { isErrorResult } from "../common/api-client.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { webRequest } from "../common/web-request.js";
 import { positiveInt } from "../common/validate.js";
@@ -35,7 +36,8 @@ export const recycleDestroy: McpTool = {
 
     const recycleId = args?.recycle_id as number;
 
-    await webRequest(`${MINE_BASE}/${recycleId}`, { method: "DELETE", referer: RECYCLE_REFERER });
+    const destroyResult = await webRequest(`${MINE_BASE}/${recycleId}`, { method: "DELETE", referer: RECYCLE_REFERER });
+    if (isErrorResult(destroyResult)) return destroyResult;
 
     return {
       content: [

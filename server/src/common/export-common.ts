@@ -7,6 +7,7 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { unescapeHtml } from "./text-utils.js";
+import { fetchWithRetry } from "./api-client.js";
 
 // ─── 资源提取 ─────────────────────────────────────────
 
@@ -73,18 +74,12 @@ export async function downloadFile(
   token: string,
 ): Promise<DownloadResult> {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15_000);
-
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       headers: {
         "X-Auth-Token": token,
         "User-Agent": "yuque-ai-mcp/2.1.0",
       },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
+    }, `Download: ${url}`);
 
     if (!res.ok) {
       return { url, localPath: destPath, success: false, error: `HTTP ${res.status}` };

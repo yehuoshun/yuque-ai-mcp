@@ -77,6 +77,7 @@ interface Config {
   api_base: string;
   cookie?: string;
   ctoken?: string;
+  toc_cache_ttl_minutes?: number;
   rss?: RssConfig;
   kv?: KvConfig;
   crawler?: CrawlerConfig;
