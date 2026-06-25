@@ -357,3 +357,71 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | 搜知识库 | ✅ `type=repo` | ✅ `type=book` |
 | scope 过滤 | ✅ | ✅ |
 | 分页 | ✅ `page` | ✅ `p` |
+
+---
+
+## Cookie 态搜索语法
+
+> 来源：语雀官方文档《高级搜索语法》(yuque/ng1qth/search-syntax)
+
+以下语法适用于 Cookie 态 `GET /api/zsearch` 的 `q` 参数。
+
+### 精确短语
+
+用英文双引号 `"..."` 包裹含空格的词组，禁止分词。
+
+```
+"知识 大会"     → 匹配"知识大会"，不做分词
+```
+
+### 标题限定
+
+`in:title` 将搜索范围限定在标题中。
+
+```
+语雀是什么 in:title     → 标题含"语雀是什么"
+```
+
+### 布尔运算符
+
+`NOT`、`AND`、`OR` 仅用于字符串关键词，不适用于数字或日期。
+
+| 语法 | 示例 | 效果 |
+|------|------|------|
+| `NOT` | `帮助文档 NOT 桌面端` | 含"帮助文档"但不含"桌面端" |
+| `AND` | `帮助文档 AND 桌面端` | 同时含"帮助文档"和"桌面端" |
+| `OR` | `帮助文档 OR 桌面端` | 含"帮助文档"或"桌面端" |
+| 联合查询 | `帮助文档 桌面端` | 优先匹配"帮助文档 桌面端"，然后分词匹配 |
+
+### 日期过滤
+
+按更新时间过滤，格式 `YYYY-MM-DD`。
+
+| 语法 | 示例 | 效果 |
+|------|------|------|
+| `updated:>YYYY-MM-DD` | `帮助 updated:>2021-01-01` | 2021-01-01 之后更新 |
+| `updated:>=YYYY-MM-DD` | `帮助 updated:>=2021-01-01` | 2021-01-01 或之后 |
+| `updated:<YYYY-MM-DD` | `帮助 updated:<2021-01-01` | 2021-01-01 之前 |
+| `updated:<=YYYY-MM-DD` | `帮助 updated:<=2021-01-01` | 2021-01-01 或之前 |
+| `updated:YYYY-MM-DD..YYYY-MM-DD` | `帮助 updated:2021-01-01..2021-03-01` | 日期范围内 |
+
+### 范围限定（url:）
+
+限定搜索特定团队、知识库或用户。
+
+| 语法 | 示例 | 效果 |
+|------|------|------|
+| `url:团队主页URL` | `搜索 url:https://www.yuque.com/yuque` | 在"语雀"团队中搜索 |
+| `url:知识库URL` | `搜索 url:https://www.yuque.com/yuque/changelog` | 在指定知识库中搜索 |
+| `url:用户URL` | `前端 url:https://www.yuque.com/zenany` | 在指定用户中搜索 |
+| `url:团队ID` | `搜索 url:yuque` | 用团队 ID 搜索 |
+| `url:团队ID/知识库slug` | `about yuque url:yuque/support_en` | 用团队ID/知识库slug搜索 |
+
+### 可见性过滤
+
+| 语法 | 示例 | 效果 |
+|------|------|------|
+| `is:related` | `搜索 is:related` | 仅"与我相关" |
+| `is:public` | `搜索 is:public` | 仅公开内容 |
+
+> ⚠️ `is:related` 和 `url:` 同时使用时，`url:` 会被忽略，仅召回 `is:related` 结果。

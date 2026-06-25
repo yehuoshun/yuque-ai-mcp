@@ -87,7 +87,8 @@ export const searchWeb: McpTool = {
   description:
     "Cookie-based web search across Yuque docs/books/users. " +
     "Returns full document objects (_record) without needing a second get_doc call. " +
-    "Supports scope filtering (repo/group), type filtering (content/book/user), and pagination. " +
+    "Supports scope filtering (repo/group), type filtering (content/book/user), pagination, " +
+    "AND advanced search syntax: \"phrase\", in:title, NOT/AND/OR, updated:>YYYY-MM-DD, url:scope, is:related/public. " +
     "Requires cookie+ctoken in config. " +
     "GET /api/zsearch?q=:q&type=:type&scope=:scope&p=:p. " +
     "⚠️ Cookie-based API — QPS unknown, avoid concurrent calls. " +
@@ -98,7 +99,7 @@ export const searchWeb: McpTool = {
     properties: {
       q: {
         type: "string",
-        description: "Search keyword (required, max 200 chars)",
+        description: "Search keyword (required). Supports advanced syntax: \"phrase\", in:title, NOT/AND/OR, updated:>YYYY-MM-DD, url:scope, is:related/public. 详见 references/api/search_api.md",
       },
       type: {
         type: "string",
