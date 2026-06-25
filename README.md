@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.nlark.com/yuque/0/2025/png/25689388/1749661212345-avatar/8a3b5c7d-1e2f-4a5b-9c7d-8e1f2a3b4c5d.png" width="120" alt="yuque-ai-mcp" />
+  <img src="https://raw.githubusercontent.com/yehuoshun/yuque-ai-mcp/main/assets/banner.png" width="800" alt="yuque-ai-mcp" />
 </p>
 
 <h1 align="center">yuque-ai-mcp</h1>
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.7.8-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.7.9-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20guides-orange" alt="skills" /></a>
 </p>
