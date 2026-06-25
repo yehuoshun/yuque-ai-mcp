@@ -4,13 +4,13 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>62 fine-grained MCP tools for the full Yuque OpenAPI</b>
+  <b>63 fine-grained MCP tools for the full Yuque OpenAPI</b>
 </p>
 
 <p align="center">
   <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.7.8-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
-  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-62%20guides-orange" alt="skills" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20guides-orange" alt="skills" /></a>
 </p>
 
 <p align="center">
@@ -19,15 +19,15 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 62 fine-grained tools across 15 domains — every Yuque OpenAPI endpoint as a dedicated tool.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 63 fine-grained tools across 15 domains — every Yuque OpenAPI endpoint as a dedicated tool.
 
 ## Why
 
-- **19 → 62 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 63 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
 - **Modular architecture** — 15 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
-- **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 62 usage guides for AI agents
+- **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 63 usage guides for AI agents
 
 ## Table of Contents
 
@@ -64,7 +64,7 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **doc** | 15 | CRUD, versions, diff, batch get, import URL/file, cross-book copy, export, resource download |
 | **repo** | 8 | CRUD, batch get, cross-book copy, full export (TOC-structure + INDEX/GRAPH) |
 | **toc** | 3 | Get, update, batch update (createTitle/appendNode/removeNode/moveNode) |
-| **search** | 2 | General search + RAG-enhanced search |
+| **search** | 3 | General search + RAG-enhanced search + Cookie web search |
 | **user** | 3 | User info, heartbeat, group list |
 | **group** | 3 | Member list, role change, delete member |
 | **statistic** | 4 | Group/member/repo/doc statistics |
@@ -76,9 +76,9 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **rss** | 3 | Source list, fetch + dedup + save, schedule analysis |
 | **crawler** | 4 | Fetch, CSS extract, dedup save, schedule analysis |
 | **kv** | 4 | Get, set, delete, list — incremental sharding, 250KB/doc limit |
-| **Total** | **62** | |
+| **Total** | **63** | |
 
-### All 62 Tools
+### All 63 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -87,6 +87,7 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
 | `yuque_search` | search | 通用搜索文档/知识库 |
 | `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
+| `yuque_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
 | `yuque_get_group_users` | group | 获取团队成员列表 |
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
@@ -151,13 +152,13 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 
 | Feature | Official yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| Tools | 19 | **62** |
+| Tools | 19 | **63** |
 | Granularity | Coarse | **Fine-grained** (1 tool / endpoint) |
 | Group, Recycle, Upload, Statistics | ❌ | ✅ |
 | Versions, Diff, Cross-book Copy | ❌ | ✅ |
 | Transport | stdio only | **stdio + HTTP SSE** |
 | Config | Env var | **config.json** (token + cookie) |
-| Skill Layer | ❌ | ✅ 62 guides |
+| Skill Layer | ❌ | ✅ 63 guides |
 
 ## Architecture
 

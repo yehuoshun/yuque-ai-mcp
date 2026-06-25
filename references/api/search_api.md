@@ -229,3 +229,131 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 | `updated_at` | string | 更新时间 (ISO 8601) |
 | `user` | object | V2User，创建者 |
 | `namespace` | string | 完整路径 |
+---
+
+## Cookie 态 Web 搜索
+
+```http
+GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
+```
+
+> ⚠️ **Cookie 认证**：需要 `cookie` + `ctoken` 配置，与 mine/recycle/upload 域相同。
+> ⚠️ **QPS 未知**：Cookie 态接口限流策略不透明，保守单次请求，不要并发。
+> ⚠️ **scope 需 URL 编码**：`/` → `%2F`，`/group/book` → `%2Fgroup%2Fbook`。
+
+### 参数
+
+| 参数 | 位置 | 类型 | 说明 | 约束 |
+|------|------|------|------|------|
+| `q` | query | string | 搜索关键词（必填） | - |
+| `type` | query | string | 搜索类型 | `content`（文档）/ `book`（知识库）/ `user`（用户），默认 `content` |
+| `scope` | query | string | 搜索范围 | `/` 全局，`/group_slug` 团队，`/group_slug/book_slug` 知识库 |
+| `p` | query | int | 页码 | 1-based，默认 1 |
+| `sence` | query | string | 固定值 | `searchPage` |
+
+### 返回结构
+
+```json
+{
+  "data": {
+    "type": "content",
+    "totalHits": 5000,
+    "numHits": 20,
+    "errorHits": 0,
+    "message": "",
+    "info": "",
+    "hits": [
+      {
+        "id": 0,
+        "title": "string",
+        "abstract": "<em>高亮</em>",
+        "type": "Doc",
+        "url": "/user/book_slug/doc_slug",
+        "book_name": "知识库名",
+        "group_name": "团队名",
+        "slug": "doc_slug",
+        "privacy": 0,
+        "_record": {
+          "id": 0,
+          "slug": "doc_slug",
+          "title": "string",
+          "format": "markdown",
+          "word_count": 0,
+          "book_id": 0,
+          "user_id": 0,
+          "description": "",
+          "created_at": "2024-01-01T00:00:00.000Z",
+          "updated_at": "2024-01-01T00:00:00.000Z",
+          "content_updated_at": "2024-01-01T00:00:00.000Z",
+          "status": 1,
+          "public": 0,
+          "comments_count": 0,
+          "likes_count": 0,
+          "read_count": 0
+        }
+      }
+    ]
+  }
+}
+```
+
+### 返回字段
+
+#### data
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `type` | string | 搜索类型 |
+| `totalHits` | int | 精确结果总数 |
+| `numHits` | int | 当前页命中数 |
+| `errorHits` | int | 错误命中数 |
+| `hits` | array | 搜索结果列表 |
+
+#### hits[]
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 文档/知识库/用户 ID |
+| `title` | string | 标题 |
+| `abstract` | string | 高亮摘要（含 `<em>` 标签） |
+| `type` | string | Doc / Book / User |
+| `url` | string | 访问路径 |
+| `book_name` | string | 所属知识库名 |
+| `group_name` | string | 所属团队名 |
+| `slug` | string | 文档 slug |
+| `privacy` | int | 隐私级别 |
+| `_record` | object | 完整对象（等同于 get_doc / get_repo 返回值） |
+
+#### _record（type=Doc 时）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int | 文档 ID |
+| `slug` | string | 文档路径 |
+| `title` | string | 标题 |
+| `format` | string | 格式（markdown/lake/doc） |
+| `word_count` | int | 字数 |
+| `book_id` | int | 所属知识库 ID |
+| `user_id` | int | 创建者 ID |
+| `description` | string | 描述 |
+| `created_at` | string | 创建时间 (ISO 8601) |
+| `updated_at` | string | 更新时间 (ISO 8601) |
+| `content_updated_at` | string | 内容更新时间 (ISO 8601) |
+| `status` | int | 0=草稿 / 1=发布 |
+| `public` | int | 0=私密 / 1=公开 |
+| `comments_count` | int | 评论数 |
+| `likes_count` | int | 点赞数 |
+| `read_count` | int | 阅读数 |
+
+### 与 API v2 搜索对比
+
+| | API v2 `GET /search` | Cookie `GET /api/zsearch` |
+|---|---|---|
+| 认证 | Token | Cookie + ctoken |
+| 返回文档 | 摘要（需二次 get_doc） | 完整 `_record` |
+| 总数 | ❌ | ✅ `totalHits` |
+| 高亮摘要 | ❌ | ✅ `abstract` |
+| 搜用户 | ❌ | ✅ `type=user` |
+| 搜知识库 | ✅ `type=repo` | ✅ `type=book` |
+| scope 过滤 | ✅ | ✅ |
+| 分页 | ✅ `page` | ✅ `p` |

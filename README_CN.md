@@ -1,14 +1,14 @@
 <p align="center">
   <h1 align="center">yuque-ai-mcp</h1>
   <p align="center">
-    <b>62 个细粒度 MCP 工具，覆盖语雀 OpenAPI 全部能力</b>
+    <b>63 个细粒度 MCP 工具，覆盖语雀 OpenAPI 全部能力</b>
   </p>
 </p>
 
 <p align="center">
   <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.7.8-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可-MIT-green" alt="license" /></a>
-  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-62%20指导-orange" alt="skills" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20指导-orange" alt="skills" /></a>
 </p>
 
 <p align="center">
@@ -17,15 +17,15 @@
 
 ---
 
-基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。62 个工具，15 个域——每个语雀 OpenAPI 端点一个专用工具。
+基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。63 个工具，15 个域——每个语雀 OpenAPI 端点一个专用工具。
 
 ## 为什么选这个
 
-- **19 → 62 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
+- **19 → 63 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
 - **双传输模式** — stdio + HTTP SSE，共享注册中心，修改无需重启
 - **模块化架构** — 15 个域，barrel export，唯一注册中心
 - **完整 API 覆盖** — 团队、回收站、上传、统计、版本、画板——补全官方缺失
-- **[Skill 层](https://github.com/yehuoshun/yuque-ai-skills)** — 62 个 AI Agent 使用指导
+- **[Skill 层](https://github.com/yehuoshun/yuque-ai-skills)** — 63 个 AI Agent 使用指导
 
 ## 目录
 
@@ -63,7 +63,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **doc** | 15 | CRUD、版本管理、Diff、批量获取、URL/文件导入、跨库复制、导出、资源下载 |
 | **repo** | 8 | CRUD、批量获取、跨库复制、全量导出（TOC 结构 + INDEX/GRAPH） |
 | **toc** | 3 | 获取、更新、批量更新（createTitle/appendNode/removeNode/moveNode） |
-| **search** | 2 | 通用搜索 + RAG 增强搜索 |
+| **search** | 3 | 通用搜索 + RAG 增强搜索 + Cookie Web 搜索 |
 | **user** | 3 | 用户信息、心跳、团队列表 |
 | **group** | 3 | 成员列表、角色变更、删除成员 |
 | **statistic** | 4 | 团队/成员/知识库/文档统计 |
@@ -75,9 +75,9 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **rss** | 3 | 数据源列表、抓取+去重+写入、定时策略分析 |
 | **crawler** | 4 | 抓取、CSS 提取、去重写入、定时策略分析 |
 | **kv** | 4 | 增删查列——增量分片，单文档 250KB 上限 |
-| **合计** | **62** | |
+| **合计** | **63** | |
 
-### 全部 62 个工具
+### 全部 63 个工具
 
 | 工具 | 域 | 说明 |
 |------|--------|-------------|
@@ -86,6 +86,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
 | `yuque_search` | search | 通用搜索文档/知识库 |
 | `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
+| `yuque_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
 | `yuque_get_group_users` | group | 获取团队成员列表 |
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
@@ -150,13 +151,13 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 | 功能 | 官方 yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| 工具数 | 19 | **62** |
+| 工具数 | 19 | **63** |
 | 粒度 | 粗粒度 | **细粒度**（1 端点 = 1 工具） |
 | 团队、回收站、上传、统计 | ❌ | ✅ |
 | 版本、Diff、跨库复制 | ❌ | ✅ |
 | 传输模式 | 仅 stdio | **stdio + HTTP SSE** |
 | 配置 | 环境变量 | **config.json**（token + cookie） |
-| Skill 层 | ❌ | ✅ 62 指导 |
+| Skill 层 | ❌ | ✅ 63 指导 |
 
 ## 架构
 

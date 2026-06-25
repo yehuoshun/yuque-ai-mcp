@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，62 个工具 / 15 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
+语雀全功能 MCP Server，63 个工具 / 15 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
 
 ## 触发场景
 
@@ -25,11 +25,12 @@
 | `yuque_get_user` | 获取当前 Token 的用户详情 |
 | `yuque_get_user_groups` | 获取用户所属的团队列表 |
 
-### search（2 工具）
+### search（3 工具）
 | 工具 | 说明 |
 |------|------|
 | `yuque_search` | 通用搜索文档/知识库 |
 | `yuque_rag_search` | RAG 检索增强搜索 + 自动获取文档内容 |
+| `yuque_web_search` | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
 
 ### group（3 工具）
 | 工具 | 说明 |
