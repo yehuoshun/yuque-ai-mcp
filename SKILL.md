@@ -149,6 +149,18 @@
 
 完整错误码及处理策略见 `references/api/errors.md`。
 
+## 🎯 降级策略（长文档 Fallback）
+
+**触发场景**：`yuque_get_doc` 读取超长文档（>1MB 或超时）时 MCP stdio 可能撑爆缓冲区。
+
+**自动降级链路**：
+
+```
+yuque_get_doc ──(失败)──→ yuque_export_doc → 读本地文件 → 返回内容
+```
+
+执行方式：Agent 检测到 get_doc 失败 → 自动调用 `yuque_export_doc` + 本地 read 替代，不回退到直接 curl 语雀 API。
+
 ## 配置
 
 ```json
