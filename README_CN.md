@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.7.9-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.8.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20指导-orange" alt="skills" /></a>
 </p>

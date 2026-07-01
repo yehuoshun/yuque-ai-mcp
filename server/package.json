@@ -1,6 +1,6 @@
 {
   "name": "yuque-ai-mcp",
-  "version": "2.7.9",
+  "version": "2.8.0",
   "description": "Full-featured Yuque MCP Server — 62 fine-grained tools covering the entire Yuque OpenAPI",
   "type": "module",
   "main": "dist/index.js",
