@@ -1,0 +1,10 @@
+export { webDocGet } from "./get-doc.js";
+export { webDocList } from "./list-docs.js";
+export { webRepoList } from "./list-repos.js";
+export { webTocGet } from "./get-toc.js";
+import { webDocGet } from "./get-doc.js";
+import { webDocList } from "./list-docs.js";
+import { webRepoList } from "./list-repos.js";
+import { webTocGet } from "./get-toc.js";
+import type { McpTool } from "../common/types.js";
+export const webDocTools: McpTool[] = [webDocGet, webDocList, webRepoList, webTocGet];

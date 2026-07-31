@@ -5,14 +5,14 @@
 <p align="center">
   <h1 align="center">yuque-ai-mcp</h1>
   <p align="center">
-    <b>63 个细粒度 MCP 工具，覆盖语雀 OpenAPI 全部能力</b>
+    <b>67 个细粒度 MCP 工具，覆盖语雀 OpenAPI 全部能力</b>
   </p>
 </p>
 
 <p align="center">
   <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.8.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可-MIT-green" alt="license" /></a>
-  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20指导-orange" alt="skills" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20指导-orange" alt="skills" /></a>
 </p>
 
 <p align="center">
@@ -21,15 +21,15 @@
 
 ---
 
-基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。63 个工具，15 个域——每个语雀 OpenAPI 端点一个专用工具。
+基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。67 个工具，16 个域——每个语雀 OpenAPI 端点一个专用工具。
 
 ## 为什么选这个
 
-- **19 → 63 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
+- **19 → 67 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
 - **双传输模式** — stdio + HTTP SSE，共享注册中心，修改无需重启
-- **模块化架构** — 15 个域，barrel export，唯一注册中心
+- **模块化架构** — 16 个域，barrel export，唯一注册中心
 - **完整 API 覆盖** — 团队、回收站、上传、统计、版本、画板——补全官方缺失
-- **[Skill 层](https://github.com/yehuoshun/yuque-ai-skills)** — 63 个 AI Agent 使用指导
+- **[Skill 层](https://github.com/yehuoshun/yuque-ai-skills)** — 67 个 AI Agent 使用指导
 
 ## 目录
 
@@ -79,9 +79,9 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **rss** | 3 | 数据源列表、抓取+去重+写入、定时策略分析 |
 | **crawler** | 4 | 抓取、CSS 提取、去重写入、定时策略分析 |
 | **kv** | 4 | 增删查列——增量分片，单文档 250KB 上限 |
-| **合计** | **63** | |
+| **合计** | **67** | |
 
-### 全部 63 个工具
+### 全部 67 个工具
 
 | 工具 | 域 | 说明 |
 |------|--------|-------------|
@@ -155,13 +155,13 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 | 功能 | 官方 yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| 工具数 | 19 | **63** |
+| 工具数 | 19 | **67** |
 | 粒度 | 粗粒度 | **细粒度**（1 端点 = 1 工具） |
 | 团队、回收站、上传、统计 | ❌ | ✅ |
 | 版本、Diff、跨库复制 | ❌ | ✅ |
 | 传输模式 | 仅 stdio | **stdio + HTTP SSE** |
 | 配置 | 环境变量 | **config.json**（token + cookie） |
-| Skill 层 | ❌ | ✅ 63 指导 |
+| Skill 层 | ❌ | ✅ 67 指导 |
 
 ## 架构
 

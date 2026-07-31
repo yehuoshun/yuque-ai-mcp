@@ -4,13 +4,13 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>63 fine-grained MCP tools for the full Yuque OpenAPI</b>
+  <b>67 fine-grained MCP tools for the full Yuque OpenAPI</b>
 </p>
 
 <p align="center">
   <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.8.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
-  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-63%20guides-orange" alt="skills" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20guides-orange" alt="skills" /></a>
 </p>
 
 <p align="center">
@@ -19,15 +19,15 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 63 fine-grained tools across 15 domains — every Yuque OpenAPI endpoint as a dedicated tool.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 67 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
 
 ## Why
 
-- **19 → 63 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 67 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
 - **Modular architecture** — 15 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
-- **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 63 usage guides for AI agents
+- **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 67 usage guides for AI agents
 
 ## Table of Contents
 
@@ -76,9 +76,9 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **rss** | 3 | Source list, fetch + dedup + save, schedule analysis |
 | **crawler** | 4 | Fetch, CSS extract, dedup save, schedule analysis |
 | **kv** | 4 | Get, set, delete, list — incremental sharding, 250KB/doc limit |
-| **Total** | **63** | |
+| **Total** | **67** | |
 
-### All 63 Tools
+### All 67 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -152,13 +152,13 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 
 | Feature | Official yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| Tools | 19 | **63** |
+| Tools | 19 | **67** |
 | Granularity | Coarse | **Fine-grained** (1 tool / endpoint) |
 | Group, Recycle, Upload, Statistics | ❌ | ✅ |
 | Versions, Diff, Cross-book Copy | ❌ | ✅ |
 | Transport | stdio only | **stdio + HTTP SSE** |
 | Config | Env var | **config.json** (token + cookie) |
-| Skill Layer | ❌ | ✅ 63 guides |
+| Skill Layer | ❌ | ✅ 67 guides |
 
 ## Architecture
 
