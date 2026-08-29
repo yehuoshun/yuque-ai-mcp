@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，67 个工具 / 16 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
+语雀全功能 MCP Server，68 个工具 / 16 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
 
 ## 触发场景
 
@@ -135,13 +135,14 @@
 | `yuque_get_book_stacks` | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | 获取个人编辑中心全景数据 |
 
-### web_doc（4 工具，Cookie 态）
+### web_doc（5 工具，Cookie 态）
 | 工具 | 说明 |
 |------|------|
 | `yuque_web_get_doc` | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
 | `yuque_web_list_docs` | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | Cookie 态列知识库列表，含权限信息 |
 | `yuque_web_get_toc` | Cookie 态获取知识库目录 TOC |
+| `yuque_web_delete_doc` | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
 
 ### kv（4 工具）
 | 工具 | 说明 |
