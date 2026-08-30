@@ -18,7 +18,7 @@ function mcpError(msg: string): unknown {
 
 export async function webRequest(
   url: string,
-  opts: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; referer?: string } = {},
+  opts: { method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; body?: unknown; referer?: string } = {},
 ): Promise<unknown> {
   const cfg = loadConfig();
   const cookie = cfg.cookie || "";
