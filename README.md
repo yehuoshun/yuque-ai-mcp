@@ -4,7 +4,7 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>68 fine-grained MCP tools for the full Yuque OpenAPI</b>
+  <b>69 fine-grained MCP tools for the full Yuque OpenAPI</b>
 </p>
 
 <p align="center">
@@ -19,11 +19,11 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 68 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 69 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
 
 ## Why
 
-- **19 → 68 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 69 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
 - **Modular architecture** — 15 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
@@ -72,13 +72,13 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **recycle** | 3 | List, restore, destroy (Cookie auth) |
 | **upload** | 1 | File upload to Yuque CDN (Cookie auth) |
 | **board** | 3 | Mindmap, flowchart, architecture diagram |
-| **mine** | 2 | Book stacks, editor center (Cookie auth) |
+| **mine** | 3 | Book stacks, editor center, update book stack (Cookie auth) |
 | **rss** | 3 | Source list, fetch + dedup + save, schedule analysis |
 | **crawler** | 4 | Fetch, CSS extract, dedup save, schedule analysis |
 | **kv** | 4 | Get, set, delete, list — incremental sharding, 250KB/doc limit |
-| **Total** | **68** | |
+| **Total** | **69** | |
 
-### All 68 Tools
+### All 69 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -142,6 +142,7 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_crawl_schedule` | crawler | 分析爬虫抓取频率，生成推荐抓取时间 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
+| `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
 | `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map（分片合并） |
 | `yuque_kv_set` | kv | 增量设置 key-value，超 250KB 自动分片 |
 | `yuque_kv_delete` | kv | 遍历分片查找并删除 key |
@@ -153,7 +154,7 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 
 | Feature | Official yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| Tools | 19 | **68** |
+| Tools | 19 | **69** |
 | Granularity | Coarse | **Fine-grained** (1 tool / endpoint) |
 | Group, Recycle, Upload, Statistics | ❌ | ✅ |
 | Versions, Diff, Cross-book Copy | ❌ | ✅ |

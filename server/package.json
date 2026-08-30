@@ -1,7 +1,7 @@
 {
   "name": "yuque-ai-mcp",
-  "version": "2.10.0",
-  "description": "Full-featured Yuque MCP Server — 62 fine-grained tools covering the entire Yuque OpenAPI",
+  "version": "2.11.0",
+  "description": "Full-featured Yuque MCP Server \u2014 62 fine-grained tools covering the entire Yuque OpenAPI",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -23,7 +23,7 @@
     "ai",
     "llm",
     "claude",
-    "语雀"
+    "\u8bed\u96c0"
   ],
   "scripts": {
     "build": "tsc",
