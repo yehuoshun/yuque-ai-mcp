@@ -1,20 +1,23 @@
 /**
  * mine/update-book-stack — 移动知识库到指定分组（书架）
  *
- * 端点：PATCH /api/books/:book_id（Web API，Cookie 认证）
+ * 端点：PUT /api/mine/book_stack/move（Web API，Cookie 认证）
  * 职责：将指定知识库移动到目标分组（书架）下
+ *
+ * ⚠️ 2026-08-31 修复：旧实现用 PATCH /api/books/:book_id {stack_id}，
+ * 返回成功但实际不生效。实测正确接口为 PUT /api/mine/book_stack/move，
+ * body { targetStackId, targetBookIds: [bookId] }。
  */
 
 import type { McpTool } from "../common/types.js";
 import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
-
-const BOOK_BASE = "https://www.yuque.com/api/books";
+import { MINE_BASE } from "./common.js";
 
 export const mineUpdateBookStack: McpTool = {
   name: "yuque_update_book_stack",
   description:
-    "移动知识库到指定分组（书架）。需要 cookie+ctoken 认证。PATCH /api/books/:book_id。常用于将知识库从一个分组（如预废弃）移到另一个分组（如废弃）。",
+    "移动知识库到指定分组（书架）。需要 cookie+ctoken 认证。PUT /api/mine/book_stack/move。常用于将知识库从一个分组（如预废弃）移到另一个分组（如废弃）。",
 
   inputSchema: {
     type: "object",
@@ -48,14 +51,12 @@ export const mineUpdateBookStack: McpTool = {
       };
     }
 
-    const result = await webRequest(`${BOOK_BASE}/${bookId}`, {
-      method: "PATCH" as "PUT",
-      body: { stack_id: stackId },
+    const result = await webRequest(`${MINE_BASE}/book_stack/move`, {
+      method: "PUT" as const,
+      body: { targetStackId: stackId, targetBookIds: [bookId] },
     });
 
     if (isErrorResult(result)) return result;
-
-    const data = result as { data?: Record<string, unknown> };
 
     return {
       content: [

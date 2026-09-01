@@ -1,8 +1,10 @@
 export { mineBookStacks } from "./get-book-stacks.js";
 export { mineEditorCenter } from "./editor-center.js";
 export { mineUpdateBookStack } from "./update-book-stack.js";
+export { mineSortBookStack } from "./sort-book-stack.js";
 import { mineBookStacks } from "./get-book-stacks.js";
 import { mineEditorCenter } from "./editor-center.js";
 import { mineUpdateBookStack } from "./update-book-stack.js";
+import { mineSortBookStack } from "./sort-book-stack.js";
 import type { McpTool } from "../common/types.js";
-export const mineTools: McpTool[] = [mineBookStacks, mineEditorCenter, mineUpdateBookStack];
+export const mineTools: McpTool[] = [mineBookStacks, mineEditorCenter, mineUpdateBookStack, mineSortBookStack];

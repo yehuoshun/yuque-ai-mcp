@@ -70,12 +70,18 @@ export function registerAllTools(server: McpServer): void {
     if (tool.inputSchema) {
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
-        const p = prop as { type: string; description?: string };
+        const p = prop as { type: string; description?: string; items?: { type: string } };
         let zodType: z.ZodTypeAny;
         switch (p.type) {
           case "string": zodType = z.string(); break;
           case "number": zodType = z.number(); break;
           case "boolean": zodType = z.boolean(); break;
+          case "array": {
+            const itemType = p.items?.type ?? "string";
+            const itemZod = itemType === "number" ? z.number() : itemType === "boolean" ? z.boolean() : z.string();
+            zodType = z.array(itemZod);
+            break;
+          }
           default: zodType = z.string();
         }
         if (p.description) zodType = zodType.describe(p.description);
