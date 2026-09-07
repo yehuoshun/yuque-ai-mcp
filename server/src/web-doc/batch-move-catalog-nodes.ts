@@ -12,7 +12,7 @@
 import type { McpTool } from "../common/types.js";
 import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, optionalString } from "../common/validate.js";
 
 const CATALOG_REFERER = "https://www.yuque.com/";
 
@@ -21,6 +21,7 @@ export const webBatchMoveCatalogNodes: McpTool = {
   description:
     "Cookie-based: Batch move document nodes to a target catalog node. " +
     "PUT /api/catalog_nodes/batch. " +
+    "Supports cross-repo move (target_book_id may differ from book_id). " +
     "No membership required. " +
     "Moves the specified node_uuids under the target_uuid directory as children. " +
     "详见 references/api/catalog_api.md",
@@ -38,7 +39,11 @@ export const webBatchMoveCatalogNodes: McpTool = {
       },
       book_id: {
         type: "string",
-        description: "Repository ID (numeric, required)",
+        description: "源知识库 ID（数字，必填）。节点当前所在的知识库。 / Source repository ID (numeric, required). The repo the nodes currently live in.",
+      },
+      target_book_id: {
+        type: "string",
+        description: "目标知识库 ID（数字，可选）。跨库移动时填目标知识库 ID。缺省为 book_id（同库移动）。 / Target repository ID (numeric, optional). For cross-repo move set this to the destination repo. Defaults to book_id (same-repo move).",
       },
     },
     required: ["node_uuids", "target_uuid", "book_id"],
@@ -50,6 +55,7 @@ export const webBatchMoveCatalogNodes: McpTool = {
       requiredString(args?.node_uuids, "node_uuids"),
       requiredString(args?.target_uuid, "target_uuid"),
       requiredString(args?.book_id, "book_id"),
+      optionalString(args?.target_book_id, "target_book_id"),
     );
     if (__v) return __v;
 
@@ -57,6 +63,16 @@ export const webBatchMoveCatalogNodes: McpTool = {
     if (!bookId) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "book_id 必须为有效数字 / book_id must be a valid number" }, null, 2) }],
+        isError: true,
+      };
+    }
+
+    // target_book_id 缺省 = book_id（同库移动）；填了则支持跨库
+    const targetBookIdRaw = (args?.target_book_id as string | undefined)?.trim();
+    const targetBookId = targetBookIdRaw ? Number(targetBookIdRaw) : bookId;
+    if (!targetBookId) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "target_book_id 必须为有效数字 / target_book_id must be a valid number" }, null, 2) }],
         isError: true,
       };
     }
@@ -89,7 +105,7 @@ export const webBatchMoveCatalogNodes: McpTool = {
       node_uuids: nodeUuids,
       target_uuid: args!.target_uuid as string,
       book_id: bookId,
-      target_book_id: bookId,
+      target_book_id: targetBookId,
       transfer_action: "prependChild",
       insert_to_catalog: true,
     };
@@ -108,7 +124,10 @@ export const webBatchMoveCatalogNodes: McpTool = {
         moved_count: nodeUuids.length,
         node_uuids: nodeUuids,
         target_uuid: args!.target_uuid,
-        message: `成功将 ${nodeUuids.length} 个文档节点移动到目标目录下 / Successfully moved ${nodeUuids.length} document nodes to target catalog`,
+        book_id: bookId,
+        target_book_id: targetBookId,
+        cross_repo: targetBookId !== bookId,
+        message: `成功将 ${nodeUuids.length} 个文档节点移动到目标目录下（${targetBookId !== bookId ? "跨库" : "同库"}） / Successfully moved ${nodeUuids.length} document nodes to target catalog (${targetBookId !== bookId ? "cross-repo" : "same-repo"})`,
       }, null, 2) }],
     };
   },
