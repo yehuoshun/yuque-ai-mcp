@@ -4,7 +4,7 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>69 fine-grained MCP tools for the full Yuque OpenAPI</b>
+  <b>73 fine-grained MCP tools for the full Yuque OpenAPI</b>
 </p>
 
 <p align="center">
@@ -19,11 +19,11 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 69 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 73 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
 
 ## Why
 
-- **19 → 69 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 73 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
 - **Modular architecture** — 15 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
@@ -76,9 +76,9 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **rss** | 3 | Source list, fetch + dedup + save, schedule analysis |
 | **crawler** | 4 | Fetch, CSS extract, dedup save, schedule analysis |
 | **kv** | 4 | Get, set, delete, list — incremental sharding, 250KB/doc limit |
-| **Total** | **69** | |
+| **Total** | **73** | |
 
-### All 69 Tools
+### All 73 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -89,6 +89,7 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
 | `yuque_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
 | `yuque_web_delete_doc` | doc | Cookie 态删除文档（v2 被限流时的备用通道，移入回收站） |
+| `yuque_web_copy_catalog_node` | doc | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
 | `yuque_get_group_users` | group | 获取团队成员列表 |
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
