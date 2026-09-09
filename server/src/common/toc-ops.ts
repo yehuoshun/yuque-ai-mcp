@@ -9,7 +9,7 @@
  */
 
 import { apiPut, isErrorResult } from "./api-client.js";
-import { getTocCached, setTocCache, invalidateTocCache } from "./toc-cache.js";
+import { getTocCached, invalidateTocCache } from "./toc-cache.js";
 
 // ─── 并发锁（防 ensureTitle 竞态） ─────────────────────
 
@@ -78,10 +78,37 @@ export async function ensureTitle(
     }
 
     const tocNodes = (data as { data?: Array<Record<string, unknown>> }).data || [];
-    setTocCache(bookId, tocNodes);
+    // 注意：apiPut 返回的 TOC 里新节点 parent 可能是「假正确」——语雀 v2 连续快速
+    // 创建多个 TITLE 时，第一个的 target_uuid 持久化会失效、挂到根目录。这里改为
+    // invalidate，强制下方重新 GET 拿真实状态做兑底校验。
+    invalidateTocCache(bookId);
 
     const created = findTitleNode(tocNodes, title, parentUuid);
     if (!created?.uuid) throw new Error(`创建目录后找不到: ${title}`);
+
+    // 兑底：重新拉真实 TOC 校验 parent 是否 == target_uuid；不对（被挂到根目录）
+    // 就用 node_uuid 直移修正位置。
+    if (parentUuid) {
+      const freshNodes = await getTocCached(bookId);
+      const fresh = findTitleNode(freshNodes, title, parentUuid);
+      if (!fresh?.uuid) {
+        const misplaced = freshNodes.find(
+          (n) =>
+            n.type === "TITLE" &&
+            n.title === title &&
+            (!n.parent_uuid || n.parent_uuid === ""),
+        );
+        if (misplaced?.uuid) {
+          await apiPut(`/repos/${bookId}/toc`, {
+            action: "appendNode",
+            action_mode: "child",
+            node_uuid: misplaced.uuid as string,
+            target_uuid: parentUuid,
+          }, `Fix TITLE parent: ${title}`);
+          invalidateTocCache(bookId);
+        }
+      }
+    }
 
     return { uuid: created.uuid as string, created: true };
   })();
