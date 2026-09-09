@@ -422,8 +422,6 @@ export async function executeOp(
       const targetUuid = await resolveTarget(opBookId, op as any);
 
       let nodeUuid = op.node_uuid;
-      let nodeType: string;
-      let nodeTitle: string;
       let nodeDocId: number | undefined;
 
       const nodes = await getTocCached(opBookId);
@@ -456,44 +454,24 @@ export async function executeOp(
         }
 
         nodeUuid = newNode.uuid as string;
-        nodeType = "DOC";
-        nodeTitle = newNode.title as string;
         nodeDocId = docId;
       } else {
-        nodeType = node.type as string;
-        nodeTitle = node.title as string;
         nodeDocId = node.doc_id as number;
       }
 
-      // 先删原节点
-      const removeResult = await apiPut(`/repos/${opBookId}/toc`, {
-        action: "removeNode",
-        action_mode: "sibling",
-        node_uuid: nodeUuid,
-      }, `Move node: remove ${nodeUuid}`);
-      if (isErrorResult(removeResult)) {
-        return { success: false, error: `移动节点 remove 失败: ${nodeUuid}` };
-      }
-
-      // 再 append 到目标位置
-      const appendPayload: Record<string, unknown> = {
+      // 移动节点：用 node_uuid 直移（appendNode + node_uuid + target_uuid）。
+      // 语雀 v2 对 DOC 的 target_uuid 用 doc_ids 不可靠（会把目标目录顶到根目录 / 漏挂），
+      // 故弃用 remove + append(doc_ids) 两段式，改为官方 node_uuid 移动，保留原 uuid。
+      const movePayload: Record<string, unknown> = {
         action: "appendNode",
         action_mode: op.action_mode || "child",
-        type: nodeType,
+        node_uuid: nodeUuid,
       };
-      if (nodeType === "DOC" && nodeDocId) {
-        appendPayload.doc_ids = [nodeDocId];
-      } else if (nodeType === "TITLE") {
-        appendPayload.title = nodeTitle;
-      } else if (nodeType === "LINK") {
-        appendPayload.title = nodeTitle;
-        appendPayload.url = (node as any)?.url;
-      }
-      if (targetUuid) appendPayload.target_uuid = targetUuid;
+      if (targetUuid) movePayload.target_uuid = targetUuid;
 
-      const appendResult = await apiPut(`/repos/${opBookId}/toc`, appendPayload, `Move node: append ${nodeUuid}`);
-      if (isErrorResult(appendResult)) {
-        return { success: false, error: `移动节点 append 失败: ${nodeUuid}（remove 已执行，文档可能游离在根目录）` };
+      const moveResult = await apiPut(`/repos/${opBookId}/toc`, movePayload, `Move node: ${nodeUuid}`);
+      if (isErrorResult(moveResult)) {
+        return { success: false, error: `移动节点失败: ${nodeUuid}` };
       }
 
       invalidateTocCache(opBookId);
