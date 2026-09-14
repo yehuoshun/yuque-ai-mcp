@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.8.0-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.13.2-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20guides-orange" alt="skills" /></a>
 </p>
@@ -25,7 +25,7 @@ A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](
 
 - **19 → 73 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
-- **Modular architecture** — 15 domains, barrel exports, single source of truth registry
+- **Modular architecture** — 16 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
 - **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 67 usage guides for AI agents
 
