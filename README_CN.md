@@ -248,9 +248,17 @@ npm run build
 # 4. 重启 HTTP Server + curl health
 # 5. 同步 yuque-ai-skills
 # 6. 更新 README
+# 7. 工具/域数量变化时，同步 awesome 榜单条目
 ```
 
 [yuque-ai-mcp](https://github.com/yehuoshun/yuque-ai-mcp) 和 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) 保持同步更新。
+
+## 维护
+
+本项目已收录到以下目录。当工具数或域数变化时，需同步对应条目（条目中写了「73 个工具」/「16 个域」）：
+
+- [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+- [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)
 
 ## 技术栈
 

@@ -248,9 +248,17 @@ npm run build
 # 4. Restart HTTP server + curl health
 # 5. Sync yuque-ai-skills
 # 6. Update README
+# 7. Sync awesome-list entries when tool/domain count changes
 ```
 
 Both [yuque-ai-mcp](https://github.com/yehuoshun/yuque-ai-mcp) and [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) are kept in sync.
+
+## Maintenance
+
+This project is listed in these directories. When the tool count or domain count changes, sync the entries (they mention "73 tools" / "16 domains"):
+
+- [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+- [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)
 
 ## Tech Stack
 
