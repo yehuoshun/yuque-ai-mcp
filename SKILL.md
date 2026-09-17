@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，68 个工具 / 16 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
+语雀全功能 MCP Server，73 个工具 / 16 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
 
 ## 触发场景
 
@@ -129,13 +129,15 @@
 
 > **清洗规范**：Agent 负责 fetch → 提取正文 → HTML→Markdown → 传干净 body 给 `crawl_save`。详见 `references/api/crawler_api.md`。
 
-### mine（2 工具）
+### mine（4 工具）
 | 工具 | 说明 |
 |------|------|
 | `yuque_get_book_stacks` | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | 获取个人编辑中心全景数据 |
+| `yuque_update_book_stack` | 移动知识库到指定分组（书架） |
+| `yuque_sort_book_stack` | 对知识库分组内的知识库进行排序 |
 
-### web_doc（5 工具，Cookie 态）
+### web_doc（8 工具，Cookie 态）
 | 工具 | 说明 |
 |------|------|
 | `yuque_web_get_doc` | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
@@ -143,6 +145,9 @@
 | `yuque_web_list_repos` | Cookie 态列知识库列表，含权限信息 |
 | `yuque_web_get_toc` | Cookie 态获取知识库目录 TOC |
 | `yuque_web_delete_doc` | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
+| `yuque_web_copy_catalog_node` | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
+| `yuque_web_move_catalog_node` | Cookie 态移动目录节点 |
+| `yuque_web_batch_move_catalog_nodes` | Cookie 态批量移动目录节点 |
 
 ### kv（4 工具）
 | 工具 | 说明 |
@@ -183,7 +188,7 @@ yuque_get_doc ──(失败)──→ yuque_export_doc → 读本地文件 → �
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": 0,
+        "book_id": [0],
         "kv_slugs": [],
         "schedule_slugs": []
       }
@@ -193,7 +198,7 @@ yuque_get_doc ──(失败)──→ yuque_export_doc → 读本地文件 → �
     "enabled": true,
     "namespaces": {
       "my-source": {
-        "book_id": 0,
+        "book_id": [0],
         "kv_slugs": [],
         "schedule_slugs": []
       }

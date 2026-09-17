@@ -399,7 +399,7 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
     "enabled": true,
     "namespaces": {
       "cnblogs": {
-        "book_id": 0,
+        "book_id": [0],
         "docs": [0, 274164065]
       }
     }

@@ -75,13 +75,14 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **recycle** | 3 | 列表、恢复、彻底删除（Cookie 认证） |
 | **upload** | 1 | 文件上传到语雀 CDN（Cookie 认证） |
 | **board** | 3 | 思维导图、流程图、架构图 |
-| **mine** | 2 | 书架列表、编辑中心（Cookie 认证） |
+| **web_doc** | 8 | Cookie 态文档读写、目录导航、目录节点移动/复制 |
+| **mine** | 4 | 书架列表、编辑中心、移动知识库、排序（Cookie 认证） |
 | **rss** | 3 | 数据源列表、抓取+去重+写入、定时策略分析 |
 | **crawler** | 4 | 抓取、CSS 提取、去重写入、定时策略分析 |
 | **kv** | 4 | 增删查列——增量分片，单文档 250KB 上限 |
-| **合计** | **67** | |
+| **合计** | **73** | |
 
-### 全部 67 个工具
+### 全部 73 个工具
 
 | 工具 | 域 | 说明 |
 |------|--------|-------------|
@@ -135,6 +136,14 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_get_board` | board | 获取文档中的画板资源 |
 | `yuque_create_board` | board | 在文档中创建画板资源 |
 | `yuque_update_board` | board | 更新文档中的画板资源 |
+| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
+| `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
+| `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
+| `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
+| `yuque_web_delete_doc` | web_doc | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
+| `yuque_web_copy_catalog_node` | web_doc | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
+| `yuque_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
+| `yuque_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
 | `yuque_rss_list_sources` | rss | 列出所有可用 RSS 数据源及 feed 类型 |
 | `yuque_rss_fetch` | rss | 抓取 RSS/Atom Feed，解析后去重写入语雀 |
 | `yuque_rss_schedule` | rss | 分析更新频率，生成推荐抓取时间 |
@@ -144,6 +153,8 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_crawl_schedule` | crawler | 分析爬虫抓取频率，生成推荐抓取时间 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
+| `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
+| `yuque_sort_book_stack` | mine | 对知识库分组内的知识库进行排序 |
 | `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map（分片合并） |
 | `yuque_kv_set` | kv | 增量设置 key-value，超 250KB 自动分片 |
 | `yuque_kv_delete` | kv | 遍历分片查找并删除 key |
@@ -155,7 +166,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 | 功能 | 官方 yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| 工具数 | 19 | **67** |
+| 工具数 | 19 | **73** |
 | 粒度 | 粗粒度 | **细粒度**（1 端点 = 1 工具） |
 | 团队、回收站、上传、统计 | ❌ | ✅ |
 | 版本、Diff、跨库复制 | ❌ | ✅ |

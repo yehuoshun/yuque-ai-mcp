@@ -9,12 +9,66 @@
 | `yuque_crawl_fetch` | HTTP GET 抓取网页原始 HTML |
 | `yuque_crawl_extract` | CSS 选择器从 HTML 提取内容 |
 | `yuque_crawl_save` | 去重 + 写入语雀（接收 Agent 清洗后的内容） |
+| `yuque_crawl_schedule` | 分析抓取频率，生成推荐抓取间隔并写回配置文档 |
 
 ## 使用流程
 
 ```
 yuque_crawl_fetch → Agent 清洗 → yuque_crawl_save
 ```
+
+## 定时抓取策略
+
+`yuque_crawl_schedule` 分析 KV 去重数据中的时间戳，按文章产出频率分档推荐抓取间隔。
+
+### 参数
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|:----:|------|------|
+| `source` | string | ✅ | - | 数据源 key，匹配 `crawler.namespaces.{source}.book_id` |
+| `kv_namespace` | string | ❌ | source 值 | KV 命名空间，用于读取去重数据 |
+| `mode` | string | ❌ | `analyze` | `analyze`（分析+写回）/ `dry_run`（仅分析） |
+| `raw` | boolean | ❌ | false | 返回完整 JSON（默认 false） |
+
+### 频率分档
+
+| 分档 | 条件 | 间隔 |
+|------|------|------|
+| 高频 | 近 7 天 ≥ 5 篇 | 每天 1 次 |
+| 中频 | 近 7 天 1-4 篇 | 每 7 天 |
+| 低频 | 近 14 天 1 篇 | 每 15 天 |
+| 休眠 | 近 30 天 0 篇 | 每 30 天 |
+
+> 保守策略：最小间隔 1 天，避免频繁请求。
+
+### 返回示例
+
+```json
+{
+  "source": "my-source",
+  "mode": "schedule_book",
+  "analysis": {
+    "band": "低频",
+    "intervalDays": 15,
+    "lastFetch": null,
+    "nextFetch": "2026-10-02",
+    "recent7dCount": 0,
+    "recent14dCount": 1,
+    "recent30dCount": 3,
+    "totalArticles": 25
+  },
+  "writeResult": {
+    "status": "updated",
+    "slug": "crawler-schedule"
+  }
+}
+```
+
+### 前置条件
+
+1. `kv.enabled = true`（依赖 KV 去重数据中的时间戳）
+2. 已通过 `yuque_crawl_save` 至少抓取过一些文章
+3. `crawler.namespaces.{source}.schedule_slugs` 已配置（分析结果写回时使用）
 
 职责分工：
 - **fetch**：工具负责，拿原始 HTML
@@ -79,15 +133,21 @@ Agent 拿到原始 HTML 后，必须按以下规范清洗后再传给 `yuque_cra
   "crawler": {
     "enabled": true,
     "namespaces": {
-      "cnblogs": {
-        "book_id": 0,
-        "kv_slugs": ["0/0"],
-        "schedule_slugs": ["0/0"]
+      "my-source": {
+        "book_id": [0],
+        "kv_slugs": [],
+        "schedule_slugs": []
       }
     }
   }
 }
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `book_id` | 目标知识库 ID 数组。最后一个为当前活跃仓库，满 5000 篇自动扩容追加 |
+| `kv_slugs` | KV 去重分片文档（`{book_id}/{doc_id}` 格式） |
+| `schedule_slugs` | 定时策略配置文档（`{book_id}/{doc_id}` 格式） |
 
 ### 目标知识库解析优先级
 
