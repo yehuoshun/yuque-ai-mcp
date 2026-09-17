@@ -18,7 +18,7 @@ import {
 
 export const tocBatchUpdate: McpTool = {
   name: "yuque_batch_update_toc",
-  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. For cross-book copy, use yuque_copy_doc instead.",
+  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. Supported actions: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. For cross-book copy, use yuque_copy_doc instead.",
 
   inputSchema: {
     type: "object",
@@ -29,7 +29,7 @@ export const tocBatchUpdate: McpTool = {
       },
       ops: {
         type: "string",
-        description: "JSON array of operations. Supported: createTitle, appendNode, removeNode, moveNode. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title for name-based lookup.",
+        description: "JSON array of operations. Supported: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode/prependDoc support target_title for name-based lookup.",
       },
       confirm: {
         type: "string",
