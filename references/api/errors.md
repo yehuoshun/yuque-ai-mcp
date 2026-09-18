@@ -14,6 +14,19 @@
 | 429 | 访问频率超限 | 每小时 5000 次/每秒 100 次限制 | 重试 1s→2s→3s，最多 3 次。若 `X-RateLimit-Remaining = 0` 则等整点刷新 |
 | 500 | 内部错误 | 语雀服务端异常 | 等待片刻重试；若持续报错，联系语雀技术支持 |
 
+## 语雀业务错误码
+
+语雀业务错误码通过响应 body 的 `code` 字段返回，常配合 HTTP 状态码出现。关键业务码：
+
+| 业务码 | 含义 | 处理 |
+|--------|------|------|
+| `book_full` | 知识库已满（超 5000 节点，语雀 API 对该库不可用） | 换用其他知识库，或拆分为多个知识库 |
+| `slug_conflict` | 文档 slug 冲突 | 更换 slug 后重试 |
+| `book_slug_conflict` | 知识库 slug 冲突 | 更换知识库 slug 后重试 |
+| `token_expired` | Token 过期 | 重新生成 Token |
+| `scope_insufficient` | Token 权限不足 | 补充 scope 权限后重试 |
+| `cookie_required` | 需要 Cookie 登录态 | 在 config.json 配置 cookie + ctoken |
+
 ## 通用规则
 
 - **401** → 不重试，直接提示用户更新 Token

@@ -24,7 +24,7 @@ export const webBatchMoveCatalogNodes: McpTool = {
     "Supports cross-repo move (target_book_id may differ from book_id). " +
     "No membership required. " +
     "Moves the specified node_uuids under the target_uuid directory as children. " +
-    "详见 references/api/catalog_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

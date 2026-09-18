@@ -27,7 +27,7 @@ export const webCopyCatalogNode: McpTool = {
     "PUT /api/catalog_nodes/copy. " +
     "The source node is kept; a copy is created in the target repo and attachments re-uploaded there (preserves file cards). " +
     "node_uuid must be from the web catalog (/api/catalog_nodes), not the v2 TOC. " +
-    "详见 references/api/catalog_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

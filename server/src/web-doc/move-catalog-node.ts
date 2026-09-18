@@ -24,7 +24,7 @@ export const webMoveCatalogNode: McpTool = {
     "PUT /api/catalog_nodes/move. " +
     "Supports cross-repo move (target_book_id may differ from book_id) and moving the whole subtree (with_children). " +
     "No membership required. " +
-    "详见 references/api/catalog_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",
