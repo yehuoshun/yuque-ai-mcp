@@ -93,14 +93,14 @@
 ### recycle（3 工具）
 | 工具 | 说明 |
 |------|------|
-| `yuque_list_recycles` | 列出回收站项目 |
-| `yuque_restore_recycle` | 恢复回收站项目 |
-| `yuque_destroy_recycle` | 彻底删除回收站项目 |
+| `yuque_list_recycles` | 列出回收站项目（Cookie） |
+| `yuque_restore_recycle` | 恢复回收站项目（Cookie） |
+| `yuque_destroy_recycle` | 彻底删除回收站项目（Cookie） |
 
 ### upload（1 工具）
 | 工具 | 说明 |
 |------|------|
-| `yuque_upload_attachment` | 上传文件到语雀 CDN |
+| `yuque_upload_attachment` | 上传文件到语雀 CDN（Cookie） |
 
 ### board（3 工具）
 | 工具 | 说明 |
@@ -112,10 +112,10 @@
 ### mine（4 工具）
 | 工具 | 说明 |
 |------|------|
-| `yuque_get_book_stacks` | 获取知识库分组（书架）列表 |
-| `yuque_get_editor_center` | 获取个人编辑中心全景数据 |
-| `yuque_update_book_stack` | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | 排序知识库分组（书架） |
+| `yuque_get_book_stacks` | 获取知识库分组（书架）列表（Cookie） |
+| `yuque_get_editor_center` | 获取个人编辑中心全景数据（Cookie） |
+| `yuque_update_book_stack` | 移动知识库到指定分组（书架）（Cookie） |
+| `yuque_sort_book_stack` | 排序知识库分组（书架）（Cookie） |
 
 ### web_doc（8 工具，Cookie 态）
 | 工具 | 说明 |

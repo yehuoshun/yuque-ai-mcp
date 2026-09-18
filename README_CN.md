@@ -79,6 +79,8 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **web_doc** | 8 | Web API：获取/列出文档、知识库、目录，移动/复制/删除目录节点（Cookie 认证） |
 | **合计** | **62** | |
 
+**认证方式**：45 个走 OpenAPI（`X-Auth-Token`）；17 个走 Web API，需 Cookie + `x-csrf-token` —— `web_doc`（8）、`mine`（4）、`recycle`（3）、`upload`（1）、`web_search`（1）。
+
 ### 全部 62 个工具
 
 | 工具 | 域 | 说明 |
@@ -126,17 +128,17 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_get_note` | note | 获取小记详情 |
 | `yuque_create_note` | note | 创建小记 |
 | `yuque_update_note` | note | 更新小记 |
-| `yuque_list_recycles` | recycle | 列出回收站项目 |
-| `yuque_restore_recycle` | recycle | 恢复回收站项目 |
-| `yuque_destroy_recycle` | recycle | 彻底删除回收站项目 |
-| `yuque_upload_attachment` | upload | 上传文件到语雀 CDN |
+| `yuque_list_recycles` | recycle | 列出回收站项目（Cookie） |
+| `yuque_restore_recycle` | recycle | 恢复回收站项目（Cookie） |
+| `yuque_destroy_recycle` | recycle | 彻底删除回收站项目（Cookie） |
+| `yuque_upload_attachment` | upload | 上传文件到语雀 CDN（Cookie） |
 | `yuque_get_board` | board | 获取文档中的画板资源 |
 | `yuque_create_board` | board | 在文档中创建画板资源 |
 | `yuque_update_board` | board | 更新文档中的画板资源 |
-| `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
-| `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
-| `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | mine | 排序知识库分组（书架） |
+| `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表（Cookie） |
+| `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
+| `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
+| `yuque_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
 | `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
 | `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
