@@ -76,7 +76,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **upload** | 1 | 文件上传到语雀 CDN（Cookie 认证） |
 | **board** | 3 | 思维导图、流程图、架构图 |
 | **mine** | 4 | 书架列表、编辑中心、更新/排序书架（Cookie 认证） |
-| **web-doc** | 8 | Web API：获取/列出文档、知识库、目录，移动/复制/删除目录节点（Cookie 认证） |
+| **web_doc** | 8 | Web API：获取/列出文档、知识库、目录，移动/复制/删除目录节点（Cookie 认证） |
 | **合计** | **62** | |
 
 ### 全部 62 个工具
@@ -137,6 +137,14 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
 | `yuque_sort_book_stack` | mine | 排序知识库分组（书架） |
+| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
+| `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
+| `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
+| `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
+| `yuque_web_delete_doc` | web_doc | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
+| `yuque_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
+| `yuque_web_copy_catalog_node` | web_doc | Cookie 态复制目录节点 |
+| `yuque_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
 
 完整工具文档（含参数和示例）见 [SKILL.md](SKILL.md) 或 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)。
 
