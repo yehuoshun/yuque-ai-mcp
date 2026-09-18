@@ -53,37 +53,11 @@ cp ../config/config.example.json ../config/config.json
   "api_base": "https://www.yuque.com/api/v2",
   "toc_cache_ttl_minutes": 60,
   "cookie": "可选，回收站/上传功能需要。浏览器登录后 F12 → Application → Cookies → 复制完整 Cookie 字符串",
-  "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值",
-  "rss": {
-    "enabled": true,
-    "sources": {
-      "cnblogs": {
-        "name": "博客园",
-        "feeds": {
-          "sitehome": { "label": "首页最新", "url": "https://feed.cnblogs.com/blog/sitehome/rss" },
-          "user": {
-            "label": "用户博客",
-            "url_template": "https://feed.cnblogs.com/blog/u/{username}/rss",
-            "params_schema": { "username": { "type": "string", "description": "博客园用户名", "required": true } }
-          }
-        }
-      }
-    },
-    "namespaces": {
-      "cnblogs": { "book_id": [0], "kv_slugs": [], "schedule_slugs": [] }
-    }
-  },
-  "kv": { "enabled": true },
-  "crawler": {
-    "enabled": true,
-    "namespaces": {
-      "my-source": { "book_id": [0], "kv_slugs": [], "schedule_slugs": [] }
-    }
-  }
+  "ctoken": "可选，从 Cookie 中提取 yuque_ctoken 的值"
 }
 ```
 
-> ⚠️ `book_id` 是数组，最后一个元素为当前活跃仓库。满 5000 篇自动扩容追加。`toc_cache_ttl_minutes` 控制 TOC 缓存 TTL（默认 60 分钟），调高减少 API 调用，调低获取更新鲜数据。
+> ⚠️ `toc_cache_ttl_minutes` 控制 TOC 缓存 TTL（默认 60 分钟），调高减少 API 调用，调低获取更新鲜数据。
 
 #### 获取 Token
 
