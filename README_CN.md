@@ -5,7 +5,7 @@
 <p align="center">
   <h1 align="center">yuque-ai-mcp</h1>
   <p align="center">
-    <b>62 个 MCP 工具（46 OpenAPI + 16 Web API）</b>
+    <b>62 个 MCP 工具（45 OpenAPI + 17 Web API）</b>
   </p>
 </p>
 
@@ -21,7 +21,7 @@
 
 ---
 
-基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。62 个工具，13 个域——46 个语雀 OpenAPI 端点 + 16 个需要浏览器会话 Cookie 的 Web API 工具。
+基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。62 个工具，13 个域——45 个语雀 OpenAPI 端点 + 17 个需要浏览器会话 Cookie 的 Web API 工具。
 
 ## 为什么选这个
 

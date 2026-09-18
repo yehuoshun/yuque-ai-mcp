@@ -4,7 +4,7 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>62 MCP tools (46 OpenAPI + 16 web-API)</b>
+  <b>62 MCP tools (45 OpenAPI + 17 web-API)</b>
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 62 fine-grained tools across 13 domains — 46 Yuque OpenAPI endpoints plus 16 web-API tools requiring a browser session cookie.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 62 fine-grained tools across 13 domains — 45 Yuque OpenAPI endpoints plus 17 web-API tools requiring a browser session cookie.
 
 ## Why
 
