@@ -18,10 +18,7 @@ import { noteTools } from "../note/index.js";
 import { recycleTools } from "../recycle/index.js";
 import { uploadTools } from "../upload/index.js";
 import { boardTools } from "../board/index.js";
-import { rssTools } from "../rss/index.js";
-import { crawlerTools } from "../crawler/index.js";
 import { mineTools } from "../mine/index.js";
-import { kvTools } from "../kv/index.js";
 import { webDocTools } from "../web-doc/index.js";
 
 /** 所有工具（按域展开，唯一真实来源） */
@@ -37,10 +34,7 @@ export const ALL_TOOLS = [
   ...recycleTools,
   ...uploadTools,
   ...boardTools,
-  ...rssTools,
-  ...crawlerTools,
   ...mineTools,
-  ...kvTools,
   ...webDocTools,
 ];
 
@@ -57,10 +51,7 @@ export const DOMAIN_COUNTS = {
   recycle: recycleTools.length,
   upload: uploadTools.length,
   board: boardTools.length,
-  rss: rssTools.length,
-  crawler: crawlerTools.length,
   mine: mineTools.length,
-  kv: kvTools.length,
   web_doc: webDocTools.length,
 };
 

@@ -4,7 +4,7 @@
 
 yuque-ai-mcp 是一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。
 
-当前版本：**v2.13.3** | 工具数：**73** | 域：**16**
+当前版本：**v2.14.0** | 工具数：**62** | 域：**13**
 
 ## 前置条件
 
@@ -135,12 +135,12 @@ curl http://localhost:3099/health
 正常返回：
 
 ```json
-{"status":"ok","version":"2.13.3","tools":73,"domains":{"user":3,"search":3,"group":3,"doc":15,"toc":3,"repo":8,"statistic":4,"note":4,"recycle":3,"upload":1,"board":3,"rss":3,"crawler":4,"mine":4,"kv":4,"web_doc":8}}
+{"status":"ok","version":"2.14.0","tools":62,"domains":{"user":3,"search":3,"group":3,"doc":15,"toc":3,"repo":8,"statistic":4,"note":4,"recycle":3,"upload":1,"board":3,"mine":4,"web_doc":8}}
 ```
 
 ### 工具列表验证
 
-服务启动后可通过 MCP Client 的 `list_tools` 或 `tools/list` 接口查看全部 73 个工具。
+服务启动后可通过 MCP Client 的 `list_tools` 或 `tools/list` 接口查看全部 62 个工具。
 
 ## 集成到 MCP Client
 
@@ -201,87 +201,4 @@ curl http://localhost:3099/health
 | `cookie` | string | ❌ | 浏览器 Cookie 字符串（回收站/上传/web_doc/mine 需要） |
 | `ctoken` | string | ❌ | 从 Cookie 中提取的 `yuque_ctoken` 值 |
 | `toc_cache_ttl_minutes` | number | ❌ | TOC 缓存 TTL，默认 60 |
-| `rss.enabled` | boolean | ❌ | 是否启用 RSS 抓取，默认 false |
-| `kv.enabled` | boolean | ❌ | 是否启用 KV 存储，默认 false |
-| `crawler.enabled` | boolean | ❌ | 是否启用爬虫，默认 false |
 
-### RSS 配置结构
-
-```json
-{
-  "rss": {
-    "enabled": true,
-    "sources": {
-      "cnblogs": {
-        "name": "博客园",
-        "description": "开发者的网上家园",
-        "slug_pattern": "/p/(\\d+)",
-        "feeds": {
-          "sitehome": { "label": "首页最新", "url": "https://feed.cnblogs.com/blog/sitehome/rss" },
-          "user": {
-            "label": "用户博客",
-            "url_template": "https://feed.cnblogs.com/blog/u/{username}/rss",
-            "params_schema": { "username": { "type": "string", "description": "博客园用户名", "required": true } }
-          }
-        }
-      }
-    },
-    "namespaces": {
-      "cnblogs": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  }
-}
-```
-
-| 字段 | 说明 |
-|------|------|
-| `book_id` | 目标知识库 ID 数组，最后一个为当前活跃仓库。满 5000 篇自动扩容追加 |
-| `kv_slugs` | KV 去重分片文档（`{book_id}/{doc_id}` 格式） |
-| `schedule_slugs` | 定时策略配置文档 |
-| `slug_pattern` | 从 URL 中提取站点文章 ID 的正则 |
-
-### KV 配置
-
-```json
-{
-  "kv": { "enabled": true }
-}
-```
-
-启用后可通过语雀文档作为 KV 存储后端（JSON map），适用于 RSS 去重、爬虫去重、通用配置存储。
-
-### Crawler 配置
-
-```json
-{
-  "crawler": {
-    "enabled": true,
-    "namespaces": {
-      "my-source": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  }
-}
-```
-
-## 常见问题
-
-**Q: 启动后报错 `Error: Cannot find module`**  
-A: 确认 `npm run build` 编译成功，`server/dist/` 目录存在。
-
-**Q: `get-tool` 调用返回 401**  
-A: Token 无效或权限不足。检查 `config.json` 的 `token` 字段，确保 Token 在语雀设置中是有效状态。
-
-**Q: 回收站/上传工具调用失败**  
-A: 这些功能需要 Cookie 认证。确保 `config.json` 中配置了 `cookie` 和 `ctoken` 字段。
-
-## 配套 Skill 层
-
-同步维护 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)，提供每个工具的 usage 指导。安装后配合使用效果更佳。

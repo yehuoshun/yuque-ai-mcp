@@ -4,11 +4,11 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>73 fine-grained MCP tools for the full Yuque OpenAPI</b>
+  <b>62 MCP tools (46 OpenAPI + 16 web-API)</b>
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.13.3-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.14.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20guides-orange" alt="skills" /></a>
 </p>
@@ -19,13 +19,13 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 73 fine-grained tools across 16 domains — every Yuque OpenAPI endpoint as a dedicated tool.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 62 fine-grained tools across 13 domains — 46 Yuque OpenAPI endpoints plus 16 web-API tools requiring a browser session cookie.
 
 ## Why
 
-- **19 → 73 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 62 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
-- **Modular architecture** — 16 domains, barrel exports, single source of truth registry
+- **Modular architecture** — 13 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
 - **[Skill layer](https://github.com/yehuoshun/yuque-ai-skills)** — 67 usage guides for AI agents
 
@@ -72,14 +72,11 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **recycle** | 3 | List, restore, destroy (Cookie auth) |
 | **upload** | 1 | File upload to Yuque CDN (Cookie auth) |
 | **board** | 3 | Mindmap, flowchart, architecture diagram |
-| **web_doc** | 8 | Get doc, list docs, list repos, get TOC, delete doc, move/copy catalog nodes (Cookie auth) |
-| **mine** | 4 | Book stacks, editor center, update/sort book stacks (Cookie auth) |
-| **rss** | 3 | Source list, fetch + dedup + save, schedule analysis |
-| **crawler** | 4 | Fetch, CSS extract, dedup save, schedule analysis |
-| **kv** | 4 | Get, set, delete, list — incremental sharding, 250KB/doc limit |
-| **Total** | **73** | |
+| **mine** | 4 | Book stacks, editor center, update/sort book stack (Cookie auth) |
+| **web-doc** | 8 | Web API: get/list docs, repos, TOC, move/copy/delete catalog nodes (Cookie auth) |
+| **Total** | **62** | |
 
-### All 73 Tools
+### All 62 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -89,14 +86,8 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_search` | search | 通用搜索文档/知识库 |
 | `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
 | `yuque_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
-| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
-| `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
-| `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
-| `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
-| `yuque_web_delete_doc` | web_doc | Cookie 态删除文档（v2 被限流时的备用通道，移入回收站） |
-| `yuque_web_copy_catalog_node` | web_doc | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
-| `yuque_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
-| `yuque_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
+| `yuque_web_delete_doc` | doc | Cookie 态删除文档（v2 被限流时的备用通道，移入回收站） |
+| `yuque_web_copy_catalog_node` | doc | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
 | `yuque_get_group_users` | group | 获取团队成员列表 |
 | `yuque_update_group_user` | group | 变更团队成员角色 |
 | `yuque_delete_group_user` | group | 删除团队成员 |
@@ -141,21 +132,10 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_get_board` | board | 获取文档中的画板资源 |
 | `yuque_create_board` | board | 在文档中创建画板资源 |
 | `yuque_update_board` | board | 更新文档中的画板资源 |
-| `yuque_rss_list_sources` | rss | 列出所有可用 RSS 数据源及 feed 类型 |
-| `yuque_rss_fetch` | rss | 抓取 RSS/Atom Feed，解析后去重写入语雀 |
-| `yuque_rss_schedule` | rss | 分析更新频率，生成推荐抓取时间 |
-| `yuque_crawl_fetch` | crawler | 抓取网页原始 HTML |
-| `yuque_crawl_extract` | crawler | CSS 选择器从 HTML 提取内容 |
-| `yuque_crawl_save` | crawler | 去重 + 写入语雀 |
-| `yuque_crawl_schedule` | crawler | 分析爬虫抓取频率，生成推荐抓取时间 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | mine | 对知识库分组内的知识库进行排序 |
-| `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map（分片合并） |
-| `yuque_kv_set` | kv | 增量设置 key-value，超 250KB 自动分片 |
-| `yuque_kv_delete` | kv | 遍历分片查找并删除 key |
-| `yuque_kv_list` | kv | 列出已配置的 KV 命名空间 |
+| `yuque_sort_book_stack` | mine | 排序知识库分组（书架） |
 
 See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) for full tool documentation with parameters and examples.
 
@@ -163,7 +143,7 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 
 | Feature | Official yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| Tools | 19 | **73** |
+| Tools | 19 | **62** |
 | Granularity | Coarse | **Fine-grained** (1 tool / endpoint) |
 | Group, Recycle, Upload, Statistics | ❌ | ✅ |
 | Versions, Diff, Cross-book Copy | ❌ | ✅ |
@@ -176,10 +156,10 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 ```
 server/src/
 ├── common/              # Shared: config, errors, types, format, validate,
-│                        # api-client, web-request, register-tools, copy/export/schedule common,
-│                        # repo-capacity (auto-expand), toc-cache (configurable TTL), text-utils
+│                        # api-client, web-request, register-tools, copy/export common,
+│                        # toc-cache (configurable TTL), text-utils
 ├── user/ search/ group/ doc/ toc/ repo/ statistic/
-├── note/ recycle/ upload/ board/ rss/ crawler/ mine/ kv/
+├── note/ recycle/ upload/ board/ mine/ web-doc/
 ├── index.ts             # stdio entry
 └── http.ts              # HTTP SSE entry (port 3099)
 ```
@@ -191,43 +171,10 @@ server/src/
   "token": "Your Yuque API Token",
   "api_base": "https://www.yuque.com/api/v2",
   "cookie": "Optional, for recycle/upload features",
-  "ctoken": "Optional, extracted from Cookie",
-  "kv": { "enabled": true },
-  "rss": {
-    "enabled": true,
-    "sources": {
-      "cnblogs": {
-        "name": "博客园",
-        "slug_pattern": "/p/(\\d+)",
-        "feeds": {
-          "sitehome": { "label": "首页", "url": "https://feed.cnblogs.com/blog/sitehome/rss" }
-        }
-      }
-    },
-    "namespaces": {
-      "cnblogs": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  },
-  "crawler": {
-    "enabled": true,
-    "namespaces": {
-      "my-source": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  }
+  "ctoken": "Optional, extracted from Cookie"
 }
 ```
 
-- `book_id`: Target repo ID array — last element is the active repo. Auto-expands when full (5000 docs).
-- `kv_slugs`: KV dedup shard docs (`{book_id}/{doc_id}` format)
-- `schedule_slugs`: Schedule config docs
 - `toc_cache_ttl_minutes`: TOC cache TTL in minutes (default 60). Set higher to reduce API calls, lower for fresher data.
 
 ## Error Handling
@@ -263,7 +210,7 @@ Both [yuque-ai-mcp](https://github.com/yehuoshun/yuque-ai-mcp) and [yuque-ai-ski
 
 ## Maintenance
 
-This project is listed in these directories. When the tool count or domain count changes, sync the entries (they mention "73 tools" / "16 domains"):
+This project is listed in these directories. When the tool count or domain count changes, sync the entries (they mention "62 tools" / "13 domains"):
 
 - [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 - [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)

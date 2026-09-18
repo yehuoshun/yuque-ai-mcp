@@ -18,10 +18,6 @@
 | `yuque_embed_url` | doc | 生成文档嵌入阅读器 URL |
 | `yuque_batch_get_docs` | doc | 批量获取文档详情（并发） |
 | `yuque_batch_get_repos` | repo | 批量获取知识库详情（并发） |
-| `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map |
-| `yuque_kv_set` | kv | 设置 KV 命名空间中的一个 key-value 对 |
-| `yuque_kv_delete` | kv | 删除 KV 命名空间中的一个 key |
-| `yuque_kv_list` | kv | 列出 KV 知识库中所有命名空间 |
 
 ---
 
@@ -385,75 +381,3 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 
 所有扩展工具共用 `references/api/errors.md` 中的错误码体系。网络异常、Token 过期、限流等错误会以统一格式返回。
 
----
-
-## KV 键值存储
-
-### 存储方案
-
-增量分片 JSON map，配置记录在 config.json 的 kv.namespaces 中。
-
-```json
-{
-  "kv": {
-    "enabled": true,
-    "namespaces": {
-      "cnblogs": {
-        "book_id": [0],
-        "docs": [0, 274164065]
-      }
-    }
-  }
-}
-```
-
-- `book_id`：该 namespace 使用的语雀知识库 ID
-- `docs`：分片文档的 doc_id 数组，按顺序读取合并
-- 单文档 body 上限 250KB，超出自动创建新分片
-
-### yuque_kv_get
-
-**流程**：按 docs 数组顺序逐个 `GET /repos/{book_id}/docs/{doc_id}` → 合并 JSON map
-
-**参数**：
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `namespace` | string | ✅ | KV 命名空间，如 `cnblogs` |
-
-**返回**：`{namespace, book_id, shards, count, data: {key: value}}`
-
-### yuque_kv_set
-
-**流程**：取 docs 最后一个 doc_id → GET 读 body → 判断 JSON.stringify 后大小 → PUT 更新或 POST 创建新分片 → 更新 config
-
-**参数**：
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `namespace` | string | ✅ | KV 命名空间 |
-| `key` | string | ✅ | 键 |
-| `value` | string | ✅ | 值 |
-
-**返回**：`{namespace, key, value, shards}`
-
-### yuque_kv_delete
-
-**流程**：遍历 docs 逐个 GET → 找到 key → delete → PUT 更新该分片
-
-**参数**：
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `namespace` | string | ✅ | KV 命名空间 |
-| `key` | string | ✅ | 要删除的键 |
-
-**返回**：`{namespace, key, action: "deleted"|"not_found", shards}`
-
-### yuque_kv_list
-
-**流程**：直接从 config.json 读取，不调 API
-
-**参数**：无
-
-**返回**：`{count, namespaces: [{namespace, book_id, shards, doc_ids}]}`

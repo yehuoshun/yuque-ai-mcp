@@ -5,12 +5,12 @@
 <p align="center">
   <h1 align="center">yuque-ai-mcp</h1>
   <p align="center">
-    <b>73 个细粒度 MCP 工具，覆盖语雀 OpenAPI 全部能力</b>
+    <b>62 个 MCP 工具（46 OpenAPI + 16 Web API）</b>
   </p>
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.13.3-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/版本-2.14.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20指导-orange" alt="skills" /></a>
 </p>
@@ -21,13 +21,13 @@
 
 ---
 
-基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。73 个工具，16 个域——每个语雀 OpenAPI 端点一个专用工具。
+基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。62 个工具，13 个域——46 个语雀 OpenAPI 端点 + 16 个需要浏览器会话 Cookie 的 Web API 工具。
 
 ## 为什么选这个
 
-- **19 → 73 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
+- **19 → 62 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
 - **双传输模式** — stdio + HTTP SSE，共享注册中心，修改无需重启
-- **模块化架构** — 16 个域，barrel export，唯一注册中心
+- **模块化架构** — 13 个域，barrel export，唯一注册中心
 - **完整 API 覆盖** — 团队、回收站、上传、统计、版本、画板——补全官方缺失
 - **[Skill 层](https://github.com/yehuoshun/yuque-ai-skills)** — 67 个 AI Agent 使用指导
 
@@ -75,14 +75,11 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **recycle** | 3 | 列表、恢复、彻底删除（Cookie 认证） |
 | **upload** | 1 | 文件上传到语雀 CDN（Cookie 认证） |
 | **board** | 3 | 思维导图、流程图、架构图 |
-| **web_doc** | 8 | Cookie 态文档读写、目录导航、目录节点移动/复制 |
-| **mine** | 4 | 书架列表、编辑中心、移动知识库、排序（Cookie 认证） |
-| **rss** | 3 | 数据源列表、抓取+去重+写入、定时策略分析 |
-| **crawler** | 4 | 抓取、CSS 提取、去重写入、定时策略分析 |
-| **kv** | 4 | 增删查列——增量分片，单文档 250KB 上限 |
-| **合计** | **73** | |
+| **mine** | 4 | 书架列表、编辑中心、更新/排序书架（Cookie 认证） |
+| **web-doc** | 8 | Web API：获取/列出文档、知识库、目录，移动/复制/删除目录节点（Cookie 认证） |
+| **合计** | **62** | |
 
-### 全部 73 个工具
+### 全部 62 个工具
 
 | 工具 | 域 | 说明 |
 |------|--------|-------------|
@@ -136,29 +133,10 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_get_board` | board | 获取文档中的画板资源 |
 | `yuque_create_board` | board | 在文档中创建画板资源 |
 | `yuque_update_board` | board | 更新文档中的画板资源 |
-| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
-| `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
-| `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
-| `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
-| `yuque_web_delete_doc` | web_doc | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
-| `yuque_web_copy_catalog_node` | web_doc | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
-| `yuque_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
-| `yuque_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
-| `yuque_rss_list_sources` | rss | 列出所有可用 RSS 数据源及 feed 类型 |
-| `yuque_rss_fetch` | rss | 抓取 RSS/Atom Feed，解析后去重写入语雀 |
-| `yuque_rss_schedule` | rss | 分析更新频率，生成推荐抓取时间 |
-| `yuque_crawl_fetch` | crawler | 抓取网页原始 HTML |
-| `yuque_crawl_extract` | crawler | CSS 选择器从 HTML 提取内容 |
-| `yuque_crawl_save` | crawler | 去重 + 写入语雀 |
-| `yuque_crawl_schedule` | crawler | 分析爬虫抓取频率，生成推荐抓取时间 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据 |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | mine | 对知识库分组内的知识库进行排序 |
-| `yuque_kv_get` | kv | 读取 KV 命名空间的完整 JSON map（分片合并） |
-| `yuque_kv_set` | kv | 增量设置 key-value，超 250KB 自动分片 |
-| `yuque_kv_delete` | kv | 遍历分片查找并删除 key |
-| `yuque_kv_list` | kv | 列出已配置的 KV 命名空间 |
+| `yuque_sort_book_stack` | mine | 排序知识库分组（书架） |
 
 完整工具文档（含参数和示例）见 [SKILL.md](SKILL.md) 或 [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills)。
 
@@ -166,7 +144,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 | 功能 | 官方 yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| 工具数 | 19 | **73** |
+| 工具数 | 19 | **62** |
 | 粒度 | 粗粒度 | **细粒度**（1 端点 = 1 工具） |
 | 团队、回收站、上传、统计 | ❌ | ✅ |
 | 版本、Diff、跨库复制 | ❌ | ✅ |
@@ -179,10 +157,10 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 ```
 server/src/
 ├── common/              # 公共：config, errors, types, format, validate,
-│                        # api-client, web-request, register-tools, copy/export/schedule,
-│                        # repo-capacity（自动扩容）, toc-cache（可配置 TTL）, text-utils
+│                        # api-client, web-request, register-tools, copy/export,
+│                        # toc-cache（可配置 TTL）, text-utils
 ├── user/ search/ group/ doc/ toc/ repo/ statistic/
-├── note/ recycle/ upload/ board/ rss/ crawler/ mine/ kv/
+├── note/ recycle/ upload/ board/ mine/ web-doc/
 ├── index.ts             # stdio 入口
 └── http.ts              # HTTP SSE 入口（端口 3099）
 ```
@@ -194,43 +172,10 @@ server/src/
   "token": "你的语雀 API Token",
   "api_base": "https://www.yuque.com/api/v2",
   "cookie": "可选，回收站/上传功能需要",
-  "ctoken": "可选，从 Cookie 中提取",
-  "kv": { "enabled": true },
-  "rss": {
-    "enabled": true,
-    "sources": {
-      "cnblogs": {
-        "name": "博客园",
-        "slug_pattern": "/p/(\\d+)",
-        "feeds": {
-          "sitehome": { "label": "首页", "url": "https://feed.cnblogs.com/blog/sitehome/rss" }
-        }
-      }
-    },
-    "namespaces": {
-      "cnblogs": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  },
-  "crawler": {
-    "enabled": true,
-    "namespaces": {
-      "my-source": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  }
+  "ctoken": "可选，从 Cookie 中提取"
 }
 ```
 
-- `book_id`：目标知识库 ID 数组，最后一个为当前活跃仓库。满 5000 篇自动扩容追加。
-- `kv_slugs`：KV 去重分片文档（`{book_id}/{doc_id}` 格式）
-- `schedule_slugs`：定时策略配置文档
 - `toc_cache_ttl_minutes`：TOC 缓存 TTL（分钟），默认 60。调大可减少 API 调用，调小可获取更新鲜的数据。
 
 ## 错误处理
@@ -238,7 +183,7 @@ server/src/
 统一错误处理，返回结构化错误（HTTP 状态码 + 消息 + 响应摘要）。所有工具共用同一错误管道。
 
 关键错误：
-- `book_full` — 知识库超 5000 篇，自动创建新仓库并追加到 `book_id` 数组
+- `book_full` — 知识库超 5000 篇（语雀 API 对超 5000 节点的知识库不可用）
 - `401` / `403` — Token/权限问题
 - `429` — 限流，自动重试
 
@@ -266,7 +211,7 @@ npm run build
 
 ## 维护
 
-本项目已收录到以下目录。当工具数或域数变化时，需同步对应条目（条目中写了「73 个工具」/「16 个域」）：
+本项目已收录到以下目录。当工具数或域数变化时，需同步对应条目（条目中写了「62 个工具」/「13 个域」）：
 
 - [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 - [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)

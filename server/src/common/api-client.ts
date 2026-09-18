@@ -29,7 +29,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** 执行 fetch 并自动重试。导出供外部 URL 请求（crawler/rss/import-url）复用 */
+/** 执行 fetch 并自动重试。导出供外部 URL 请求（import-url）复用 */
 export async function fetchWithRetry(
   url: string,
   options: RequestInit,

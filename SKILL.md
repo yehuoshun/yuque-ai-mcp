@@ -1,6 +1,6 @@
 # yuque-ai-mcp
 
-语雀全功能 MCP Server，73 个工具 / 16 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
+语雀全功能 MCP Server，62 个工具 / 13 个域。当用户提到「语雀」「yuque」「知识库」「文档」「团队」等关键词时触发。
 
 ## 触发场景
 
@@ -12,9 +12,6 @@
 - 画板（思维导图/流程图）
 - 统计数据
 - 小记
-- RSS 抓取
-- 网页爬虫
-- KV 存储
 
 ## API 端点索引
 
@@ -112,30 +109,13 @@
 | `yuque_create_board` | 在文档中创建画板资源 |
 | `yuque_update_board` | 更新文档中的画板资源 |
 
-### rss（3 工具）
-| 工具 | 说明 |
-|------|------|
-| `yuque_rss_list_sources` | 列出所有可用 RSS 数据源及 feed 类型 |
-| `yuque_rss_fetch` | 抓取 RSS/Atom Feed，解析后去重写入语雀 |
-| `yuque_rss_schedule` | 分析更新频率，生成推荐抓取时间并写入配置 |
-
-### crawler（4 工具）
-| 工具 | 说明 |
-|------|------|
-| `yuque_crawl_fetch` | 抓取网页原始 HTML |
-| `yuque_crawl_extract` | CSS 选择器从 HTML 提取内容 |
-| `yuque_crawl_save` | 去重 + 写入语雀（接收 Agent 清洗后的内容） |
-| `yuque_crawl_schedule` | 分析爬虫抓取频率，生成推荐抓取时间 |
-
-> **清洗规范**：Agent 负责 fetch → 提取正文 → HTML→Markdown → 传干净 body 给 `crawl_save`。详见 `references/api/crawler_api.md`。
-
 ### mine（4 工具）
 | 工具 | 说明 |
 |------|------|
 | `yuque_get_book_stacks` | 获取知识库分组（书架）列表 |
 | `yuque_get_editor_center` | 获取个人编辑中心全景数据 |
 | `yuque_update_book_stack` | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | 对知识库分组内的知识库进行排序 |
+| `yuque_sort_book_stack` | 排序知识库分组（书架） |
 
 ### web_doc（8 工具，Cookie 态）
 | 工具 | 说明 |
@@ -145,17 +125,9 @@
 | `yuque_web_list_repos` | Cookie 态列知识库列表，含权限信息 |
 | `yuque_web_get_toc` | Cookie 态获取知识库目录 TOC |
 | `yuque_web_delete_doc` | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
-| `yuque_web_copy_catalog_node` | Cookie 态跨库复制目录节点（服务端重传附件，保留文件卡片） |
 | `yuque_web_move_catalog_node` | Cookie 态移动目录节点 |
+| `yuque_web_copy_catalog_node` | Cookie 态复制目录节点 |
 | `yuque_web_batch_move_catalog_nodes` | Cookie 态批量移动目录节点 |
-
-### kv（4 工具）
-| 工具 | 说明 |
-|------|------|
-| `yuque_kv_get` | 读取 KV 命名空间的完整 JSON map（分片合并） |
-| `yuque_kv_set` | 增量设置 key-value，超 250KB 自动分片 |
-| `yuque_kv_delete` | 遍历分片查找并删除 key |
-| `yuque_kv_list` | 列出已配置的 KV 命名空间 |
 
 ## 错误码
 
@@ -182,27 +154,6 @@ yuque_get_doc ──(失败)──→ yuque_export_doc → 读本地文件 → �
   "token": "语雀 API Token",
   "api_base": "https://www.yuque.com/api/v2",
   "cookie": "可选，回收站/上传/mine 功能需要",
-  "ctoken": "可选，从 Cookie 中提取",
-  "kv": { "enabled": true },
-  "rss": {
-    "enabled": true,
-    "namespaces": {
-      "cnblogs": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  },
-  "crawler": {
-    "enabled": true,
-    "namespaces": {
-      "my-source": {
-        "book_id": [0],
-        "kv_slugs": [],
-        "schedule_slugs": []
-      }
-    }
-  }
+  "ctoken": "可选，从 Cookie 中提取"
 }
 ```
