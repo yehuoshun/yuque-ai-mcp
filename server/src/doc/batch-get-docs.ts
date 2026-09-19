@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { requiredString, check, idsArgToArray } from "../common/validate.js";
 import { formatDoc, wrapResult } from "../common/format.js";
 
 
@@ -23,8 +23,9 @@ export const docBatchGet: McpTool = {
         description: "Repository ID (numeric) or namespace like group/book_slug (required, shared for all docs)",
       },
       ids: {
-        type: "string",
-        description: "Document IDs as JSON array, e.g. [123,456] or [\"slug-a\",\"slug-b\"] (required, max 20)",
+        type: "array",
+        items: {},
+        description: "Document IDs as array, e.g. [123,456] or [\"slug-a\",\"slug-b\"] (required, max 20)",
       },
       raw: {
         type: "boolean",
@@ -36,30 +37,20 @@ export const docBatchGet: McpTool = {
 
   async handler(args) {
     const bookId = args?.book_id as string;
-    const idsRaw = args?.ids as string;
+    const idsRaw = args?.ids;
     const raw = args?.raw as boolean | undefined;
 
     // 校验
     const v = check(
       requiredString(bookId, "book_id"),
-      requiredString(idsRaw, "ids"),
     );
     if (v) return v;
 
-    let ids: (string | number)[];
-    try {
-      ids = JSON.parse(idsRaw);
-    } catch {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({
-          error: "ids 必须是合法 JSON 数组 / ids must be a valid JSON array",
-          hint: "zh/en",
-        }, null, 2) }],
-        isError: true,
-      };
-    }
+    const idsResult = idsArgToArray(idsRaw);
+    if (!Array.isArray(idsResult)) return idsResult;
+    const ids = idsResult;
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+    if (ids.length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           error: "ids 不能为空数组 / ids must be a non-empty array",

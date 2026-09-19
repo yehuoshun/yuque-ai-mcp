@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { idsArgToArray } from "../common/validate.js";
 import { formatRepo, wrapResult } from "../common/format.js";
 
 
@@ -19,33 +19,22 @@ export const repoBatchGet: McpTool = {
     type: "object",
     properties: {
       ids: {
-        type: "string",
-        description: "Repository IDs as JSON array, e.g. [123,456] or [\"group/repo-a\",\"group/repo-b\"] (required, max 20)",
+        type: "array",
+        items: {},
+        description: "Repository IDs as array, e.g. [123,456] or [\"group/repo-a\",\"group/repo-b\"] (required, max 20)",
       },
     },
     required: ["ids"],
   },
 
   async handler(args) {
-    const idsRaw = args?.ids as string;
+    const idsRaw = args?.ids;
 
-    const v = requiredString(idsRaw, "ids");
-    if (v) return v;
+    const idsResult = idsArgToArray(idsRaw);
+    if (!Array.isArray(idsResult)) return idsResult;
+    const ids = idsResult;
 
-    let ids: (string | number)[];
-    try {
-      ids = JSON.parse(idsRaw);
-    } catch {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({
-          error: "ids 必须是合法 JSON 数组 / ids must be a valid JSON array",
-          hint: "zh/en",
-        }, null, 2) }],
-        isError: true,
-      };
-    }
-
-    if (!Array.isArray(ids) || ids.length === 0) {
+    if (ids.length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
           error: "ids 不能为空数组 / ids must be a non-empty array",

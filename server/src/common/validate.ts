@@ -75,6 +75,25 @@ export function oneOf(value: unknown, name: string, allowed: readonly (string | 
   return null;
 }
 
+/**
+ * 解析 batch-get 的 ids 参数：接受 string（JSON 数组）或直接 array
+ * MCP CLI 传 `[1,2,3]` 时可能是 string 也可能是 array，取决于 CLI 实现
+ */
+export function idsArgToArray(value: unknown): (string | number)[] | ErrorResult {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fall through
+    }
+  }
+  return fail("ids 必须是合法 JSON 数组或数组 / ids must be a valid JSON array or array", "zh/en");
+}
+
 /** 批量校验，返回第一个失败的结果 */
 export function check(...results: (ErrorResult | null)[]): ErrorResult | null {
   for (const r of results) {

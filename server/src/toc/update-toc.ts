@@ -23,7 +23,11 @@ export const tocUpdate: McpTool = {
       action: { type: "string", description: "Action type (required): appendNode, prependNode, editNode, removeNode" },
       action_mode: { type: "string", description: "Action mode (required): sibling, child" },
       type: { type: "string", description: "Node type: DOC, LINK, TITLE (required for create, optional for edit)" },
-      doc_ids: { type: "string", description: "Document ID array as JSON, e.g. [123,456] (required for creating doc nodes)" },
+      doc_ids: {
+        type: "array",
+        items: { type: "number" },
+        description: "Document ID array, e.g. [123,456] (required for creating doc nodes)",
+      },
       title: { type: "string", description: "Node title (required for creating group/link, optional for edit)" },
       url: { type: "string", description: "Node URL (required for creating link, optional for edit)" },
       open_window: { type: "number", description: "Open in new window: 0=same page, 1=new window (optional for links, default 0)" },
@@ -64,8 +68,7 @@ export const tocUpdate: McpTool = {
     if (args?.target_uuid !== undefined) payload.target_uuid = args.target_uuid;
     if (args?.node_uuid !== undefined) payload.node_uuid = args.node_uuid;
     if (args?.doc_ids !== undefined) {
-      try { payload.doc_ids = JSON.parse(args.doc_ids as string); }
-      catch { payload.doc_ids = args.doc_ids; }
+      payload.doc_ids = args.doc_ids;
     }
 
     const data = await apiPut(`/repos/${bookId}/toc`, payload, "Update TOC");
