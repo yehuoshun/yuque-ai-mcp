@@ -11,6 +11,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: yehuoshun/yehuoshun-notify@main
+      - uses: yehuoshun/yehuoshun-notify@v1.1.0
         with:
           webhook: ${{ secrets.DINGTALK_WEBHOOK }}
