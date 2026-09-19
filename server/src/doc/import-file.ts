@@ -10,7 +10,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { basename } from "node:path";
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString, oneOf, check } from "../common/validate.js";
+import { requiredString, oneOf, check, idsArgToArray } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import {
@@ -35,8 +35,9 @@ export const docImportFile: McpTool = {
         description: "Target repository ID or namespace (required)",
       },
       paths: {
-        type: "string",
-        description: "JSON array of directory paths, e.g. '[\"导入/技术文档\"]'. 1-5 paths (required)",
+        type: "array",
+        items: { type: "string" },
+        description: "Directory paths, e.g. [\"导入/技术文档\"]. 1-5 paths (required)",
       },
       mode: {
         type: "string",
@@ -77,25 +78,21 @@ export const docImportFile: McpTool = {
     if (modeErr) return modeErr;
 
     // 解析 paths
-    const pathsErr = requiredString(args?.paths as string, "paths");
-    if (pathsErr) return pathsErr;
-
+    // 解析 paths
     let paths: string[];
-    try {
-      paths = JSON.parse(args?.paths as string) as string[];
-      if (!Array.isArray(paths) || paths.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是非空 JSON 数组" }, null, 2) }],
-          isError: true,
-        };
-      }
-      paths = paths.slice(0, 5);
-    } catch {
+    const pathsResult = idsArgToArray(args?.paths);
+    if (Array.isArray(pathsResult)) {
+      paths = pathsResult as string[];
+    } else {
+      return pathsResult;
+    }
+    if (paths.length === 0) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是有效的 JSON 数组" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 不能为空" }, null, 2) }],
         isError: true,
       };
     }
+    paths = paths.slice(0, 5);
 
     // ── 1. 读取文件 ──
     if (!existsSync(filePath)) {

@@ -6,7 +6,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, idsArgToArray } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
@@ -48,23 +48,14 @@ export const repoCopy: McpTool = {
   async handler(args) {
     const __v = requiredString(args?.target_book_id, "target_book_id");
     if (__v) return __v;
-    const __v2 = requiredString(args?.documents, "documents");
-    if (__v2) return __v2;
-
     const targetBookId = args?.target_book_id as string;
 
-    let documents: CopyDocument[];
-    try {
-      documents = JSON.parse(args?.documents as string) as CopyDocument[];
-      if (!Array.isArray(documents) || documents.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_DOCUMENTS", message: "documents 必须是非空 JSON 数组" }, null, 2) }],
-          isError: true,
-        };
-      }
-    } catch {
+    const docsResult = idsArgToArray(args?.documents);
+    if (!Array.isArray(docsResult)) return docsResult;
+    const documents = docsResult as unknown as CopyDocument[];
+    if (documents.length === 0) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_DOCUMENTS", message: "documents 必须是有效的 JSON 数组" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_DOCUMENTS", message: "documents 不能为空" }, null, 2) }],
         isError: true,
       };
     }

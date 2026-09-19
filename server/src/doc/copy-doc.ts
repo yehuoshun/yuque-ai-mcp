@@ -8,7 +8,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { requiredString, check, idsArgToArray } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
@@ -36,8 +36,9 @@ export const docCopySingle: McpTool = {
         description: "Content format: markdown / lake / html (required)",
       },
       paths: {
-        type: "string",
-        description: "JSON array of directory paths, e.g. '[\"Java/Spring\",\"Database/MySQL\"]'. 1-5 paths (required)",
+        type: "array",
+        items: { type: "string" },
+        description: "Directory paths, e.g. [\"Java/Spring\",\"Database/MySQL\"]. 1-5 paths (required)",
       },
       source_url: {
         type: "string",
@@ -69,25 +70,20 @@ export const docCopySingle: McpTool = {
     if (__v) return __v;
 
     // 解析 paths
-    const pathsErr = requiredString(args?.paths as string, "paths");
-    if (pathsErr) return pathsErr;
-
     let paths: string[];
-    try {
-      paths = JSON.parse(args?.paths as string) as string[];
-      if (!Array.isArray(paths) || paths.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是非空 JSON 数组" }, null, 2) }],
-          isError: true,
-        };
-      }
-      paths = paths.slice(0, 5);
-    } catch {
+    const pathsResult = idsArgToArray(args?.paths);
+    if (Array.isArray(pathsResult)) {
+      paths = pathsResult as string[];
+    } else {
+      return pathsResult;
+    }
+    if (paths.length === 0) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是有效的 JSON 数组" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 不能为空" }, null, 2) }],
         isError: true,
       };
     }
+    paths = paths.slice(0, 5);
 
     // 追尾源链接
     if (sourceUrl) {

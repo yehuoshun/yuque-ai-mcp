@@ -8,7 +8,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult, fetchWithRetry } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { requiredString, check, idsArgToArray } from "../common/validate.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 import { extractAndCleanContent, appendSourceLinkByFormat } from "../common/html-cleaner.js";
@@ -29,8 +29,9 @@ export const docImportUrl: McpTool = {
         description: "Web page URL to import (required)",
       },
       paths: {
-        type: "string",
-        description: "JSON array of directory paths, e.g. '[\"收集/技术文章\"]'. 1-5 paths (required)",
+        type: "array",
+        items: { type: "string" },
+        description: "Directory paths, e.g. [\"收集/技术文章\"]. 1-5 paths (required)",
       },
       title: {
         type: "string",
@@ -57,25 +58,20 @@ export const docImportUrl: McpTool = {
     if (__v) return __v;
 
     // 解析 paths
-    const pathsErr = requiredString(args?.paths as string, "paths");
-    if (pathsErr) return pathsErr;
-
     let paths: string[];
-    try {
-      paths = JSON.parse(args?.paths as string) as string[];
-      if (!Array.isArray(paths) || paths.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是非空 JSON 数组" }, null, 2) }],
-          isError: true,
-        };
-      }
-      paths = paths.slice(0, 5);
-    } catch {
+    const pathsResult = idsArgToArray(args?.paths);
+    if (Array.isArray(pathsResult)) {
+      paths = pathsResult as string[];
+    } else {
+      return pathsResult;
+    }
+    if (paths.length === 0) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 必须是有效的 JSON 数组" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 不能为空" }, null, 2) }],
         isError: true,
       };
     }
+    paths = paths.slice(0, 5);
 
     // ── 1. 抓取网页 ──
     let pageTitle: string;
