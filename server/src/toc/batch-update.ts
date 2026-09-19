@@ -57,27 +57,23 @@ export const tocBatchUpdate: McpTool = {
 
     const bookId = args?.book_id as string;
 
-    let ops: TocOp[];
-    try {
-      ops = JSON.parse(args?.ops as string) as TocOp[];
-      if (!Array.isArray(ops) || ops.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({
-            error: "INVALID_OPS", message: "ops 必须是非空 JSON 数组",
-          }, null, 2) }],
-          isError: true,
-        };
-      }
-    } catch {
+    let ops: TocOp[] = [];
+    if (Array.isArray(args?.ops)) {
+      ops = args.ops as TocOp[];
+    } else if (typeof args?.ops === "string") {
+      try { ops = JSON.parse(args.ops) as TocOp[]; } catch { /* ignore */ }
+    }
+    if (!Array.isArray(ops) || ops.length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "INVALID_OPS", message: "ops 必须是有效的 JSON 数组",
+          error: "INVALID_OPS", message: "ops 必须是非空 JSON 数组",
         }, null, 2) }],
         isError: true,
       };
     }
 
     const results: OpResult[] = [];
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
       try {
