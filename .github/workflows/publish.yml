@@ -24,6 +24,6 @@ jobs:
       - run: npm publish --registry https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - uses: yehuoshun/yehuoshun-notify@main
+      - uses: yehuoshun/yehuoshun-notify@latest
         with:
           webhook: ${{ secrets.DINGTALK_WEBHOOK }}
