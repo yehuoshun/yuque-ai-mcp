@@ -57,20 +57,46 @@ export const mineSortBookStack: McpTool = {
 
     if (isErrorResult(result)) return result;
 
+    // move 接口成功/失败都返回 200+{}，无法从返回判断真实结果，
+    // 因此回查 book_stacks 确认所有知识库都落在目标分组（带重试）。
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let got = new Set<number>();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await sleep(1500);
+      const stacks = await webRequest(`${MINE_BASE}/book_stacks`);
+      if (!isErrorResult(stacks)) {
+        const data = (stacks as { data?: Array<{ id: number; books?: Array<{ id: number }> }> })?.data || [];
+        const target = data.find((s) => s.id === stackId);
+        got = new Set((target?.books || []).map((b) => b.id));
+        if (bookIds.every((id) => got.has(id))) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    message: `分组 ${stackId} 内 ${bookIds.length} 个知识库已按传入顺序排序`,
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+      }
+    }
+
+    const missing = bookIds.filter((id) => !got.has(id));
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              message: `分组 ${stackId} 内 ${bookIds.length} 个知识库已按传入顺序排序`,
-            },
-            null,
-            2,
-          ),
+          text: `移动失败：分组 ${stackId} 内缺少部分知识库（已重试 3 次），缺失: ${missing.join(", ")}`,
         },
       ],
+      isError: true,
     };
   },
 };

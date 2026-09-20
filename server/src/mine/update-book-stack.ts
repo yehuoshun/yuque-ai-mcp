@@ -58,20 +58,43 @@ export const mineUpdateBookStack: McpTool = {
 
     if (isErrorResult(result)) return result;
 
+    // move 接口成功/失败都返回 200+{}，无法从返回判断真实结果，
+    // 因此回查 book_stacks 确认知识库真的落在目标分组（带重试）。
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await sleep(1500);
+      const stacks = await webRequest(`${MINE_BASE}/book_stacks`);
+      if (!isErrorResult(stacks)) {
+        const data = (stacks as { data?: Array<{ id: number; books?: Array<{ id: number }> }> })?.data || [];
+        const target = data.find((s) => s.id === stackId);
+        if (target?.books?.some((b) => b.id === bookId)) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    message: `知识库 ${bookId} 已移动到分组 ${stackId}`,
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+      }
+    }
+
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              message: `知识库 ${bookId} 已移动到分组 ${stackId}`,
-            },
-            null,
-            2,
-          ),
+          text: `移动失败：知识库 ${bookId} 未出现在分组 ${stackId}（已重试 3 次）`,
         },
       ],
+      isError: true,
     };
   },
 };
