@@ -88,7 +88,7 @@ Content-Type: application/json
 | `login` | path | string | 用户/团队的 Login 或 ID（必填） | - |
 | `name` | body | string | 知识库名称（必填） | - |
 | `slug` | body | string | 知识库路径（必填） | - |
-| `description` | body | string | 简介 | - |
+| `description` | body | string | 简介（**上限 255 字符**，2026-09-30 老板确认） | - |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 | 0 |
 | `enhancedPrivacy` | body | bool | 增强私密性：非管理员成员也设为无权限 | - |
 
@@ -140,7 +140,7 @@ Content-Type: application/json
 | `book_id` | path | string | 知识库 ID 或 namespace（必填） |
 | `name` | body | string | 名称 |
 | `slug` | body | string | 路径 |
-| `description` | body | string | 简介 |
+| `description` | body | string | 简介（**上限 255 字符**，2026-09-30 老板确认） |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 |
 | `toc` | body | string | 目录（Markdown 格式，全量替换，示例：`- [分组]()\n - [文档](slug)`） |
 
