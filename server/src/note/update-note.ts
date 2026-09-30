@@ -52,6 +52,13 @@ export const noteUpdate: McpTool = {
     }
     if (status !== undefined) payload.status = status;
 
+    // 语雀 PUT /notes 要求 html/source/abstract 必填，删除（status=9）且未传 body 时自动补全
+    if (status === 9 && body === undefined) {
+      payload.html = "<p>已删除</p>";
+      payload.source = "已删除";
+      payload.abstract = "已删除";
+    }
+
     if (Object.keys(payload).length === 0) {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "至少需要传 body 或 status" }, null, 2) }],
