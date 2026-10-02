@@ -53,7 +53,7 @@ export const docImportFile: McpTool = {
       },
       format: {
         type: "string",
-        description: "Content format: markdown / html, defaults to markdown",
+        description: "Content format: markdown / lake / html, defaults to markdown",
       },
     },
     required: ["file_path", "book_id", "paths"],
