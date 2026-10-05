@@ -120,7 +120,7 @@
 ### web_doc（8 工具，Cookie 态）
 | 工具 | 说明 |
 |------|------|
-| `yuque_web_get_doc` | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
+| `yuque_web_get_doc` | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
 | `yuque_web_list_docs` | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | Cookie 态列知识库列表，含权限信息 |
 | `yuque_web_get_toc` | Cookie 态获取知识库目录 TOC |

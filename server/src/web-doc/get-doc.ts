@@ -87,13 +87,14 @@ export const webDocGet: McpTool = {
     "Returns richer fields than v2 get_doc (54 fields including abilities, joinToken, etc.). " +
     "No membership required, no Token rate limiting. " +
     "GET /api/docs/{id}?book_id={book_id}. " +
+    "id supports doc slug; book_id supports namespace/slug (e.g. yehuoshun/utuif2) or numeric. " +
     "详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "string", description: "Document ID (numeric, required)" },
-      book_id: { type: "string", description: "Repository ID (numeric, required)" },
+      id: { type: "string", description: "Document ID or slug (required)" },
+      book_id: { type: "string", description: "Repository ID, namespace or slug (e.g. yehuoshun/utuif2), or numeric (required)" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["id", "book_id"],
@@ -107,17 +108,14 @@ export const webDocGet: McpTool = {
     );
     if (__v) return __v;
 
-    const id = Number(args?.id);
-    const bookId = Number(args?.book_id);
-    if (!id || !bookId) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "id 和 book_id 必须为有效数字 / id and book_id must be valid numbers" }, null, 2) }],
-        isError: true,
-      };
-    }
+    // Web API 支持 namespace/slug：id 可传文档 slug，book_id 可传 namespace
+    // （如 yehuoshun/utuif2）或数字，原样透传，不做 Number 强转。
+    const id = String(args?.id);
+    const bookId = String(args?.book_id);
+    const enc = (v: string) => encodeURIComponent(v).replace(/%2F/gi, "/");
     const raw = args?.raw as boolean | undefined;
 
-    const url = `https://www.yuque.com/api/docs/${id}?book_id=${bookId}`;
+    const url = `https://www.yuque.com/api/docs/${enc(id)}?book_id=${enc(bookId)}`;
     const result = await webRequest(url, { referer: DOC_REFERER });
 
     if (isErrorResult(result)) return result;

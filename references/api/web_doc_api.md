@@ -48,9 +48,11 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `id` | string | ✅ | 文档 ID（数字） |
-| `book_id` | string | ✅ | 知识库 ID（数字） |
+| `id` | string | ✅ | 文档 ID 或 **slug** |
+| `book_id` | string | ✅ | 知识库 ID（**数字**；传 namespace / 裸 book slug 会 404） |
 | `raw` | boolean | ❌ | 返回原始 JSON（默认 false，返回裁剪字段） |
+
+> `id` 传文档 slug 可直接命中（实测），但 `book_id` 必须是数字：Web API 的 `/api/docs/{id}?book_id=` 里 book 那栏是数字外键，`yehuoshun/utuif2`、`utuif2` 这类都会 404。
 
 ### yuque_web_list_docs
 

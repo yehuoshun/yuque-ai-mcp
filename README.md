@@ -136,7 +136,7 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
 | `yuque_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
-| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流 |
+| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
 | `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
 | `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
