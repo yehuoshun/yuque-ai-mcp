@@ -5,7 +5,7 @@
 <p align="center">
   <h1 align="center">yuque-ai-mcp</h1>
   <p align="center">
-    <b>62 个 MCP 工具（45 OpenAPI + 17 Web API）</b>
+    <b>65 个 MCP 工具（45 OpenAPI + 20 Web API）</b>
   </p>
 </p>
 
@@ -21,11 +21,11 @@
 
 ---
 
-基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。62 个工具，13 个域——45 个语雀 OpenAPI 端点 + 17 个需要浏览器会话 Cookie 的 Web API 工具。
+基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。65 个工具，13 个域——45 个语雀 OpenAPI 端点 + 20 个需要浏览器会话 Cookie 的 Web API 工具。
 
 ## 为什么选这个
 
-- **19 → 62 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
+- **19 → 65 工具** — 比官方 [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server) 多 3 倍覆盖
 - **双传输模式** — stdio + HTTP SSE，共享注册中心，修改无需重启
 - **模块化架构** — 13 个域，barrel export，唯一注册中心
 - **完整 API 覆盖** — 团队、回收站、上传、统计、版本、画板——补全官方缺失
@@ -75,13 +75,13 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | **recycle** | 3 | 列表、恢复、彻底删除（Cookie 认证） |
 | **upload** | 1 | 文件上传到语雀 CDN（Cookie 认证） |
 | **board** | 3 | 思维导图、流程图、架构图 |
-| **mine** | 4 | 书架列表、编辑中心、更新/排序书架（Cookie 认证） |
+| **mine** | 7 | 书架列表、编辑中心、更新/排序书架（Cookie 认证） |
 | **web_doc** | 8 | Web API：获取/列出文档、知识库、目录，移动/复制/删除目录节点（Cookie 认证） |
-| **合计** | **62** | |
+| **合计** | **65** | |
 
-**认证方式**：45 个走 OpenAPI（`X-Auth-Token`）；17 个走 Web API，需 Cookie + `x-csrf-token` —— `web_doc`（8）、`mine`（4）、`recycle`（3）、`upload`（1）、`web_search`（1）。
+**认证方式**：45 个走 OpenAPI（`X-Auth-Token`）；20 个走 Web API，需 Cookie + `x-csrf-token` —— `web_doc`（8）、`mine`（7）、`recycle`（3）、`upload`（1）、`web_search`（1）。
 
-### 全部 62 个工具
+### 全部 65 个工具
 
 | 工具 | 域 | 说明 |
 |------|--------|-------------|
@@ -137,8 +137,11 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 | `yuque_update_board` | board | 更新文档中的画板资源 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表（Cookie） |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
+| `yuque_create_book_stack` | mine | 创建知识库分组（书架），内部 create 后自动改名（Cookie） |
+| `yuque_rename_book_stack` | mine | 重命名知识库分组（书架）（Cookie） |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
 | `yuque_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
+| `yuque_delete_book_stack` | mine | 删除知识库分组（书架），需 confirm='DELETE'（Cookie） |
 | `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
 | `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
@@ -154,7 +157,7 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 | 功能 | 官方 yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| 工具数 | 19 | **62** |
+| 工具数 | 19 | **65** |
 | 粒度 | 粗粒度 | **细粒度**（1 端点 = 1 工具） |
 | 团队、回收站、上传、统计 | ❌ | ✅ |
 | 版本、Diff、跨库复制 | ❌ | ✅ |
@@ -221,7 +224,7 @@ npm run build
 
 ## 维护
 
-本项目已收录到以下目录。当工具数或域数变化时，需同步对应条目（条目中写了「62 个工具」/「13 个域」）：
+本项目已收录到以下目录。当工具数或域数变化时，需同步对应条目（条目中写了「65 个工具」/「13 个域」）：
 
 - [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 - [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)

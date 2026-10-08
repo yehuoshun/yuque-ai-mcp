@@ -27,6 +27,9 @@
 | `yuque_get_editor_center` | `GET /api/mine/editor_center` | 获取个人编辑中心全景数据 |
 | `yuque_update_book_stack` | `PUT /api/mine/book_stack/move` | 移动知识库到指定分组（书架） |
 | `yuque_sort_book_stack` | `PUT /api/mine/book_stack/move` | 排序分组（书架）内知识库顺序 |
+| `yuque_create_book_stack` | `POST /api/mine/book_stack` + `PUT /api/book_stacks/{id}` | 创建分组（create 后自动改名） |
+| `yuque_rename_book_stack` | `PUT /api/book_stacks/{id}` | 重命名分组（书架） |
+| `yuque_delete_book_stack` | `DELETE /api/book_stacks/{id}` | 删除分组（书架） |
 
 ## 返回格式
 
@@ -163,4 +166,88 @@
   "success": true,
   "message": "分组 26776447 内 3 个知识库已按传入顺序排序"
 }
+```
+
+### create_book_stack
+
+`POST /api/mine/book_stack`（创建）+ `PUT /api/book_stacks/{stack_id}`（改名）
+
+**用途**：创建知识库分组（书架）。
+
+⚠️ 语雀 create 接口**无法指定名称**，只会生成默认名「新建分组」；想命名必须在 create 之后用 edit(PUT) 改名。本工具内部已自动补一次改名，使 `name` 生效。
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|:----:|------|
+| `name` | string | ✅ | 分组名称 |
+| `target_rank` | number | ❌ | 目标排序位（默认 0） |
+
+**请求示例**：
+
+```json
+{ "name": "我的分组", "target_rank": 0 }
+```
+
+**返回**：
+
+```json
+{
+  "success": true,
+  "stack_id": 57039609,
+  "name": "我的分组",
+  "renamed": true
+}
+```
+
+### rename_book_stack
+
+`PUT /api/book_stacks/{stack_id}`
+
+**用途**：重命名知识库分组（书架）。
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|:----:|------|
+| `stack_id` | number | ✅ | 分组 ID（书架 ID） |
+| `name` | string | ✅ | 新名称 |
+
+**请求示例**（body）：
+
+```json
+{ "name": "新名字", "type": "user_books" }
+```
+
+**返回**：
+
+```json
+{ "success": true, "message": "分组 57039609 已重命名为「新名字」" }
+```
+
+### delete_book_stack
+
+`DELETE /api/book_stacks/{stack_id}`
+
+**用途**：删除知识库分组（书架）。
+
+⚠️ **删除不可恢复**。分组内若还有知识库，需先用 `update_book_stack` 移走再删。
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|:----:|------|
+| `stack_id` | number | ✅ | 要删除的分组 ID（书架 ID） |
+| `confirm` | string | ✅ | 危险操作二次确认，必须传 `'DELETE'` |
+
+**请求示例**（body）：
+
+```json
+{ "type": "user_books" }
+```
+
+**返回**（删除后回查确认分组已消失）：
+
+```json
+{ "success": true, "message": "分组 57039609 已删除" }
 ```

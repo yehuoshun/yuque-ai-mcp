@@ -4,7 +4,7 @@
 
 <h1 align="center">yuque-ai-mcp</h1>
 <p align="center">
-  <b>62 MCP tools (45 OpenAPI + 17 web-API)</b>
+  <b>65 MCP tools (45 OpenAPI + 20 web-API)</b>
 </p>
 
 <p align="center">
@@ -19,11 +19,11 @@
 
 ---
 
-A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 62 fine-grained tools across 13 domains — 45 Yuque OpenAPI endpoints plus 17 web-API tools requiring a browser session cookie.
+A full-featured Yuque (语雀) MCP Server built on the [Model Context Protocol](https://modelcontextprotocol.io/). Provides 65 fine-grained tools across 13 domains — 45 Yuque OpenAPI endpoints plus 20 web-API tools requiring a browser session cookie.
 
 ## Why
 
-- **19 → 62 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
+- **19 → 65 tools** — 3x more coverage than the official [yuque-mcp-server](https://github.com/yuque/yuque-mcp-server)
 - **Dual transport** — stdio + HTTP SSE, shared registry, zero downtime on reload
 - **Modular architecture** — 13 domains, barrel exports, single source of truth registry
 - **Full API coverage** — group, recycle, upload, statistics, versions, boards — all the missing pieces
@@ -72,13 +72,13 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | **recycle** | 3 | List, restore, destroy (Cookie auth) |
 | **upload** | 1 | File upload to Yuque CDN (Cookie auth) |
 | **board** | 3 | Mindmap, flowchart, architecture diagram |
-| **mine** | 4 | Book stacks, editor center, update/sort book stack (Cookie auth) |
+| **mine** | 7 | Book stacks, editor center, update/sort book stack (Cookie auth) |
 | **web_doc** | 8 | Web API: get/list docs, repos, TOC, move/copy/delete catalog nodes (Cookie auth) |
-| **Total** | **62** | |
+| **Total** | **65** | |
 
-**Auth split**: 45 tools use the OpenAPI (`X-Auth-Token`); 17 are Web API requiring Cookie + `x-csrf-token` — `web_doc` (8), `mine` (4), `recycle` (3), `upload` (1), `web_search` (1).
+**Auth split**: 45 tools use the OpenAPI (`X-Auth-Token`); 20 are Web API requiring Cookie + `x-csrf-token` — `web_doc` (8), `mine` (7), `recycle` (3), `upload` (1), `web_search` (1).
 
-### All 62 Tools
+### All 65 Tools
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -134,8 +134,11 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 | `yuque_update_board` | board | 更新文档中的画板资源 |
 | `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表（Cookie） |
 | `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
+| `yuque_create_book_stack` | mine | 创建知识库分组（书架），内部 create 后自动改名（Cookie） |
+| `yuque_rename_book_stack` | mine | 重命名知识库分组（书架）（Cookie） |
 | `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
 | `yuque_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
+| `yuque_delete_book_stack` | mine | 删除知识库分组（书架），需 confirm='DELETE'（Cookie） |
 | `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
 | `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
 | `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
@@ -151,7 +154,7 @@ See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque
 
 | Feature | Official yuque-mcp-server | yuque-ai-mcp |
 |---------|--------------------------|--------------|
-| Tools | 19 | **62** |
+| Tools | 19 | **65** |
 | Granularity | Coarse | **Fine-grained** (1 tool / endpoint) |
 | Group, Recycle, Upload, Statistics | ❌ | ✅ |
 | Versions, Diff, Cross-book Copy | ❌ | ✅ |
@@ -218,7 +221,7 @@ Both [yuque-ai-mcp](https://github.com/yehuoshun/yuque-ai-mcp) and [yuque-ai-ski
 
 ## Maintenance
 
-This project is listed in these directories. When the tool count or domain count changes, sync the entries (they mention "62 tools" / "13 domains"):
+This project is listed in these directories. When the tool count or domain count changes, sync the entries (they mention "65 tools" / "13 domains"):
 
 - [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 - [zackchewa/awesome-china-mcp](https://github.com/zackchewa/awesome-china-mcp)
