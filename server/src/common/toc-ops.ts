@@ -229,6 +229,7 @@ export interface CreateTitleOp {
   action: "createTitle";
   title: string;
   target_uuid?: string;
+  target_title?: string;
   book_id?: string;
 }
 
@@ -292,7 +293,14 @@ export async function executeOp(
       const title = op.title;
       if (!title) return { success: false, error: "createTitle 缺少 title 字段" };
 
-      const { uuid, created } = await ensureTitle(opBookId, title, op.target_uuid);
+      // 支持 target_title：与 appendNode/moveNode 一致，按名称解析目标父节点。
+      // 之前只认 target_uuid，传 target_title 会被静默忽略导致建到根目录。
+      let targetUuid = op.target_uuid;
+      if (!targetUuid && op.target_title) {
+        targetUuid = await resolveTarget(opBookId, op as any);
+      }
+
+      const { uuid, created } = await ensureTitle(opBookId, title, targetUuid);
       if (created) {
         return { success: true, detail: `创建目录: ${title}`, new_node_uuid: uuid };
       } else {
