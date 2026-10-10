@@ -18,7 +18,8 @@ export const docGet: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      id: { type: "string", description: "Document ID or slug (required)" },
+      id: { type: "string", description: "Document ID (numeric) or slug (required)" },
+      book_id: { type: "string", description: "Repository ID or namespace (optional; required when id is a slug)" },
       page_size: { type: "number", description: "Table page size, 1-200, default 100" },
       page: { type: "number", description: "Table page number, ≥1, default 1" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
@@ -35,6 +36,7 @@ export const docGet: McpTool = {
       || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const id = args?.id as string;
+    const bookId = args?.book_id as string | undefined;
     const pageSize = (args?.page_size as number) ?? 100;
     const page = (args?.page as number) ?? 1;
     const raw = args?.raw as boolean | undefined;
@@ -44,7 +46,22 @@ export const docGet: McpTool = {
       page: String(page),
     };
 
-    const data = await apiGet(`/repos/docs/${id}`, params, "Get doc");
+    // 数字 ID → /repos/docs/:id；非数字（slug）→ 需 book_id 上下文 /repos/:book_id/docs/:slug
+    const isNumericId = /^\d+$/.test(id);
+    let path: string;
+    if (isNumericId) {
+      path = `/repos/docs/${id}`;
+    } else {
+      if (!bookId) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "按 slug 读取需要 book_id 参数（数字 ID 或 namespace） / reading by slug requires book_id (numeric ID or namespace)" }, null, 2) }],
+          isError: true,
+        };
+      }
+      path = `/repos/${bookId}/docs/${id}`;
+    }
+
+    const data = await apiGet(path, params, "Get doc");
     return handleApiCall(data, formatDoc, raw);
   },
 };

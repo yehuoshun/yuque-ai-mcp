@@ -52,11 +52,18 @@ export const noteUpdate: McpTool = {
     }
     if (status !== undefined) payload.status = status;
 
-    // 语雀 PUT /notes 要求 html/source/abstract 必填，删除（status=9）且未传 body 时自动补全
+    // 语雀 PUT /notes 要求 html/source/abstract 必填：删除（status=9）且未传 body 时自动补全；
+    // 恢复（status=0）且未传 body 时直接报错（原内容已被删除占位覆盖，无法自动回填）
     if (status === 9 && body === undefined) {
       payload.html = "<p>已删除</p>";
       payload.source = "已删除";
       payload.abstract = "已删除";
+    }
+    if (status === 0 && body === undefined) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "恢复小记需要 body 参数（语雀 API 要求 html/source/abstract 必填，且软删后原内容已被覆盖，无法自动回填） / restoring a note requires body (Yuque API mandates html/source/abstract; original content was overwritten on delete)" }, null, 2) }],
+        isError: true,
+      };
     }
 
     if (Object.keys(payload).length === 0) {

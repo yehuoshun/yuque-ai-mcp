@@ -12,7 +12,7 @@
 import type { McpTool } from "../common/types.js";
 import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
-import { check, requiredString, optionalString } from "../common/validate.js";
+import { check, requiredString, optionalString, fail } from "../common/validate.js";
 
 const CATALOG_REFERER = "https://www.yuque.com/";
 
@@ -30,8 +30,18 @@ export const webBatchMoveCatalogNodes: McpTool = {
     type: "object",
     properties: {
       node_uuids: {
-        type: "string",
-        description: "JSON array string of node UUIDs to move, e.g. '[\"uuid1\",\"uuid2\"]' (required)",
+        oneOf: [
+          {
+            type: "array",
+            items: { type: "string" },
+            description: "Node UUIDs as a string array (preferred).",
+          },
+          {
+            type: "string",
+            description: "Node UUIDs as a JSON-encoded string, e.g. '[\"uuid1\",\"uuid2\"]' (accepted for compatibility).",
+          },
+        ],
+        description: "Node UUIDs to move, as a string array or JSON-encoded string (required)",
       },
       target_uuid: {
         type: "string",
@@ -52,7 +62,12 @@ export const webBatchMoveCatalogNodes: McpTool = {
   async handler(args) {
     // @validate
     const __v = check(
-      requiredString(args?.node_uuids, "node_uuids"),
+      (() => {
+        const u = args?.node_uuids;
+        if (u === undefined || u === null) return fail("node_uuids 是必填参数", "node_uuids is required");
+        if (Array.isArray(u) || typeof u === "string") return null;
+        return fail("node_uuids 必须是数组或 JSON 字符串", "node_uuids must be an array or a JSON string");
+      })(),
       requiredString(args?.target_uuid, "target_uuid"),
       requiredString(args?.book_id, "book_id"),
       optionalString(args?.target_book_id, "target_book_id"),
@@ -77,17 +92,33 @@ export const webBatchMoveCatalogNodes: McpTool = {
       };
     }
 
-    // Parse node_uuids JSON array
+    // node_uuids 支持数组或 JSON 字符串双形态（与 ops 双形态对齐）
     let nodeUuids: string[];
-    try {
-      const parsed = JSON.parse(args!.node_uuids as string);
-      if (!Array.isArray(parsed) || !parsed.every((u: unknown) => typeof u === "string")) {
-        throw new Error("not a string array");
+    const rawUuids = args?.node_uuids;
+    if (Array.isArray(rawUuids)) {
+      if (rawUuids.length === 0 || !rawUuids.every((u) => typeof u === "string")) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "node_uuids 必须是字符串数组 / node_uuids must be a string array" }, null, 2) }],
+          isError: true,
+        };
       }
-      nodeUuids = parsed;
-    } catch {
+      nodeUuids = rawUuids;
+    } else if (typeof rawUuids === "string") {
+      try {
+        const parsed = JSON.parse(rawUuids);
+        if (!Array.isArray(parsed) || !parsed.every((u: unknown) => typeof u === "string")) {
+          throw new Error("not a string array");
+        }
+        nodeUuids = parsed;
+      } catch {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "node_uuids 必须是有效的 JSON 字符串数组 / node_uuids must be a valid JSON string array" }, null, 2) }],
+          isError: true,
+        };
+      }
+    } else {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "node_uuids 必须是有效的 JSON 字符串数组 / node_uuids must be a valid JSON string array" }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "node_uuids 必须是数组或 JSON 字符串 / node_uuids must be an array or a JSON string" }, null, 2) }],
         isError: true,
       };
     }

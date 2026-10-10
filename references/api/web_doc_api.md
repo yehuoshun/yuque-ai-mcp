@@ -148,7 +148,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `node_uuids` | string | ✅ | JSON 数组字符串，如 `'["uuid1","uuid2"]'` |
+| `node_uuids` | string[] 或 string | ✅ | 字符串数组（推荐）或 JSON 数组字符串，如 `["uuid1","uuid2"]` / `'["uuid1","uuid2"]'` |
 | `target_uuid` | string | ✅ | 目标父节点 UUID |
 | `book_id` | string | ✅ | 节点当前所在知识库 ID（数字） |
 | `target_book_id` | string | ❌ | 目标知识库 ID，跨库移动时填，默认同库 |

@@ -235,9 +235,12 @@ GET /api/v2/repos/docs/{id}
 
 | 参数 | 位置 | 类型 | 说明 | 默认 |
 |------|------|------|------|------|
-| `id` | path | string | 文档 ID（必填） | - |
+| `id` | path | string | 文档 ID 或 slug（必填；传 slug 时需 book_id） | - |
+| `book_id` | - | string | 知识库 ID 或 namespace（可选；id 为 slug 时必填） | - |
 | `page_size` | query | int | 数据表分页大小 | 100（1-200） |
 | `page` | query | int | 数据表页码 | 1（≥1） |
+
+> 工具行为：id 为纯数字 → `GET /repos/docs/{id}`；id 为 slug → `GET /repos/{book_id}/docs/{slug}`（book_id 缺失时返回友好报错）。
 
 ### 返回结构
 

@@ -85,8 +85,8 @@ export function registerAllTools(server: McpServer): void {
                   case "number": return z.number();
                   case "boolean": return z.boolean();
                   case "array": {
-                    // 对象数组（op 结构不固定，用 z.any() 避免元素级降级拦截）
-                    return z.array(z.any());
+                    // items.type=string → 字符串数组；对象/不固定结构 → z.any() 元素（避免元素级降级拦截）
+                    return v.items?.type === "string" ? z.array(z.string()) : z.array(z.any());
                   }
                   default: return z.string();
                 }

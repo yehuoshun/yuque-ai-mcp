@@ -41,7 +41,7 @@
 |------|------|
 | `yuque_list_docs` | 获取知识库文档列表 |
 | `yuque_create_doc` | 创建文档 |
-| `yuque_get_doc` | 获取文档详情（支持 ID 或 slug） |
+| `yuque_get_doc` | 获取文档详情（支持 ID；slug 需另传 book_id） |
 | `yuque_update_doc` | 更新文档 |
 | `yuque_delete_doc` | 删除文档 |
 | `yuque_batch_get_docs` | 批量获取文档详情（max 20） |
