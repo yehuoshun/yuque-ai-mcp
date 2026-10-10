@@ -9,7 +9,7 @@
  */
 
 import type { McpTool } from "../common/types.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, fail } from "../common/validate.js";
 import {
   type TocOp,
   type OpResult,
@@ -28,8 +28,18 @@ export const tocBatchUpdate: McpTool = {
         description: "Repository ID or namespace (required)",
       },
       ops: {
-        type: "string",
-        description: "JSON array of operations. Supported: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode/prependDoc support target_title for name-based lookup.",
+        oneOf: [
+          {
+            type: "array",
+            items: { type: "object" },
+            description: "Operations as a JSON array (preferred).",
+          },
+          {
+            type: "string",
+            description: "Operations as a JSON-encoded string (accepted for compatibility).",
+          },
+        ],
+        description: "JSON array of operations (or JSON-encoded string). Supported: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode/prependDoc support target_title for name-based lookup.",
       },
       confirm: {
         type: "string",
@@ -42,7 +52,19 @@ export const tocBatchUpdate: McpTool = {
   async handler(args) {
     const v = check(
       requiredString(args?.book_id, "book_id"),
-      requiredString(args?.ops, "ops"),
+      (() => {
+        const o = args?.ops;
+        if (o === undefined || o === null) return fail("ops 是必填参数", "ops is required");
+        if (typeof o === "string") {
+          if (o.trim() === "") return fail("ops 不能为空", "ops cannot be empty");
+          return null;
+        }
+        if (Array.isArray(o)) {
+          if (o.length === 0) return fail("ops 不能为空数组", "ops cannot be an empty array");
+          return null;
+        }
+        return fail("ops 必须是数组或 JSON 字符串", "ops must be an array or a JSON string");
+      })(),
       requiredString(args?.confirm, "confirm"),
     );
     if (v) return v;

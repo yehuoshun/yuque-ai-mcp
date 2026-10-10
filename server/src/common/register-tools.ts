@@ -61,7 +61,7 @@ export function registerAllTools(server: McpServer): void {
     if (tool.inputSchema) {
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
-        const p = prop as { type: string; description?: string; items?: { type: string } };
+        const p = prop as { type: string; description?: string; items?: { type: string }; oneOf?: Array<{ type: string; items?: { type: string } }>; anyOf?: Array<{ type: string; items?: { type: string } }> };
         let zodType: z.ZodTypeAny;
         switch (p.type) {
           case "string": zodType = z.string(); break;
@@ -73,7 +73,29 @@ export function registerAllTools(server: McpServer): void {
             zodType = z.array(itemZod);
             break;
           }
-          default: zodType = z.string();
+          default: {
+            // oneOf/anyOf 多形态（如 ops 支持数组或 JSON 字符串）：映射为 union，不再降级 string
+            const variants = Array.isArray(p.oneOf) && p.oneOf.length > 0
+              ? p.oneOf
+              : (Array.isArray(p.anyOf) && p.anyOf.length > 0 ? p.anyOf : null);
+            if (variants) {
+              zodType = z.union(variants.map((v) => {
+                switch (v.type) {
+                  case "string": return z.string();
+                  case "number": return z.number();
+                  case "boolean": return z.boolean();
+                  case "array": {
+                    // 对象数组（op 结构不固定，用 z.any() 避免元素级降级拦截）
+                    return z.array(z.any());
+                  }
+                  default: return z.string();
+                }
+              }));
+            } else {
+              zodType = z.string();
+            }
+            break;
+          }
         }
         if (p.description) zodType = zodType.describe(p.description);
         if (!tool.inputSchema.required?.includes(key)) zodType = zodType.optional();

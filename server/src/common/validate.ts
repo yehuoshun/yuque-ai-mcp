@@ -8,7 +8,7 @@
 
 type ErrorResult = { content: Array<{ type: "text"; text: string }>; isError: true };
 
-function fail(msgCn: string, msgEn: string): ErrorResult {
+export function fail(msgCn: string, msgEn: string): ErrorResult {
   return {
     content: [{ type: "text", text: JSON.stringify({
       error: `${msgCn} / ${msgEn}`,
