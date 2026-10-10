@@ -137,6 +137,7 @@ mcporter call "yuque-mcp.yuque_update_toc" \
 
 ### 注意事项
 
+- ⚠️ `removeNode` 的 `action_mode` 会被强制为 `sibling`（语雀 API 只认 sibling，传 child 报 invalid action）
 - ⚠️ 每次 `removeNode` + `appendNode` 会生成**新的 node_uuid**，不能复用旧的 uuid
 - ⚠️ `prependNode` 必须传 `target_uuid`（要插到哪个节点前面），否则报 `missing target_uuid`
 - ⚠️ `editNode` 的 `prev_uuid`/`sibling_uuid` 修改不生效，排序只能用 `prependNode`

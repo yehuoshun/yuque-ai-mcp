@@ -57,7 +57,8 @@ export const tocUpdate: McpTool = {
 
     const payload: Record<string, unknown> = {
       action: args?.action,
-      action_mode: args?.action_mode,
+      // removeNode 语雀 API 只认 sibling（传 child 报 invalid action），强制覆盖
+      action_mode: args?.action === "removeNode" ? "sibling" : args?.action_mode,
     };
 
     if (args?.type !== undefined) payload.type = args.type;

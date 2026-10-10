@@ -59,7 +59,7 @@
 | 工具 | 说明 |
 |------|------|
 | `yuque_get_toc` | 获取知识库目录 |
-| `yuque_update_toc` | 更新知识库目录 |
+| `yuque_update_toc` | 更新知识库目录（removeNode 强制 sibling） |
 | `yuque_batch_update_toc` | 批量更新目录（Agent 出计划，Tool 执行）；`ops` 支持 JSON 数组或 JSON 字符串双形态（v2.15.2 起） |
 
 ### repo（8 工具）
