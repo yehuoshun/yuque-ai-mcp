@@ -142,3 +142,18 @@ mcporter call "yuque-mcp.yuque_update_toc" \
 - ⚠️ `prependNode` 必须传 `target_uuid`（要插到哪个节点前面），否则报 `missing target_uuid`
 - ⚠️ `editNode` 的 `prev_uuid`/`sibling_uuid` 修改不生效，排序只能用 `prependNode`
 - ⚠️ `prependNode` 在创建时（传 `doc_ids`）不支持，必须先 `appendNode` 再 `prependNode`
+
+## ⚠️ 高频连续创建 → TOC 写路径静默积压（2026-10-07 实验证实）
+
+> 来源：yuque-import-skill 全量导入实战（几百节点级导入踩出）。
+
+**现象**：几百个节点不间断高频创建后，新建空 TITLE 目录下 appendNode 子节点**静默失败**——响应里 `parent_uuid` 正确（乐观回显），实际 GET 节点在根目录；或响应里根本找不到该节点。老目录（已有子）挂载始终正常。
+
+**复现**：高频创建 50 节点后探针即失败；`GET /toc` 与 Web 端目录 API（`/api/catalog_nodes`）两套读出一致的「挂根/不存在」；Web 单节点/批量 move 也假成功（返回 success 实际不动）。
+
+**规避**：
+1. 每请求间隔 ≥1.5s + 每百节点主动休息，可完全规避
+2. 已触发则静置 ~10 分钟自愈，再清理残留同名节点后重试
+3. 挂载后必须回读验证（find_node 按 title/doc_id 双查），**响应乐观回显不能当成功**
+
+**区别**：这是静默级异常（HTTP 200 但实际挂根），不同于显式限流（429/5xx，走指数退避重试）。
