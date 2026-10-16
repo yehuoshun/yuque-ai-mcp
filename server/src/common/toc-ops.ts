@@ -245,6 +245,8 @@ export interface AppendNodeOp {
 export interface RemoveNodeOp {
   action: "removeNode";
   node_uuid: string;
+  /** sibling（默认）= 只删该节点；child = 连子节点一起删 */
+  action_mode?: "sibling" | "child";
   book_id?: string;
 }
 
@@ -440,7 +442,8 @@ export async function executeOp(
 
       const data = await apiPut(`/repos/${opBookId}/toc`, {
         action: "removeNode",
-        action_mode: "sibling",
+        // 默认 sibling（只删该节点）；传 child 可连子节点一起删（2026-10-16 实测可用）
+        action_mode: op.action_mode ?? "sibling",
         node_uuid: op.node_uuid,
       }, `Remove TOC node: ${op.node_uuid}`);
       if (isErrorResult(data)) {

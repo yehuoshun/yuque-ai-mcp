@@ -7,21 +7,21 @@
 
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, oneOf } from "../common/validate.js";
 import { apiPut } from "../common/api-client.js";
 import { handleApiCall } from "../common/format.js";
 
 
 export const tocUpdate: McpTool = {
   name: "yuque_update_toc",
-  description: "Update repo TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'. PUT /repos/:id/toc. 详见 references/api/toc_api.md",
+  description: "Update repo TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'. For removeNode: action_mode=sibling deletes only the node, child deletes the node and all its children. PUT /repos/:id/toc. 详见 references/api/toc_api.md",
 
   inputSchema: {
     type: "object",
     properties: {
       book_id: { type: "string", description: "Repository ID or namespace (required)" },
       action: { type: "string", description: "Action type (required): appendNode, prependNode, editNode, removeNode" },
-      action_mode: { type: "string", description: "Action mode (required): sibling, child" },
+      action_mode: { type: "string", description: "Action mode (required): sibling | child. For removeNode: sibling = delete this node only, child = delete this node and all its children" },
       type: { type: "string", description: "Node type: DOC, LINK, TITLE (required for create, optional for edit)" },
       doc_ids: {
         type: "array",
@@ -45,6 +45,7 @@ export const tocUpdate: McpTool = {
       requiredString(args?.book_id, "book_id"),
       requiredString(args?.action, "action"),
       requiredString(args?.action_mode, "action_mode"),
+      oneOf(args?.action_mode, "action_mode", ["sibling", "child"]),
     );
     if (__v) return __v;
     const bookId = args?.book_id as string;
@@ -57,8 +58,10 @@ export const tocUpdate: McpTool = {
 
     const payload: Record<string, unknown> = {
       action: args?.action,
-      // removeNode 语雀 API 只认 sibling（传 child 报 invalid action），强制覆盖
-      action_mode: args?.action === "removeNode" ? "sibling" : args?.action_mode,
+      // removeNode：action_mode 原样透传（sibling=只删当前节点，child=连子节点一起删）。
+      // v2.15.5 修正：此前强制覆盖为 sibling，依据是 2026-10-10 的错误实测结论；
+      // 2026-10-16 实测证实 child 可用（HTTP 200，父+子一起删）。
+      action_mode: args?.action_mode,
     };
 
     if (args?.type !== undefined) payload.type = args.type;

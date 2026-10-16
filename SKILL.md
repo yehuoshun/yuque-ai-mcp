@@ -59,8 +59,8 @@
 | 工具 | 说明 |
 |------|------|
 | `yuque_get_toc` | 获取知识库目录 |
-| `yuque_update_toc` | 更新知识库目录（removeNode 强制 sibling） |
-| `yuque_batch_update_toc` | 批量更新目录（Agent 出计划，Tool 执行）；`ops` 支持 JSON 数组或 JSON 字符串双形态（v2.15.2 起） |
+| `yuque_update_toc` | 更新知识库目录（removeNode 支持 `action_mode`: sibling 只删该节点 / child 连子节点一起删） |
+| `yuque_batch_update_toc` | 批量更新目录（Agent 出计划，Tool 执行）；`ops` 支持 JSON 数组或 JSON 字符串双形态（v2.15.2 起）；removeNode op 可传 `action_mode: child` 删子树 |
 
 ### repo（8 工具）
 | 工具 | 说明 |
