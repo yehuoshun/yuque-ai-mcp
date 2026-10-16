@@ -95,7 +95,7 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | int | 文档 ID |
-| `type` | string | 文档类型：Doc/Sheet/Thread/Board/Table |
+| `type` | string | 文档类型：Doc/Sheet/Thread/Board/Table/**HtmlDoc**（HTML 文档） |
 | `slug` | string | 路径 |
 | `title` | string | 标题 |
 | `description` | string | 摘要 |
@@ -216,7 +216,7 @@ Content-Type: application/json
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `format` | string | 内容格式：markdown / lake / html |
+| `format` | string | 内容格式：markdown / lake / html / **lakesheet**（语雀表格） |
 | `body` | string | 正文原始内容 |
 | `body_draft` | string | 正文草稿内容 |
 | `body_html` | string | 正文 HTML 格式 |
@@ -427,6 +427,7 @@ GET /api/v2/doc_versions/{id}
     "body": "string",
     "body_html": "string",
     "body_asl": "string",
+    "body_md": "string",
     "diff": "string",
     "created_at": "2019-08-24T14:15:22Z",
     "updated_at": "2019-08-24T14:15:22Z",
@@ -441,7 +442,7 @@ GET /api/v2/doc_versions/{id}
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `format` | string | 内容格式 |
+| `format` | string | 内容格式：markdown / lake / html / lakesheet |
 | `body` | string | Markdown 正文 |
 | `body_html` | string | HTML 正文 |
 | `body_asl` | string | Lake 格式正文 |
