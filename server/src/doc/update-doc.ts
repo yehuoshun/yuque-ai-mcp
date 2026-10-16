@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiPut } from "../common/api-client.js";
-import { check, requiredString, optionalBoolean } from "../common/validate.js";
+import { check, requiredString, optionalBoolean, oneOf } from "../common/validate.js";
 import { formatDoc, handleApiCall } from "../common/format.js";
 
 
@@ -35,6 +35,8 @@ export const docUpdate: McpTool = {
     const __v = check(
       requiredString(args?.book_id, "book_id"),
       requiredString(args?.id, "id"),
+      oneOf(args?.format, "format", ["markdown", "html", "lake"]),
+      oneOf(args?.public, "public", [0, 1, 2]),
       optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
