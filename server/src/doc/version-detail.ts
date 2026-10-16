@@ -8,12 +8,12 @@
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
 import { positiveInt, optionalBoolean, check } from "../common/validate.js";
-import { formatDocVersion, handleApiCall } from "../common/format.js";
+import { formatDocVersionDetail, handleApiCall } from "../common/format.js";
 
 
 export const docVersionDetail: McpTool = {
   name: "yuque_get_doc_version_detail",
-  description: "Get version detail (body/body_html/body_asl + diff). GET /doc_versions/:id. 详见 references/api/doc_api.md",
+  description: "Get version detail (format/body/body_md/body_html/body_asl/diff + meta). Fields over 20000 chars are truncated — pass raw=true for the full payload. GET /doc_versions/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {
     type: "object",
@@ -36,6 +36,6 @@ export const docVersionDetail: McpTool = {
     const raw = args?.raw as boolean | undefined;
 
     const data = await apiGet(`/doc_versions/${id}`, undefined, "Get version detail");
-    return handleApiCall(data, formatDocVersion, raw);
+    return handleApiCall(data, formatDocVersionDetail, raw);
   },
 };

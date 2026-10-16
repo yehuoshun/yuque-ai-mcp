@@ -41,16 +41,30 @@ interface YuqueDocRaw {
   user_id?: number;
   created_at?: string;
   updated_at?: string;
+  deleted_at?: string;
+  deleted_slug?: string;
 }
 
-/** 语雀文档版本原始数据 */
+/** 语雀文档版本原始数据（官方 V2DocVersion，无 version/content_changed 字段） */
 interface YuqueDocVersionRaw {
   id: number;
   doc_id: number;
+  slug?: string;
   title: string;
-  version: number;
+  user_id?: number;
   created_at?: string;
-  content_changed?: boolean;
+  updated_at?: string;
+  user?: { login?: string; name?: string };
+}
+
+/** 语雀文档版本详情原始数据（官方 V2DocVersionDetail） */
+interface YuqueDocVersionDetailRaw extends YuqueDocVersionRaw {
+  format?: string;
+  body?: string;
+  body_html?: string;
+  body_asl?: string;
+  body_md?: string;
+  diff?: string;
 }
 
 /** 语雀知识库原始数据 */
@@ -225,18 +239,65 @@ export function formatDocSummary(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
     public: d.public,
     word_count: d.word_count,
     updated_at: d.updated_at,
+    // deleted=true 视图下返回
+    deleted_at: d.deleted_at,
+    deleted_slug: d.deleted_slug,
   };
 }
 
-export function formatDocVersion(data: YuqueDocVersionRaw) {
+/** 版本详情单字段截断上限：防止超长正文撑爆 stdio（完整内容走 raw:true） */
+const VERSION_FIELD_LIMIT = 20_000;
+
+/** 版本列表条目（V2DocVersion）：官方字段集，无 version / content_changed */
+export function formatDocVersion(data: YuqueDocVersionRaw | ApiResponse<YuqueDocVersionRaw>) {
+  const d = (data as ApiResponse<YuqueDocVersionRaw>).data ?? (data as YuqueDocVersionRaw);
   return {
-    id: data.id,
-    doc_id: data.doc_id,
-    title: data.title,
-    version: data.version,
-    created_at: data.created_at,
-    content_changed: data.content_changed,
+    id: d.id,
+    doc_id: d.doc_id,
+    slug: d.slug,
+    title: d.title,
+    user_id: d.user_id,
+    user_login: d.user?.login,
+    user_name: d.user?.name,
+    created_at: d.created_at,
+    updated_at: d.updated_at,
   };
+}
+
+/** 版本详情（V2DocVersionDetail）：保留正文/格式/diff，超长字段按 VERSION_FIELD_LIMIT 截断 */
+export function formatDocVersionDetail(
+  data: YuqueDocVersionDetailRaw | ApiResponse<YuqueDocVersionDetailRaw>,
+) {
+  const d = (data as ApiResponse<YuqueDocVersionDetailRaw>).data ?? (data as YuqueDocVersionDetailRaw);
+  const out: Record<string, unknown> = {
+    id: d.id,
+    doc_id: d.doc_id,
+    slug: d.slug,
+    title: d.title,
+    user_id: d.user_id,
+    user_login: d.user?.login,
+    user_name: d.user?.name,
+    format: d.format,
+    created_at: d.created_at,
+    updated_at: d.updated_at,
+  };
+
+  let truncated = false;
+  for (const key of ["body", "body_md", "body_html", "body_asl", "diff"] as const) {
+    const val = d[key];
+    if (typeof val !== "string" || val === "") continue;
+    out[`${key}_chars`] = val.length;
+    if (val.length > VERSION_FIELD_LIMIT) {
+      out[key] = val.slice(0, VERSION_FIELD_LIMIT);
+      truncated = true;
+    } else {
+      out[key] = val;
+    }
+  }
+  if (truncated) {
+    out.hint = `超长字段已按 ${VERSION_FIELD_LIMIT} 字符截断，完整内容请传 raw=true`;
+  }
+  return out;
 }
 
 // ── Repo ──────────────────────────────────────────────────────

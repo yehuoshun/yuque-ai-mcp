@@ -5,7 +5,7 @@
 ## 获取知识库的文档列表
 
 ```http
-GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properties={optional_properties}
+GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properties={optional_properties}&deleted={deleted}&changed_at_gte={changed_at_gte}
 ```
 
 等价于 `GET /api/v2/repos/{group_login}/{book_slug}/docs`，`book_id` 支持数字 ID 或 namespace。
@@ -22,6 +22,8 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 | `offset` | query | int | 偏移量（分页） | 0 |
 | `limit` | query | int | 每页数量 | 100（≤100） |
 | `optional_properties` | query | string | 额外字段，逗号分隔。支持 `hits`、`tags`、`latest_version_id` | - |
+| `deleted` | query | bool | 已删除文档视图，返回项带 `deleted_at` / `deleted_slug`。⚠️ 语雀只看该参数**是否存在**（`deleted=false`/`0` 也会命中已删除视图），故工具仅在 `true` 时发送 | false |
+| `changed_at_gte` | query | string | 仅返回该 ISO 8601 时间之后变更的文档（增量同步） | - |
 
 ### 返回结构
 
@@ -113,6 +115,8 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 | `content_updated_at` | string | 内容更新时间 (ISO 8601) |
 | `published_at` | string | 发布时间 (ISO 8601) |
 | `first_published_at` | string | 首次发布时间 (ISO 8601) |
+| `deleted_at` | string | 删除时间，**仅 `deleted=true` 视图返回** |
+| `deleted_slug` | string | 删除前路径，**仅 `deleted=true` 视图返回** |
 | `book` | object | V2Book，所属知识库 |
 | `user` | object | V2User，创建者 |
 | `last_editor` | object | V2User，最后编辑者 |
@@ -352,6 +356,9 @@ GET /api/v2/doc_versions?doc_id={doc_id}
 
 **用途**：获取文档最近 100 个已发布版本，按时间倒序。
 
+> 工具行为：默认返回 `id/doc_id/slug/title/user_id/user_login/user_name/created_at/updated_at`。
+> ⚠️ 官方 `V2DocVersion` **没有 `version` / `content_changed` 字段**（v2.15.4 修正）。
+
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
@@ -398,6 +405,8 @@ GET /api/v2/doc_versions/{id}
 
 **用途**：获取指定版本的完整内容，包括正文和 diff。
 
+> 工具行为：默认返回完整 `format/body/body_md/body_html/body_asl/diff` + 各字段 `*_chars` 长度；单字段超过 20000 字符会截断并附 `hint`，完整内容传 `raw=true`（v2.15.4 修正：此前默认输出丢掉全部正文）。
+
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
@@ -436,4 +445,5 @@ GET /api/v2/doc_versions/{id}
 | `body` | string | Markdown 正文 |
 | `body_html` | string | HTML 正文 |
 | `body_asl` | string | Lake 格式正文 |
+| `body_md` | string | Markdown 格式正文（官方字段） |
 | `diff` | string | 版本差异 |

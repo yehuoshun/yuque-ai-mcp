@@ -39,14 +39,14 @@
 ### doc（15 工具）
 | 工具 | 说明 |
 |------|------|
-| `yuque_list_docs` | 获取知识库文档列表 |
+| `yuque_list_docs` | 获取知识库文档列表（v2.15.4 起支持 `deleted` 已删除视图 / `changed_at_gte` 增量） |
 | `yuque_create_doc` | 创建文档 |
-| `yuque_get_doc` | 获取文档详情（支持 ID；slug 需另传 book_id） |
+| `yuque_get_doc` | 获取文档详情（支持 ID；slug 需另传 book_id；body_lake/body_draft、Sheet/Table 正文需 raw=true） |
 | `yuque_update_doc` | 更新文档 |
 | `yuque_delete_doc` | 删除文档 |
 | `yuque_batch_get_docs` | 批量获取文档详情（max 20） |
 | `yuque_get_doc_versions` | 获取文档历史版本列表 |
-| `yuque_get_doc_version_detail` | 获取文档历史版本详情 |
+| `yuque_get_doc_version_detail` | 获取文档历史版本详情（v2.15.4 起默认返回正文/格式/diff，超 20000 字符截断） |
 | `yuque_diff_doc_versions` | 对比两个版本的行级差异 |
 | `yuque_copy_doc` | 单文档跨库复制 |
 | `yuque_export_doc` | 导出单篇文档为 Markdown 文件（不含资源下载，需调 yuque_export_resources） |
