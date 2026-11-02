@@ -46,3 +46,17 @@ Content-Type: multipart/form-data
   ```
 - 未知/特殊格式（如 .w3x 地图文件）请先打包成 zip 再上传
 - 大小上限（超级会员）：图片 50MB / 附件 2GB / 视频 2GB；实测单次 >100MB 网络层不稳，建议大文件按 ~90MB 分卷
+
+### 大文件上传（超时注意事项）
+
+- **MCP 内部上传超时 25 分钟**（`UPLOAD_TIMEOUT_MS`），超时返回 `UPLOAD_TIMEOUT` 结构化错误（不会无限挂起）
+- **mcporter 默认 call 超时仅 60s**，大文件上传必须显式加长，否则会被掐断：
+  ```bash
+  # 单位是毫秒！1800000 = 30 分钟
+  mcporter call yuque-mcp.yuque_upload_attachment --args '{"file_path":"/path/to/big.zip"}' --timeout 1800000
+  # 或用环境变量（同样毫秒）：
+  MCPORTER_CALL_TIMEOUT=1800000 mcporter call ...
+  ```
+- ⚠️ `--timeout 1800` 会被当作 **1800 毫秒**（1.8 秒）立刻超时——传毫秒数，不是秒
+- 超时/失败后 mcporter 下次调用会自动重启 MCP 子进程，无需手动恢复（v0.12 已实测）
+- 上传采用**流式 multipart**（零依赖），大文件不整读进内存，无 OOM 风险

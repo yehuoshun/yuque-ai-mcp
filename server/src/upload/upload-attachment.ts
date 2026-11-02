@@ -5,14 +5,18 @@
  * 职责：上传图片/附件/视频到语雀 CDN，返回 CDN URL
  *
  * 上限（超级会员）：图片 50MB / 附件 2GB / 视频 2GB
- * 失败自动重试一次，再失败报错
+ * 流式上传（零依赖 multipart，防大文件 OOM）；内部超时 25 分钟；失败自动重试一次，再失败报错
  */
 
-import { readFileSync, statSync } from "fs";
+import { statSync, createReadStream } from "fs";
+import { Readable } from "stream";
 import type { McpTool } from "../common/types.js";
 import { loadConfig } from "../common/config.js";
 import { requiredString } from "../common/validate.js";
-import { apiGet, isErrorResult, fetchWithRetry } from "../common/api-client.js";
+import { apiGet, isErrorResult } from "../common/api-client.js";
+
+/** 上传专用超时：25 分钟（默认 REQUEST_TIMEOUT 仅 30s，大文件必撞；mcporter 侧还要配合 --timeout） */
+const UPLOAD_TIMEOUT_MS = 1_500_000;
 
 const LIMITS: Record<string, { max: number; label: string }> = {
   image: { max: 50, label: "50MB" },
@@ -83,19 +87,34 @@ function checkExtension(fileName: string): string | null {
 async function doUpload(
   filePath: string,
   fileName: string,
-  fileBuffer: Buffer,
   type: string,
   userId: string,
   cookie: string,
   ctoken: string,
 ): Promise<{ ok: boolean; result: Record<string, unknown> }> {
-  const form = new FormData();
-  form.append("file", new Blob([new Uint8Array(fileBuffer)]), fileName);
+  // 流式 multipart（零依赖）：header + 文件流 + footer，避免大文件全量读内存（OOM 风险）
+  const boundary = `----yuque-mcp-${Date.now().toString(36)}`;
+  const header = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName.replace(/"/g, '\\"')}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+    "utf8",
+  );
+  const footer = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
+  // 注意：不能用 Readable.from([header, stream, footer]) —— 数组元素会被当数据块推入，
+  // ReadStream 不是合法 chunk；必须 async generator + yield*（流式迭代）
+  async function* buildBody() {
+    yield header;
+    yield* createReadStream(filePath);
+    yield footer;
+  }
+  const body = Readable.from(buildBody());
 
   const url = `https://www.yuque.com/api/upload/attach?attachable_type=User&attachable_id=${userId}&type=${type}&ctoken=${ctoken}`;
 
+  // 上传不沿用 fetchWithRetry：流式 body 重试会消费已读的流；重试由外层 loop 控制（每次新建流）
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   try {
-    const res = await fetchWithRetry(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         Cookie: cookie,
@@ -103,9 +122,12 @@ async function doUpload(
         Referer: "https://www.yuque.com/",
         Origin: "https://www.yuque.com",
         "User-Agent": "Mozilla/5.0",
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
       },
-      body: form,
-    }, `Upload: ${fileName}`);
+      body,
+      duplex: "half",
+      signal: controller.signal,
+    } as unknown as RequestInit & { duplex: "half" });
 
     const text = await res.text();
     if (!res.ok) {
@@ -125,10 +147,18 @@ async function doUpload(
       result: { success: true, url: urlResult, filekey, extname, type },
     };
   } catch (err) {
+    const aborted = err instanceof Error && err.name === "AbortError";
     return {
       ok: false,
-      result: { error: "NETWORK_ERROR", message: err instanceof Error ? err.message : String(err) },
+      result: aborted
+        ? {
+            error: "UPLOAD_TIMEOUT",
+            message: `上传超过 ${Math.round(UPLOAD_TIMEOUT_MS / 60000)} 分钟未完成，已中止；大文件请配合 mcporter --timeout（毫秒）使用，并建议按 ~90MB 分卷`,
+          }
+        : { error: "NETWORK_ERROR", message: err instanceof Error ? err.message : String(err) },
     };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -201,11 +231,9 @@ export const uploadAttachment: McpTool = {
       };
     }
 
-    // 读取文件
-    let fileBuffer: Buffer;
+    // 文件大小预检（stat 先行，不读文件；流式上传在 doUpload 内建流）
     let fileName: string;
     try {
-      fileBuffer = readFileSync(filePath);
       fileName = filePath.split("/").pop() || "file";
       const sizeMB = statSync(filePath).size / 1024 / 1024;
       const limit = LIMITS[type] || LIMITS.attachment;
@@ -265,7 +293,7 @@ export const uploadAttachment: McpTool = {
     // 上传 + 失败重试一次
     let lastResult: { ok: boolean; result: Record<string, unknown> };
     for (let attempt = 0; attempt < 2; attempt++) {
-      lastResult = await doUpload(filePath, fileName, fileBuffer, type, userId, cookie, ctoken);
+      lastResult = await doUpload(filePath, fileName, type, userId, cookie, ctoken);
       if (lastResult.ok) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify(lastResult.result, null, 2) }],
