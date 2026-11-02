@@ -45,7 +45,9 @@ Content-Type: multipart/form-data
   {"error":"EXT_NOT_ALLOWED","message":"语雀不支持 .w3x 扩展名，请打包成 zip 后上传 / ...","file":"t_small.w3x","reference":"https://www.yuque.com/yuque/gpvawt/ca13hg"}
   ```
 - 未知/特殊格式（如 .w3x 地图文件）请先打包成 zip 再上传
-- 大小上限（超级会员）：图片 50MB / 附件 2GB / 视频 2GB；实测单次 >100MB 网络层不稳，建议大文件按 ~90MB 分卷
+- 大小上限（超级会员）：图片 50MB / 附件 2GB / 视频 2GB
+- **体积实测（v2.15.9+，25min 内部超时 + 流式）**：250MB / 450MB 单次直传均成功（450MB 约 90s，≈5MB/s）；「单次 ~100MB 上限」的旧结论源自当时 30s 内部超时，已作废
+- 网络环境差时仍可按 ~90MB 分卷作为兜底（非必需）
 
 ### 大文件上传（超时注意事项）
 
