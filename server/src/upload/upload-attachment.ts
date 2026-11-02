@@ -137,14 +137,22 @@ async function doUpload(
       };
     }
 
-    const data = JSON.parse(text) as { data?: { filekey?: string; extname?: string }; filekey?: string };
+    const data = JSON.parse(text) as {
+      data?: { filekey?: string; extname?: string; url?: string };
+      filekey?: string;
+      url?: string;
+    };
     const filekey = data?.data?.filekey || data?.filekey || "";
     const extname = data?.data?.extname || "";
+    // accessUrl：语雀响应自带正式可访问地址（/attachments/...，登录后可下载）；缺失时兜底拼接
+    // 注意：urlResult（cdn.nlark.com 直链）无签名 403，形同废字段，保留仅为兼容旧调用方
+    const accessUrl =
+      data?.data?.url || data?.url || (filekey ? `https://www.yuque.com/attachments/${filekey}` : "");
     const urlResult = filekey ? `https://cdn.nlark.com/${filekey}` : "";
 
     return {
       ok: true,
-      result: { success: true, url: urlResult, filekey, extname, type },
+      result: { success: true, url: urlResult, accessUrl, filekey, extname, type },
     };
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";

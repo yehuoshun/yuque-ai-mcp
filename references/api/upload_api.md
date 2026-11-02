@@ -31,9 +31,12 @@ Content-Type: multipart/form-data
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `url` | string | CDN 地址 |
+| `url` | string | CDN 直链（`cdn.nlark.com/...`），**无签名 403，不能直接分享**（兼容保留）|
+| `accessUrl` | string | **正式可访问地址**（`https://www.yuque.com/attachments/<filekey>`，登录语雀后可下载/分享）|
 | `filekey` | string | 文件 key |
 | `extname` | string | 扩展名 |
+
+> ⚠️ **B2（语雀设计，非 bug）**：`accessUrl`（`/attachments/...`）需要登录语雀才能下载——不带 cookie 请求会 302 到登录页。分享给他人时，对方也需登录语雀。
 
 ### 扩展名白名单（本地预检）
 
