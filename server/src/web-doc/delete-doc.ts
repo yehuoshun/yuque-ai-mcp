@@ -20,7 +20,7 @@ import { confirmationParam, checkConfirmation } from "../common/errors.js";
 const DOC_REFERER = "https://www.yuque.com/";
 
 export const webDocDelete: McpTool = {
-  name: "yuque_web_delete_doc",
+  name: "yuque_ai_web_delete_doc",
   description:
     "Cookie-based: Delete a document (moves to recycle bin). " +
     "DELETE /api/docs/{id}?book_id={book_id}. " +
@@ -85,7 +85,7 @@ export const webDocDelete: McpTool = {
         title: data.title,
         slug: data.slug,
         deleted: true,
-        note: "移入回收站，可通过 yuque_list_recycles 查看 / yuque_restore_recycle 恢复",
+        note: "移入回收站，可通过 yuque_ai_list_recycles 查看 / yuque_ai_restore_recycle 恢复",
       }, null, 2) }],
     };
   },

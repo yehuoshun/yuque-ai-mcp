@@ -17,7 +17,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE, BOOK_STACKS_BASE } from "./common.js";
 
 export const mineCreateBookStack: McpTool = {
-  name: "yuque_create_book_stack",
+  name: "yuque_ai_create_book_stack",
   description:
     "创建知识库分组（书架）并设定名称。需要 cookie+ctoken 认证。语雀 create 不能直接指定名字，本工具内部 create 后自动 edit 改名。body {name, target_rank}。",
 

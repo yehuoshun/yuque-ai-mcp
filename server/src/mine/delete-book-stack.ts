@@ -14,7 +14,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE, BOOK_STACKS_BASE } from "./common.js";
 
 export const mineDeleteBookStack: McpTool = {
-  name: "yuque_delete_book_stack",
+  name: "yuque_ai_delete_book_stack",
   description:
     "删除知识库分组（书架）。⚠️ 不可恢复！需传 confirm='DELETE' 二次确认。DELETE /api/book_stacks/{stack_id}。分组内须先清空知识库。",
 

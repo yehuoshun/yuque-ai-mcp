@@ -3,10 +3,10 @@
  *
  * 职责：解析文档 body_html → 提取图片/附件 → 下载到指定目录 → 返回路径映射
  *
- * 独立于 yuque_export_doc，用户可按需调用。
+ * 独立于 yuque_ai_export_doc，用户可按需调用。
  * Agent 编排示例：
- *   1. yuque_export_doc → 拿到 md 文件，图片是原始 URL
- *   2. yuque_export_resources → 下载所有资源到本地
+ *   1. yuque_ai_export_doc → 拿到 md 文件，图片是原始 URL
+ *   2. yuque_ai_export_resources → 下载所有资源到本地
  *   3. 替换 md 中的 URL 为本地路径
  *
  * 端点：GET /api/v2/repos/docs/:id（获取 body_html）
@@ -22,7 +22,7 @@ import { loadConfig } from "../common/config.js";
 import { extractResources, downloadFile } from "../common/export-common.js";
 
 export const docExportResources: McpTool = {
-  name: "yuque_export_resources",
+  name: "yuque_ai_export_resources",
   description: "Download images/attachments from a document to local directory. Extracts resource URLs from body_html, downloads to <output_dir>/images/ and <output_dir>/attachments/, returns URL→local_path mapping. 详见 references/api/extended_api.md",
 
   inputSchema: {

@@ -12,7 +12,7 @@ import { requiredString, oneOf } from "../common/validate.js";
 
 
 export const searchGeneral: McpTool = {
-  name: "yuque_search",
+  name: "yuque_ai_search",
   description: "General search across Yuque docs and repos. GET /search?q=:q&type=:type. 详见 references/api/search_api.md",
 
   inputSchema: {

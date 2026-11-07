@@ -13,7 +13,7 @@ import { formatRepo, handleApiCall } from "../common/format.js";
 
 
 export const repoDelete: McpTool = {
-  name: "yuque_delete_repo",
+  name: "yuque_ai_delete_repo",
   description: "Delete a repo (⚠️ irreversible). Requires confirm='DELETE'. DELETE /repos/:id. 详见 references/api/repo_api.md",
 
   inputSchema: {

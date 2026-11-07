@@ -12,7 +12,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
 export const mineEditorCenter: McpTool = {
-  name: "yuque_get_editor_center",
+  name: "yuque_ai_get_editor_center",
   description: "获取个人编辑中心全景数据：知识库数、文档数、总字数、编辑次数、活跃天数、互动用户排行、最多字的知识库等。需要 cookie+ctoken 认证。GET /api/mine/editor_center",
 
   inputSchema: {

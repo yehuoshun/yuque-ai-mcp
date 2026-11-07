@@ -11,7 +11,7 @@ import type { McpTool } from "../common/types.js";
 import { requiredString } from "../common/validate.js";
 
 export const docEmbedUrl: McpTool = {
-  name: "yuque_embed_url",
+  name: "yuque_ai_embed_url",
   description: "Generate a Yuque embed reader URL from a document link or doc_id+book_id. 详见 references/api/extended_api.md",
 
   inputSchema: {

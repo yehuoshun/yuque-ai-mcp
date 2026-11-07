@@ -21,7 +21,7 @@ import { check, requiredString, optionalString, optionalBoolean } from "../commo
 const COPY_REFERER = "https://www.yuque.com/";
 
 export const webCopyCatalogNode: McpTool = {
-  name: "yuque_web_copy_catalog_node",
+  name: "yuque_ai_web_copy_catalog_node",
   description:
     "Cookie-based: Copy a catalog node (doc or dir) to a target catalog node / target repo, server-side with attachment re-upload. " +
     "PUT /api/catalog_nodes/copy. " +

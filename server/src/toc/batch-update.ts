@@ -2,7 +2,7 @@
  * toc/batch-update — 批量更新知识库目录
  *
  * Agent 出变更计划（ops），Tool 原样执行，零决策。
- * 纯 TOC 操作，跨库复制请用 yuque_copy_doc。
+ * 纯 TOC 操作，跨库复制请用 yuque_ai_copy_doc。
  * 端点：PUT /api/v2/repos/:book_id/toc
  *
  * op 执行逻辑在 common/toc-ops.ts。
@@ -17,8 +17,8 @@ import {
 } from "../common/toc-ops.js";
 
 export const tocBatchUpdate: McpTool = {
-  name: "yuque_batch_update_toc",
-  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. Supported actions: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. For cross-book copy, use yuque_copy_doc instead.",
+  name: "yuque_ai_batch_update_toc",
+  description: "Batch update repo TOC. Agent provides ops plan, tool executes only. Supported actions: createTitle, appendNode, removeNode, moveNode, prependDoc. createTitle auto-reuses existing dirs. appendNode/moveNode support target_title. ⚠️ Remove/move ops require confirm='RESTRUCTURE'. For cross-book copy, use yuque_ai_copy_doc instead.",
 
   inputSchema: {
     type: "object",

@@ -23,7 +23,7 @@ interface CopyDocument {
 }
 
 export const repoCopy: McpTool = {
-  name: "yuque_copy_repo",
+  name: "yuque_ai_copy_repo",
   description: "Batch copy documents to another repo. Agent provides cleaned documents array (title/body/format/paths). Tool creates TOC dirs and copies. 详见 references/api/extended_api.md",
 
   inputSchema: {

@@ -18,7 +18,7 @@ import { check, requiredString, optionalString, optionalBoolean } from "../commo
 const MOVE_REFERER = "https://www.yuque.com/";
 
 export const webMoveCatalogNode: McpTool = {
-  name: "yuque_web_move_catalog_node",
+  name: "yuque_ai_web_move_catalog_node",
   description:
     "Cookie-based: Move a single catalog node to a target catalog node / target repo. " +
     "PUT /api/catalog_nodes/move. " +

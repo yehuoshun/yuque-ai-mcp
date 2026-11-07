@@ -17,7 +17,7 @@ import { check, requiredString, optionalString, fail } from "../common/validate.
 const CATALOG_REFERER = "https://www.yuque.com/";
 
 export const webBatchMoveCatalogNodes: McpTool = {
-  name: "yuque_web_batch_move_catalog_nodes",
+  name: "yuque_ai_web_batch_move_catalog_nodes",
   description:
     "Cookie-based: Batch move document nodes to a target catalog node. " +
     "PUT /api/catalog_nodes/batch. " +

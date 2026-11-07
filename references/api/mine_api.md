@@ -23,13 +23,13 @@
 
 | 工具 | 端点 | 说明 |
 |------|------|------|
-| `yuque_get_book_stacks` | `GET /api/mine/book_stacks` | 获取知识库分组（书架）列表 |
-| `yuque_get_editor_center` | `GET /api/mine/editor_center` | 获取个人编辑中心全景数据 |
-| `yuque_update_book_stack` | `PUT /api/mine/book_stack/move` | 移动知识库到指定分组（书架） |
-| `yuque_sort_book_stack` | `PUT /api/mine/book_stack/move` | 排序分组（书架）内知识库顺序 |
-| `yuque_create_book_stack` | `POST /api/mine/book_stack` + `PUT /api/book_stacks/{id}` | 创建分组（create 后自动改名） |
-| `yuque_rename_book_stack` | `PUT /api/book_stacks/{id}` | 重命名分组（书架） |
-| `yuque_delete_book_stack` | `DELETE /api/book_stacks/{id}` | 删除分组（书架） |
+| `yuque_ai_get_book_stacks` | `GET /api/mine/book_stacks` | 获取知识库分组（书架）列表 |
+| `yuque_ai_get_editor_center` | `GET /api/mine/editor_center` | 获取个人编辑中心全景数据 |
+| `yuque_ai_update_book_stack` | `PUT /api/mine/book_stack/move` | 移动知识库到指定分组（书架） |
+| `yuque_ai_sort_book_stack` | `PUT /api/mine/book_stack/move` | 排序分组（书架）内知识库顺序 |
+| `yuque_ai_create_book_stack` | `POST /api/mine/book_stack` + `PUT /api/book_stacks/{id}` | 创建分组（create 后自动改名） |
+| `yuque_ai_rename_book_stack` | `PUT /api/book_stacks/{id}` | 重命名分组（书架） |
+| `yuque_ai_delete_book_stack` | `DELETE /api/book_stacks/{id}` | 删除分组（书架） |
 
 ## 返回格式
 

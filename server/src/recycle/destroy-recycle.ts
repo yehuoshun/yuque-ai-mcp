@@ -15,7 +15,7 @@ import { MINE_BASE } from "./common.js";
 const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
 
 export const recycleDestroy: McpTool = {
-  name: "yuque_destroy_recycle",
+  name: "yuque_ai_destroy_recycle",
   description: "Permanently delete a recycle bin item (⚠️ irreversible, requires cookie+ctoken). Requires confirm='DELETE'. DELETE /mine/recycles/:id. 详见 references/api/recycle_api.md",
 
   inputSchema: {

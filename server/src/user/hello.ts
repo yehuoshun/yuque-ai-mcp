@@ -11,7 +11,7 @@ import { formatHello, handleApiCall } from "../common/format.js";
 
 
 export const userHello: McpTool = {
-  name: "yuque_hello",
+  name: "yuque_ai_hello",
   description: "Health check — verify Yuque API token validity. GET /hello. 详见 references/api/user_api.md",
 
   async handler() {

@@ -39,7 +39,7 @@ function formatTocItem(item: Record<string, unknown>) {
 }
 
 export const webTocGet: McpTool = {
-  name: "yuque_web_get_toc",
+  name: "yuque_ai_web_get_toc",
   description:
     "Cookie-based: Get repo TOC tree (flat array, navigable via uuid/parent_uuid/child_uuid). " +
     "Same structure as v2 get_toc, but no membership required. " +

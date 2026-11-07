@@ -80,7 +80,7 @@ function formatDocDetail(data: Record<string, unknown>) {
 }
 
 export const webDocGet: McpTool = {
-  name: "yuque_web_get_doc",
+  name: "yuque_ai_web_get_doc",
   description:
     "Cookie-based: Get full document detail with body/content. " +
     "Supports markdown/lake/lakesheet formats. " +

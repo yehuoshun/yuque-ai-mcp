@@ -11,7 +11,7 @@ import { requiredString, oneOf, optionalBoolean } from "../common/validate.js";
 import { formatUserGroup, handleApiCall } from "../common/format.js";
 
 export const userGetGroups: McpTool = {
-  name: "yuque_get_user_groups",
+  name: "yuque_ai_get_user_groups",
   description: "List groups the user belongs to. GET /users/:id/groups. 详见 references/api/user_api.md",
 
   inputSchema: {

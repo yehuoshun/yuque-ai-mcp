@@ -83,7 +83,7 @@ function formatWebSearchResult(hit: ZsearchHit) {
 // ─── Tool 定义 ────────────────────────────────────
 
 export const searchWeb: McpTool = {
-  name: "yuque_web_search",
+  name: "yuque_ai_web_search",
   description:
     "Cookie-based web search across Yuque docs/books/users. " +
     "Returns full document objects (_record) without needing a second get_doc call. " +

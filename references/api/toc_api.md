@@ -116,7 +116,7 @@ Content-Type: application/json
 
 ## 首插最佳实践
 
-`yuque_create_doc` 创建的文档**不会自动加入 TOC**，需手动操作。默认 `appendNode` 是尾插，要做首插需两步：
+`yuque_ai_create_doc` 创建的文档**不会自动加入 TOC**，需手动操作。默认 `appendNode` 是尾插，要做首插需两步：
 
 ### 流程
 
@@ -127,11 +127,11 @@ Content-Type: application/json
 
 ```bash
 # 1. 加入 TOC（返回完整目录，从末尾找新文档的 uuid）
-mcporter call "yuque-mcp.yuque_update_toc" \
+mcporter call "yuque-mcp.yuque_ai_update_toc" \
   --args '{"book_id":"ns/ns","action":"appendNode","action_mode":"sibling","type":"DOC","doc_ids":"[123]"}'
 
 # 2. 首插到第一个节点前面
-mcporter call "yuque-mcp.yuque_update_toc" \
+mcporter call "yuque-mcp.yuque_ai_update_toc" \
   --args '{"book_id":"ns/ns","action":"prependNode","action_mode":"sibling","node_uuid":"新uuid","target_uuid":"第一个节点的uuid"}'
 ```
 

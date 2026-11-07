@@ -52,7 +52,7 @@ function formatDocSummary(item: Record<string, unknown>) {
 }
 
 export const webDocList: McpTool = {
-  name: "yuque_web_list_docs",
+  name: "yuque_ai_web_list_docs",
   description:
     "Cookie-based: List documents in a repo. " +
     "Returns richer fields than v2 list_docs (draft_version, editor_meta, read_status, etc.). " +

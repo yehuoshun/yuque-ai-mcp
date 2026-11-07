@@ -29,18 +29,18 @@
 
 | 工具 | 端点 | 说明 |
 |------|------|------|
-| `yuque_web_get_doc` | `GET /api/docs/{id}` | 读文档正文（含 body/content），不受会员过期限流 |
-| `yuque_web_list_docs` | `GET /api/docs` | 列文档列表，字段更丰富 |
-| `yuque_web_list_repos` | `GET /api/books` | 列知识库列表，含权限信息 |
-| `yuque_web_get_toc` | `GET /api/catalog_nodes` | 获取知识库目录 TOC |
-| `yuque_web_delete_doc` | `DELETE /api/docs/{id}` | 删除文档（移入回收站，v2 被限流时的备用通道） |
-| `yuque_web_move_catalog_node` | `PUT /api/catalog_nodes/move` | 移动目录节点 |
-| `yuque_web_copy_catalog_node` | `PUT /api/catalog_nodes/copy` | 复制目录节点 |
-| `yuque_web_batch_move_catalog_nodes` | `PUT /api/catalog_nodes/batch` | 批量移动目录节点 |
+| `yuque_ai_web_get_doc` | `GET /api/docs/{id}` | 读文档正文（含 body/content），不受会员过期限流 |
+| `yuque_ai_web_list_docs` | `GET /api/docs` | 列文档列表，字段更丰富 |
+| `yuque_ai_web_list_repos` | `GET /api/books` | 列知识库列表，含权限信息 |
+| `yuque_ai_web_get_toc` | `GET /api/catalog_nodes` | 获取知识库目录 TOC |
+| `yuque_ai_web_delete_doc` | `DELETE /api/docs/{id}` | 删除文档（移入回收站，v2 被限流时的备用通道） |
+| `yuque_ai_web_move_catalog_node` | `PUT /api/catalog_nodes/move` | 移动目录节点 |
+| `yuque_ai_web_copy_catalog_node` | `PUT /api/catalog_nodes/copy` | 复制目录节点 |
+| `yuque_ai_web_batch_move_catalog_nodes` | `PUT /api/catalog_nodes/batch` | 批量移动目录节点 |
 
 ## 文档类工具
 
-### yuque_web_get_doc
+### yuque_ai_web_get_doc
 
 **端点**：`GET /api/docs/{id}?book_id={book_id}`
 
@@ -54,7 +54,7 @@
 
 > `id` 传文档 slug 可直接命中（实测），但 `book_id` 必须是数字：Web API 的 `/api/docs/{id}?book_id=` 里 book 那栏是数字外键，`yehuoshun/utuif2`、`utuif2` 这类都会 404。
 
-### yuque_web_list_docs
+### yuque_ai_web_list_docs
 
 **端点**：`GET /api/docs?book_id={book_id}&offset={offset}&limit={limit}`
 
@@ -67,7 +67,7 @@
 | `limit` | number | ❌ | 每页数量，默认 100，最大 100 |
 | `raw` | boolean | ❌ | 返回原始 JSON（默认 false） |
 
-### yuque_web_list_repos
+### yuque_ai_web_list_repos
 
 **端点**：`GET /api/books?offset={offset}&limit={limit}`（不传 `user_id` 时自动从 `/api/mine` 获取当前用户）
 
@@ -80,7 +80,7 @@
 | `limit` | number | ❌ | 每页数量，默认 100，最大 100 |
 | `raw` | boolean | ❌ | 返回原始 JSON（默认 false） |
 
-### yuque_web_get_toc
+### yuque_ai_web_get_toc
 
 **端点**：`GET /api/catalog_nodes?book_id={book_id}`
 
@@ -91,7 +91,7 @@
 | `book_id` | string | ✅ | 知识库 ID（数字） |
 | `raw` | boolean | ❌ | 返回原始 JSON（默认 false） |
 
-### yuque_web_delete_doc
+### yuque_ai_web_delete_doc
 
 **端点**：`DELETE /api/docs/{id}?book_id={book_id}`
 
@@ -108,7 +108,7 @@
 
 > ⚠️ 目录节点（catalog node）操作必须使用 Web 目录（`/api/catalog_nodes`）里的 `node_uuid`，v2 TOC（`/api/v2/repos/:id/toc`）的 uuid 可能对不上。
 
-### yuque_web_move_catalog_node
+### yuque_ai_web_move_catalog_node
 
 **端点**：`PUT /api/catalog_nodes/move`
 
@@ -124,7 +124,7 @@
 | `with_children` | boolean | ❌ | 是否连同子树一起移动，默认 true |
 | `insert_to_catalog` | boolean | ❌ | 是否写入目录 TOC，默认 true |
 
-### yuque_web_copy_catalog_node
+### yuque_ai_web_copy_catalog_node
 
 **端点**：`PUT /api/catalog_nodes/copy`
 
@@ -140,7 +140,7 @@
 | `with_children` | boolean | ❌ | 是否连同子树一起复制，默认 false |
 | `insert_to_catalog` | boolean | ❌ | 是否写入目录 TOC，默认 true |
 
-### yuque_web_batch_move_catalog_nodes
+### yuque_ai_web_batch_move_catalog_nodes
 
 **端点**：`PUT /api/catalog_nodes/batch`
 

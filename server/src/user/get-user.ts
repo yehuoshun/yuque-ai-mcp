@@ -11,7 +11,7 @@ import { formatUser, handleApiCall } from "../common/format.js";
 import { optionalBoolean } from "../common/validate.js";
 
 export const userGet: McpTool = {
-  name: "yuque_get_user",
+  name: "yuque_ai_get_user",
   description: "Get current user profile (id,login,name,avatar_url,books_count,description,created_at). GET /user. 详见 references/api/user_api.md",
 
   inputSchema: {

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-2.16.0-blue" alt="version" /></a>
+  <a href="https://github.com/yehuoshun/yuque-ai-mcp"><img src="https://img.shields.io/badge/version-3.0.0-blue" alt="version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license" /></a>
   <a href="https://github.com/yehuoshun/yuque-ai-skills"><img src="https://img.shields.io/badge/skills-67%20guides-orange" alt="skills" /></a>
 </p>
@@ -82,71 +82,71 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 
 | Tool | Domain | Description |
 |------|--------|-------------|
-| `yuque_hello` | user | 心跳检测，验证 Token 有效性 |
-| `yuque_get_user` | user | 获取当前 Token 的用户详情 |
-| `yuque_get_user_groups` | user | 获取用户所属的团队列表 |
-| `yuque_search` | search | 通用搜索文档/知识库 |
-| `yuque_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
-| `yuque_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
-| `yuque_get_group_users` | group | 获取团队成员列表 |
-| `yuque_update_group_user` | group | 变更团队成员角色 |
-| `yuque_delete_group_user` | group | 删除团队成员 |
-| `yuque_list_docs` | doc | 获取知识库文档列表 |
-| `yuque_create_doc` | doc | 创建文档 |
-| `yuque_get_doc` | doc | 获取文档详情（支持 ID 或 slug） |
-| `yuque_update_doc` | doc | 更新文档 |
-| `yuque_delete_doc` | doc | 删除文档 |
-| `yuque_batch_get_docs` | doc | 批量获取文档详情（max 20） |
-| `yuque_get_doc_versions` | doc | 获取文档历史版本列表 |
-| `yuque_get_doc_version_detail` | doc | 获取文档历史版本详情 |
-| `yuque_diff_doc_versions` | doc | 对比两个版本的行级差异 |
-| `yuque_copy_doc` | doc | 单文档跨库复制 |
-| `yuque_export_doc` | doc | 导出单篇文档为 Markdown 文件 |
-| `yuque_export_resources` | doc | 下载文档中的图片/附件到本地 |
-| `yuque_import_url` | doc | 从网页 URL 导入文档 |
-| `yuque_import_file` | doc | 从本地文件导入文档 |
-| `yuque_embed_url` | doc | 生成文档嵌入阅读器 URL |
-| `yuque_get_toc` | toc | 获取知识库目录 |
-| `yuque_update_toc` | toc | 更新知识库目录 |
-| `yuque_batch_update_toc` | toc | 批量更新目录（createTitle/appendNode/removeNode/moveNode/prependDoc） |
-| `yuque_list_repos` | repo | 获取知识库列表（用户/团队） |
-| `yuque_create_repo` | repo | 创建知识库 |
-| `yuque_get_repo` | repo | 获取知识库详情 |
-| `yuque_update_repo` | repo | 更新知识库 |
-| `yuque_delete_repo` | repo | 删除知识库 |
-| `yuque_batch_get_repos` | repo | 批量获取知识库详情（max 20） |
-| `yuque_copy_repo` | repo | 批量跨库复制（LLM 分类 + 目录重建） |
-| `yuque_export_repo` | repo | 批量导出知识库为 Markdown（按 TOC 目录结构） |
-| `yuque_get_group_statistics` | statistic | 获取团队汇总统计数据 |
-| `yuque_get_member_statistics` | statistic | 获取团队成员统计数据 |
-| `yuque_get_book_statistics` | statistic | 获取团队知识库统计数据 |
-| `yuque_get_doc_statistics` | statistic | 获取团队文档统计数据 |
-| `yuque_list_notes` | note | 获取小记列表 |
-| `yuque_get_note` | note | 获取小记详情 |
-| `yuque_create_note` | note | 创建小记 |
-| `yuque_update_note` | note | 更新小记 |
-| `yuque_list_recycles` | recycle | 列出回收站项目（Cookie） |
-| `yuque_restore_recycle` | recycle | 恢复回收站项目（Cookie） |
-| `yuque_destroy_recycle` | recycle | 彻底删除回收站项目（Cookie） |
-| `yuque_upload_attachment` | upload | 上传文件到语雀 CDN（Cookie） |
-| `yuque_get_board` | board | 获取文档中的画板资源 |
-| `yuque_create_board` | board | 在文档中创建画板资源 |
-| `yuque_update_board` | board | 更新文档中的画板资源 |
-| `yuque_get_book_stacks` | mine | 获取知识库分组（书架）列表（Cookie） |
-| `yuque_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
-| `yuque_create_book_stack` | mine | 创建知识库分组（书架），内部 create 后自动改名（Cookie） |
-| `yuque_rename_book_stack` | mine | 重命名知识库分组（书架）（Cookie） |
-| `yuque_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
-| `yuque_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
-| `yuque_delete_book_stack` | mine | 删除知识库分组（书架），需 confirm='DELETE'（Cookie） |
-| `yuque_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
-| `yuque_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
-| `yuque_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
-| `yuque_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
-| `yuque_web_delete_doc` | web_doc | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
-| `yuque_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
-| `yuque_web_copy_catalog_node` | web_doc | Cookie 态复制目录节点 |
-| `yuque_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
+| `yuque_ai_hello` | user | 心跳检测，验证 Token 有效性 |
+| `yuque_ai_get_user` | user | 获取当前 Token 的用户详情 |
+| `yuque_ai_get_user_groups` | user | 获取用户所属的团队列表 |
+| `yuque_ai_search` | search | 通用搜索文档/知识库 |
+| `yuque_ai_rag_search` | search | RAG 检索增强搜索 + 自动获取文档内容 |
+| `yuque_ai_web_search` | search | Cookie 态 Web 搜索，返回完整文档对象 + 精确总数 + 高亮摘要 |
+| `yuque_ai_get_group_users` | group | 获取团队成员列表 |
+| `yuque_ai_update_group_user` | group | 变更团队成员角色 |
+| `yuque_ai_delete_group_user` | group | 删除团队成员 |
+| `yuque_ai_list_docs` | doc | 获取知识库文档列表 |
+| `yuque_ai_create_doc` | doc | 创建文档 |
+| `yuque_ai_get_doc` | doc | 获取文档详情（支持 ID 或 slug） |
+| `yuque_ai_update_doc` | doc | 更新文档 |
+| `yuque_ai_delete_doc` | doc | 删除文档 |
+| `yuque_ai_batch_get_docs` | doc | 批量获取文档详情（max 20） |
+| `yuque_ai_get_doc_versions` | doc | 获取文档历史版本列表 |
+| `yuque_ai_get_doc_version_detail` | doc | 获取文档历史版本详情 |
+| `yuque_ai_diff_doc_versions` | doc | 对比两个版本的行级差异 |
+| `yuque_ai_copy_doc` | doc | 单文档跨库复制 |
+| `yuque_ai_export_doc` | doc | 导出单篇文档为 Markdown 文件 |
+| `yuque_ai_export_resources` | doc | 下载文档中的图片/附件到本地 |
+| `yuque_ai_import_url` | doc | 从网页 URL 导入文档 |
+| `yuque_ai_import_file` | doc | 从本地文件导入文档 |
+| `yuque_ai_embed_url` | doc | 生成文档嵌入阅读器 URL |
+| `yuque_ai_get_toc` | toc | 获取知识库目录 |
+| `yuque_ai_update_toc` | toc | 更新知识库目录 |
+| `yuque_ai_batch_update_toc` | toc | 批量更新目录（createTitle/appendNode/removeNode/moveNode/prependDoc） |
+| `yuque_ai_list_repos` | repo | 获取知识库列表（用户/团队） |
+| `yuque_ai_create_repo` | repo | 创建知识库 |
+| `yuque_ai_get_repo` | repo | 获取知识库详情 |
+| `yuque_ai_update_repo` | repo | 更新知识库 |
+| `yuque_ai_delete_repo` | repo | 删除知识库 |
+| `yuque_ai_batch_get_repos` | repo | 批量获取知识库详情（max 20） |
+| `yuque_ai_copy_repo` | repo | 批量跨库复制（LLM 分类 + 目录重建） |
+| `yuque_ai_export_repo` | repo | 批量导出知识库为 Markdown（按 TOC 目录结构） |
+| `yuque_ai_get_group_statistics` | statistic | 获取团队汇总统计数据 |
+| `yuque_ai_get_member_statistics` | statistic | 获取团队成员统计数据 |
+| `yuque_ai_get_book_statistics` | statistic | 获取团队知识库统计数据 |
+| `yuque_ai_get_doc_statistics` | statistic | 获取团队文档统计数据 |
+| `yuque_ai_list_notes` | note | 获取小记列表 |
+| `yuque_ai_get_note` | note | 获取小记详情 |
+| `yuque_ai_create_note` | note | 创建小记 |
+| `yuque_ai_update_note` | note | 更新小记 |
+| `yuque_ai_list_recycles` | recycle | 列出回收站项目（Cookie） |
+| `yuque_ai_restore_recycle` | recycle | 恢复回收站项目（Cookie） |
+| `yuque_ai_destroy_recycle` | recycle | 彻底删除回收站项目（Cookie） |
+| `yuque_ai_upload_attachment` | upload | 上传文件到语雀 CDN（Cookie） |
+| `yuque_ai_get_board` | board | 获取文档中的画板资源 |
+| `yuque_ai_create_board` | board | 在文档中创建画板资源 |
+| `yuque_ai_update_board` | board | 更新文档中的画板资源 |
+| `yuque_ai_get_book_stacks` | mine | 获取知识库分组（书架）列表（Cookie） |
+| `yuque_ai_get_editor_center` | mine | 获取个人编辑中心全景数据（Cookie） |
+| `yuque_ai_create_book_stack` | mine | 创建知识库分组（书架），内部 create 后自动改名（Cookie） |
+| `yuque_ai_rename_book_stack` | mine | 重命名知识库分组（书架）（Cookie） |
+| `yuque_ai_update_book_stack` | mine | 移动知识库到指定分组（书架）（Cookie） |
+| `yuque_ai_sort_book_stack` | mine | 排序知识库分组（书架）（Cookie） |
+| `yuque_ai_delete_book_stack` | mine | 删除知识库分组（书架），需 confirm='DELETE'（Cookie） |
+| `yuque_ai_web_get_doc` | web_doc | Cookie 态读文档正文（含 body/content），不受会员过期限流；`id` 支持文档 slug |
+| `yuque_ai_web_list_docs` | web_doc | Cookie 态列文档列表，更丰富的字段 |
+| `yuque_ai_web_list_repos` | web_doc | Cookie 态列知识库列表，含权限信息 |
+| `yuque_ai_web_get_toc` | web_doc | Cookie 态获取知识库目录 TOC |
+| `yuque_ai_web_delete_doc` | web_doc | Cookie 态删除文档（移入回收站，v2 被限流时的备用通道） |
+| `yuque_ai_web_move_catalog_node` | web_doc | Cookie 态移动目录节点 |
+| `yuque_ai_web_copy_catalog_node` | web_doc | Cookie 态复制目录节点 |
+| `yuque_ai_web_batch_move_catalog_nodes` | web_doc | Cookie 态批量移动目录节点 |
 
 See [SKILL.md](SKILL.md) or [yuque-ai-skills](https://github.com/yehuoshun/yuque-ai-skills) for full tool documentation with parameters and examples.
 
