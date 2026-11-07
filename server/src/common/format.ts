@@ -31,11 +31,17 @@ interface YuqueDocRaw {
   id: number;
   slug: string;
   title: string;
+  /** 文档类型 (Doc:普通文档, Sheet:表格, Thread:话题, Board:图集, Table:数据表, HtmlDoc:HTML 文档) */
+  type?: string;
   format?: string;
   public?: number;
   word_count?: number;
   body?: string;
   body_html?: string;
+  /** 数据表正文内容, 文档为 Table 类型时返回（官方 V2DocDetail.body_table） */
+  body_table?: string;
+  /** 表格正文内容, 文档为 Sheet 类型时返回（官方 V2DocDetail.body_sheet） */
+  body_sheet?: string;
   description?: string;
   book_id?: number;
   user_id?: number;
@@ -210,12 +216,21 @@ export function formatUserGroup(data: YuqueGroupRaw) {
 
 // ── Doc ───────────────────────────────────────────────────────
 
+/** 数据表/表格正文单字段截断上限：防止超长内容撑爆 stdio（完整内容走 raw:true 或调小 page_size） */
+const SHEET_BODY_FIELD_LIMIT = 20_000;
+
+/**
+ * 文档详情裁剪输出。
+ * 对齐官方 V2DocDetail 关键字段：补 `type`（含 Table 数据表/HtmlDoc）；
+ * 数据表/表格正文（body_table/body_sheet）默认透出，超过 SHEET_BODY_FIELD_LIMIT 截断并附 hint。
+ */
 export function formatDoc(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
   const d = (data as ApiResponse<YuqueDocRaw>).data ?? (data as YuqueDocRaw);
-  return {
+  const out: Record<string, unknown> = {
     id: d.id,
     slug: d.slug,
     title: d.title,
+    type: d.type,
     format: d.format,
     public: d.public,
     word_count: d.word_count,
@@ -227,6 +242,20 @@ export function formatDoc(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
     created_at: d.created_at,
     updated_at: d.updated_at,
   };
+  for (const [key, val] of [
+    ["body_table", d.body_table],
+    ["body_sheet", d.body_sheet],
+  ] as const) {
+    if (!val) continue;
+    if (val.length > SHEET_BODY_FIELD_LIMIT) {
+      out[key] = val.slice(0, SHEET_BODY_FIELD_LIMIT);
+      out[`${key}_truncated`] = true;
+      out[`${key}_full_length`] = val.length;
+    } else {
+      out[key] = val;
+    }
+  }
+  return out;
 }
 
 export function formatDocSummary(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
@@ -235,6 +264,7 @@ export function formatDocSummary(data: ApiResponse<YuqueDocRaw> | YuqueDocRaw) {
     id: d.id,
     slug: d.slug,
     title: d.title,
+    type: d.type,
     format: d.format,
     public: d.public,
     word_count: d.word_count,

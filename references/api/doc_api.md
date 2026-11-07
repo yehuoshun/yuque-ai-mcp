@@ -245,6 +245,8 @@ GET /api/v2/repos/docs/{id}
 | `page` | query | int | 数据表页码 | 1（≥1） |
 
 > 工具行为：id 为纯数字 → `GET /repos/docs/{id}`；id 为 slug → `GET /repos/{book_id}/docs/{slug}`（book_id 缺失时返回友好报错）。
+>
+> v2.16.0 起默认输出新增 `type`（Doc/Sheet/Thread/Board/Table/HtmlDoc）与 `body_table`/`body_sheet` 正文透出：单字段超过 20000 字符截断并附 `body_table_truncated=true` / `body_table_full_length` 提示；完整内容用 `raw=true` 或调小 `page_size`。`body_lake`/`body_draft` 仍需 `raw=true`。
 
 ### 返回结构
 

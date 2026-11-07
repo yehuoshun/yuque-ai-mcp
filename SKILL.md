@@ -41,7 +41,7 @@
 |------|------|
 | `yuque_list_docs` | 获取知识库文档列表（v2.15.4 起支持 `deleted` 已删除视图 / `changed_at_gte` 增量） |
 | `yuque_create_doc` | 创建文档 |
-| `yuque_get_doc` | 获取文档详情（支持 ID；slug 需另传 book_id；body_lake/body_draft、Sheet/Table 正文需 raw=true） |
+| `yuque_get_doc` | 获取文档详情（支持 ID；slug 需另传 book_id；v2.16.0 起默认透出 `type` + Table/Sheet 正文 `body_table`/`body_sheet`，超 20000 字符截断；body_lake/body_draft 仍需 raw=true） |
 | `yuque_update_doc` | 更新文档 |
 | `yuque_delete_doc` | 删除文档 |
 | `yuque_batch_get_docs` | 批量获取文档详情（max 20） |
