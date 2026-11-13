@@ -2,9 +2,9 @@
  * doc/export-doc — 导出单篇文档为 Markdown 文件
  *
  * 职责：取文档 → 转 Markdown → 加 frontmatter → 写磁盘
- * 资源下载已拆到 yuque_ai_export_resources，本工具不负责。
+ * 资源下载已拆到 yuque_export_resources，本工具不负责。
  *
- * 端点：GET /api/v2/repos/docs/:id（复用 yuque_ai_get_doc）
+ * 端点：GET /api/v2/repos/docs/:id（复用 yuque_get_doc）
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
@@ -19,8 +19,8 @@ import {
 } from "../common/export-common.js";
 
 export const docExportSingle: McpTool = {
-  name: "yuque_ai_export_doc",
-  description: "Export a single document as Markdown file. Fetches doc → converts body_html to Markdown → adds frontmatter → writes to disk. Resource download is separate (yuque_ai_export_resources). 详见 references/api/extended_api.md",
+  name: "yuque_export_doc",
+  description: "Export a single document as Markdown file. Fetches doc → converts body_html to Markdown → adds frontmatter → writes to disk. Resource download is separate (yuque_export_resources). 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",
@@ -104,7 +104,7 @@ export const docExportSingle: McpTool = {
       output_dir: outputDir,
       file: filePath,
       word_count: wordCount,
-      note: "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_ai_export_resources",
+      note: "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_export_resources",
     };
 
     return {

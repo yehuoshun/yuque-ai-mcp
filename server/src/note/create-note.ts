@@ -12,7 +12,7 @@ import { formatNote, handleApiCall } from "../common/format.js";
 
 
 export const noteCreate: McpTool = {
-  name: "yuque_ai_create_note",
+  name: "yuque_create_note",
   description: "Create a note (short memo). Returns id, slug, note_url. POST /notes. 详见 references/api/note_api.md",
 
   inputSchema: {

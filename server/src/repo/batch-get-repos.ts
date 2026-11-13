@@ -12,7 +12,7 @@ import { formatRepo, wrapResult } from "../common/format.js";
 
 
 export const repoBatchGet: McpTool = {
-  name: "yuque_ai_batch_get_repos",
+  name: "yuque_batch_get_repos",
   description: "Batch get repo details (concurrent GET, read-only, max 20). 详见 references/api/repo_api.md",
 
   inputSchema: {

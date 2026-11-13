@@ -10,7 +10,7 @@ import { handleApiCall } from "../common/format.js";
 import { requiredString } from "../common/validate.js";
 
 export const boardGet: McpTool = {
-  name: "yuque_ai_get_board",
+  name: "yuque_get_board",
   description: "Get board resource JSON DSL and summary stats from a document. GET /yfm/boards. 详见 references/api/board_api.md",
 
   inputSchema: {

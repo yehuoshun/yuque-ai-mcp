@@ -51,7 +51,7 @@ function formatRepo(item: Record<string, unknown>) {
 }
 
 export const webRepoList: McpTool = {
-  name: "yuque_ai_web_list_repos",
+  name: "yuque_web_list_repos",
   description:
     "Cookie-based: List repos for current user. " +
     "Returns richer fields than v2 list_repos (abilities, cover_color, scene, etc.). " +

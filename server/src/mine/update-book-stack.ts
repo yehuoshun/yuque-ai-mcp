@@ -15,7 +15,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
 export const mineUpdateBookStack: McpTool = {
-  name: "yuque_ai_update_book_stack",
+  name: "yuque_update_book_stack",
   description:
     "移动知识库到指定分组（书架）。需要 cookie+ctoken 认证。PUT /api/mine/book_stack/move。常用于将知识库从一个分组（如预废弃）移到另一个分组（如废弃）。",
 

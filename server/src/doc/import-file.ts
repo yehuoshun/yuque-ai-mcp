@@ -20,7 +20,7 @@ import {
 } from "./import-file-utils.js";
 
 export const docImportFile: McpTool = {
-  name: "yuque_ai_import_file",
+  name: "yuque_import_file",
   description: "Import a local Markdown/HTML file into Yuque. 3 modes: direct / upload_assets / embed_assets. 详见 references/api/extended_api.md",
 
   inputSchema: {

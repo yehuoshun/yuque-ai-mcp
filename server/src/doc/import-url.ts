@@ -14,7 +14,7 @@ import { appendSourceLink } from "../common/copy-common.js";
 import { extractAndCleanContent, appendSourceLinkByFormat } from "../common/html-cleaner.js";
 
 export const docImportUrl: McpTool = {
-  name: "yuque_ai_import_url",
+  name: "yuque_import_url",
   description: "Import content from a web URL into Yuque. Fetches page, extracts readable content, creates doc. 详见 references/api/extended_api.md",
 
   inputSchema: {

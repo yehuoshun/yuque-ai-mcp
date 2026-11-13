@@ -14,7 +14,7 @@ import { webRequest } from "../common/web-request.js";
 import { BOOK_STACKS_BASE } from "./common.js";
 
 export const mineRenameBookStack: McpTool = {
-  name: "yuque_ai_rename_book_stack",
+  name: "yuque_rename_book_stack",
   description:
     "重命名知识库分组（书架）。需要 cookie+ctoken 认证。PUT /api/book_stacks/{stack_id}，body {name, type:'user_books'}。",
 

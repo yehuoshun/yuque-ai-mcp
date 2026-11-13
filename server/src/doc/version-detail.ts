@@ -12,7 +12,7 @@ import { formatDocVersionDetail, handleApiCall } from "../common/format.js";
 
 
 export const docVersionDetail: McpTool = {
-  name: "yuque_ai_get_doc_version_detail",
+  name: "yuque_get_doc_version_detail",
   description: "Get version detail (format/body/body_md/body_html/body_asl/diff + meta). Fields over 20000 chars are truncated — pass raw=true for the full payload. GET /doc_versions/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {

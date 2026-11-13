@@ -31,7 +31,7 @@ import { buildGraphMd, extractYuqueLinks } from "./export-graph.js";
 // ─── 主工具 ────────────────────────────────────────────
 
 export const repoExport: McpTool = {
-  name: "yuque_ai_export_repo",
+  name: "yuque_export_repo",
   description: "Export all docs in a repo as Markdown files organized by TOC dir structure, with images downloaded and INDEX.md+GRAPH.md generated. 详见 references/api/extended_api.md",
 
   inputSchema: {

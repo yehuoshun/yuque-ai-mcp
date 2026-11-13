@@ -13,7 +13,7 @@ import { formatGroupUser, handleApiCall } from "../common/format.js";
 
 
 export const groupDeleteUser: McpTool = {
-  name: "yuque_ai_delete_group_user",
+  name: "yuque_delete_group_user",
   description: "Remove a member from a group. ⚠️ Requires confirm='DELETE'. DELETE /groups/:login/users/:id. 详见 references/api/group_api.md",
 
   inputSchema: {

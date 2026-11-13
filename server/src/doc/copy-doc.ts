@@ -3,7 +3,7 @@
  *
  * 职责：Agent 提供清洗后的内容（title/body/format）→ 工具创建文档 + 追尾源链接 + 挂载 TOC
  *
- * 源文档拉取由 Agent 通过 yuque_ai_get_doc 完成，本工具只负责写入。
+ * 源文档拉取由 Agent 通过 yuque_get_doc 完成，本工具只负责写入。
  */
 
 import type { McpTool } from "../common/types.js";
@@ -13,8 +13,8 @@ import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
 import { appendSourceLink } from "../common/copy-common.js";
 
 export const docCopySingle: McpTool = {
-  name: "yuque_ai_copy_doc",
-  description: "Copy a single document to another repo. Agent fetches source via yuque_ai_get_doc, cleans content, then calls this tool with title/body/format/paths. 详见 references/api/extended_api.md",
+  name: "yuque_copy_doc",
+  description: "Copy a single document to another repo. Agent fetches source via yuque_get_doc, cleans content, then calls this tool with title/body/format/paths. 详见 references/api/extended_api.md",
 
   inputSchema: {
     type: "object",

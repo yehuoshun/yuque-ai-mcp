@@ -13,7 +13,7 @@ import { handleApiCall } from "../common/format.js";
 
 
 export const tocUpdate: McpTool = {
-  name: "yuque_ai_update_toc",
+  name: "yuque_update_toc",
   description: "Update repo TOC (create/move/edit/delete nodes). ⚠️ Deleting requires confirm='DELETE'. For removeNode: action_mode=sibling deletes only the node, child deletes the node and all its children. PUT /repos/:id/toc. 详见 references/api/toc_api.md",
 
   inputSchema: {

@@ -12,7 +12,7 @@ import { formatDoc, handleApiCall } from "../common/format.js";
 
 
 export const docGet: McpTool = {
-  name: "yuque_ai_get_doc",
+  name: "yuque_get_doc",
   description: "Get document detail (body/body_html). Sheet/Table docs and body_lake/body_draft need raw=true. Supports id or slug. GET /repos/docs/:id. 详见 references/api/doc_api.md",
 
   inputSchema: {

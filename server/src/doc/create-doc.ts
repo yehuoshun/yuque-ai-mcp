@@ -15,7 +15,7 @@ import { formatDoc, handleApiCall } from "../common/format.js";
 import { appendDocToToc } from "../common/toc-ops.js";
 
 export const docCreate: McpTool = {
-  name: "yuque_ai_create_doc",
+  name: "yuque_create_doc",
   description: "Create a document in a repo. 传 parent_uuid 则挂到指定节点下，不传默认挂根目录。POST /repos/:id/docs. 详见 references/api/doc_api.md",
 
   inputSchema: {

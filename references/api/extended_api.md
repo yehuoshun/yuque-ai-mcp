@@ -8,20 +8,20 @@
 
 | 工具 | 域 | 说明 |
 |------|-----|------|
-| `yuque_ai_import_file` | doc | 从本地文件导入文档（三种模式） |
-| `yuque_ai_import_url` | doc | 从网页 URL 导入文档 |
-| `yuque_ai_export_doc` | doc | 导出单篇文档为 Markdown 文件（不含资源下载） |
-| `yuque_ai_export_resources` | doc | 下载文档中的图片/附件到本地目录 |
-| `yuque_ai_export_repo` | repo | 批量导出知识库为 Markdown |
-| `yuque_ai_copy_doc` | doc | 单文档跨知识库复制 |
-| `yuque_ai_copy_repo` | repo | 批量跨知识库复制 |
-| `yuque_ai_embed_url` | doc | 生成文档嵌入阅读器 URL |
-| `yuque_ai_batch_get_docs` | doc | 批量获取文档详情（并发） |
-| `yuque_ai_batch_get_repos` | repo | 批量获取知识库详情（并发） |
+| `yuque_import_file` | doc | 从本地文件导入文档（三种模式） |
+| `yuque_import_url` | doc | 从网页 URL 导入文档 |
+| `yuque_export_doc` | doc | 导出单篇文档为 Markdown 文件（不含资源下载） |
+| `yuque_export_resources` | doc | 下载文档中的图片/附件到本地目录 |
+| `yuque_export_repo` | repo | 批量导出知识库为 Markdown |
+| `yuque_copy_doc` | doc | 单文档跨知识库复制 |
+| `yuque_copy_repo` | repo | 批量跨知识库复制 |
+| `yuque_embed_url` | doc | 生成文档嵌入阅读器 URL |
+| `yuque_batch_get_docs` | doc | 批量获取文档详情（并发） |
+| `yuque_batch_get_repos` | repo | 批量获取知识库详情（并发） |
 
 ---
 
-## yuque_ai_import_file — 从本地文件导入
+## yuque_import_file — 从本地文件导入
 
 ### 端点
 
@@ -65,7 +65,7 @@
 
 ---
 
-## yuque_ai_import_url — 从 URL 导入
+## yuque_import_url — 从 URL 导入
 
 ### 端点
 
@@ -101,7 +101,7 @@
 
 ---
 
-## yuque_ai_export_doc — 导出单篇文档
+## yuque_export_doc — 导出单篇文档
 
 ### 端点
 
@@ -109,7 +109,7 @@
 
 ### 职责
 
-取文档 → 转 Markdown → 加 frontmatter → 写磁盘。资源下载已拆分到 `yuque_ai_export_resources`。
+取文档 → 转 Markdown → 加 frontmatter → 写磁盘。资源下载已拆分到 `yuque_export_resources`。
 
 ### 参数
 
@@ -128,21 +128,21 @@
   "output_dir": "./export/my-doc",
   "file": "./export/my-doc/文档标题.md",
   "word_count": 1500,
-  "note": "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_ai_export_resources"
+  "note": "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_export_resources"
 }
 ```
 
-### 与 yuque_ai_export_resources 搭配
+### 与 yuque_export_resources 搭配
 
 ```
-1. yuque_ai_export_doc → 拿到 .md（图片为 CDN URL）
-2. yuque_ai_export_resources → 下载资源到本地
+1. yuque_export_doc → 拿到 .md（图片为 CDN URL）
+2. yuque_export_resources → 下载资源到本地
 3. Agent 替换 .md 中的 CDN URL 为本地路径
 ```
 
 ---
 
-## yuque_ai_export_resources — 下载文档资源
+## yuque_export_resources — 下载文档资源
 
 ### 端点
 
@@ -177,7 +177,7 @@
 
 ---
 
-## yuque_ai_export_repo — 批量导出知识库
+## yuque_export_repo — 批量导出知识库
 
 ### 端点
 
@@ -217,7 +217,7 @@
 
 ---
 
-## yuque_ai_copy_doc — 单文档跨库复制
+## yuque_copy_doc — 单文档跨库复制
 
 ### 端点
 
@@ -226,7 +226,7 @@
 
 ### 流程
 
-Agent 通过 `yuque_ai_get_doc` 拉取源文档 → 清洗内容 → 调用本工具创建副本。
+Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工具创建副本。
 
 ### 参数
 
@@ -258,7 +258,7 @@ Agent 通过 `yuque_ai_get_doc` 拉取源文档 → 清洗内容 → 调用本�
 
 ---
 
-## yuque_ai_copy_repo — 批量跨库复制
+## yuque_copy_repo — 批量跨库复制
 
 ### 端点
 
@@ -294,7 +294,7 @@ Agent 通过 `yuque_ai_get_doc` 拉取源文档 → 清洗内容 → 调用本�
 
 ---
 
-## yuque_ai_embed_url — 嵌入阅读器 URL
+## yuque_embed_url — 嵌入阅读器 URL
 
 ### 端点
 
@@ -319,7 +319,7 @@ Agent 通过 `yuque_ai_get_doc` 拉取源文档 → 清洗内容 → 调用本�
 
 ---
 
-## yuque_ai_batch_get_docs — 批量获取文档
+## yuque_batch_get_docs — 批量获取文档
 
 ### 端点
 
@@ -348,7 +348,7 @@ Agent 通过 `yuque_ai_get_doc` 拉取源文档 → 清洗内容 → 调用本�
 
 ---
 
-## yuque_ai_batch_get_repos — 批量获取知识库
+## yuque_batch_get_repos — 批量获取知识库
 
 ### 端点
 

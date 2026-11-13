@@ -58,7 +58,7 @@ Content-Type: multipart/form-data
 - **mcporter 默认 call 超时仅 60s**，大文件上传必须显式加长，否则会被掐断：
   ```bash
   # 单位是毫秒！1800000 = 30 分钟
-  mcporter call yuque-mcp.yuque_ai_upload_attachment --args '{"file_path":"/path/to/big.zip"}' --timeout 1800000
+  mcporter call yuque-mcp.yuque_upload_attachment --args '{"file_path":"/path/to/big.zip"}' --timeout 1800000
   # 或用环境变量（同样毫秒）：
   MCPORTER_CALL_TIMEOUT=1800000 mcporter call ...
   ```

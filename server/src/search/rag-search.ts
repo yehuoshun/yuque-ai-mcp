@@ -26,7 +26,7 @@ import {
 // ─── Tool 定义 ────────────────────────────────────
 
 export const searchRag: McpTool = {
-  name: "yuque_ai_rag_search",
+  name: "yuque_rag_search",
   description: "RAG-enhanced search: accepts LLM-generated keywords, runs concurrent multi-path searches, deduplicates by doc_id, fetches top-N full doc content. 详见 references/api/search_api.md",
   inputSchema: {
     type: "object",

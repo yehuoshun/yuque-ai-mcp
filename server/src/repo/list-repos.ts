@@ -12,7 +12,7 @@ import { formatRepo, handleApiCall } from "../common/format.js";
 
 
 export const repoList: McpTool = {
-  name: "yuque_ai_list_repos",
+  name: "yuque_list_repos",
   description: "List repos for a user or group. GET /users|groups/:login/repos. 详见 references/api/repo_api.md",
 
   inputSchema: {

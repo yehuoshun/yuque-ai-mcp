@@ -13,7 +13,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
 export const mineSortBookStack: McpTool = {
-  name: "yuque_ai_sort_book_stack",
+  name: "yuque_sort_book_stack",
   description:
     "排序分组（书架）内知识库顺序。需要 cookie+ctoken 认证。PUT /api/mine/book_stack/move，传有序 targetBookIds（数组顺序即最终排序）。常用于把分组内知识库按期望顺序重排。",
 

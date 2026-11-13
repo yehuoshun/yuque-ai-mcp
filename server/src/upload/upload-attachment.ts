@@ -171,7 +171,7 @@ async function doUpload(
 }
 
 export const uploadAttachment: McpTool = {
-  name: "yuque_ai_upload_attachment",
+  name: "yuque_upload_attachment",
   description: "Upload a file to Yuque CDN (image≤50MB, attachment/video≤2GB, requires cookie+ctoken). Extension pre-check: only Yuque-supported formats allowed (official list: https://www.yuque.com/yuque/gpvawt/ca13hg), unsupported extensions rejected with a friendly error (pack into zip first). POST /upload/attach. 详见 references/api/upload_api.md",
 
   inputSchema: {

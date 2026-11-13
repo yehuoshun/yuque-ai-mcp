@@ -12,7 +12,7 @@ import { requiredString } from "../common/validate.js";
 
 
 export const groupStatistics: McpTool = {
-  name: "yuque_ai_get_group_statistics",
+  name: "yuque_get_group_statistics",
   description: "Get group summary statistics. GET /groups/:login/statistics. 详见 references/api/statistic_api.md",
 
   inputSchema: {

@@ -12,7 +12,7 @@ import { formatDocSummary, handleApiCall } from "../common/format.js";
 
 
 export const docList: McpTool = {
-  name: "yuque_ai_list_docs",
+  name: "yuque_list_docs",
   description: "List documents in a repo, sorted by updated_at desc. limit ≤ 100. Supports deleted (recycle view) and changed_at_gte (incremental sync). GET /repos/:id/docs. 详见 references/api/doc_api.md",
 
   inputSchema: {

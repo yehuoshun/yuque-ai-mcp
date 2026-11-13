@@ -12,7 +12,7 @@ import { formatRepo, handleApiCall } from "../common/format.js";
 import { autoSlug } from "../common/config.js";
 
 export const repoCreate: McpTool = {
-  name: "yuque_ai_create_repo",
+  name: "yuque_create_repo",
   description: "Create a repo, auto-detects user vs group endpoint. POST /users|groups/:login/repos. 详见 references/api/repo_api.md",
 
   inputSchema: {

@@ -12,7 +12,7 @@ import { formatDoc, wrapResult } from "../common/format.js";
 
 
 export const docBatchGet: McpTool = {
-  name: "yuque_ai_batch_get_docs",
+  name: "yuque_batch_get_docs",
   description: "Batch get document details (concurrent GET, read-only, max 20). 详见 references/api/doc_api.md",
 
   inputSchema: {

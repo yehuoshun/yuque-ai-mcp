@@ -13,7 +13,7 @@ import { diffLines, type DiffLine } from "../common/diff.js";
 // ─── 工具定义 ────────────────────────────────────────────────
 
 export const docDiff: McpTool = {
-  name: "yuque_ai_diff_doc_versions",
+  name: "yuque_diff_doc_versions",
   description: "Compare two document versions and show line-level diff (added/removed/unchanged). Computes diff locally. 详见 references/api/doc_api.md",
 
   inputSchema: {

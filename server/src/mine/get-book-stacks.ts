@@ -11,7 +11,7 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
 export const mineBookStacks: McpTool = {
-  name: "yuque_ai_get_book_stacks",
+  name: "yuque_get_book_stacks",
   description: "获取当前用户的知识库分组（书架）列表，含每个分组下的知识库。需要 cookie+ctoken 认证。GET /api/mine/book_stacks",
 
   inputSchema: {

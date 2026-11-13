@@ -13,7 +13,7 @@ import { MINE_BASE } from "./common.js";
 const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
 
 export const recycleRestore: McpTool = {
-  name: "yuque_ai_restore_recycle",
+  name: "yuque_restore_recycle",
   description: "Restore an item from recycle bin (requires cookie+ctoken). PUT /mine/recycles/:id/restore. 详见 references/api/recycle_api.md",
 
   inputSchema: {
