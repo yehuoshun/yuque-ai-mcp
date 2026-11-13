@@ -24,3 +24,15 @@ jobs:
       - run: npm publish --registry https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # npm 包发出去之后再建 GitHub Release（标题同 tag，正文按提交自动生成）；
+      # tag 被重推时 release 可能已存在，存在就跳过而不是让 job 变红
+      - name: Create GitHub Release
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists, skip"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          fi
