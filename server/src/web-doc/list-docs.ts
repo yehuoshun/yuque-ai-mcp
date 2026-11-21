@@ -109,17 +109,31 @@ export const webDocList: McpTool = {
     // /api/books 实测就忽略 offset（只吃 limit）。再探一次 offset=0 的首页，
     // 若首条相同说明 offset 被无视——此时手上只有第一页，不能假装是第 offset 条，
     // 直接报错让调用方改用 limit 翻页，避免静默返回错页（旧的 offset 双跳/漏跳都源于此）。
-    if (honoredByUpstream && offset > 0 && items.length > 0) {
+    // 只要 offset>0，两种情况都要探一次 offset=0 的首页：
+    //   a) 上游返回不足一页（honoredByUpstream）——首条相同说明 offset 被无视，手里其实是第一页；
+    //   b) 上游返回超过 limit——首条与首页不同说明它不是从 0 开始的，slice(offset, offset+limit) 会错页。
+    if (offset > 0 && items.length > 0) {
       const probeUrl = `https://www.yuque.com/api/docs?book_id=${bookId}&offset=0&limit=${Math.min(limit, 100)}`;
       const probe = await webRequest(probeUrl, { referer: DOC_REFERER });
       if (!isErrorResult(probe)) {
         const first = ((probe as { data?: Array<Record<string, unknown>> }).data ?? [])[0];
-        if (first && (first as { id?: unknown }).id === (items[0] as { id?: unknown }).id) {
+        const sameFirst = !!first && (first as { id?: unknown }).id === (items[0] as { id?: unknown }).id;
+        if (honoredByUpstream && sameFirst) {
           return {
             content: [{ type: "text" as const, text: JSON.stringify({
               error: "OFFSET_NOT_SUPPORTED",
               message: "上游 /api/docs 未按 offset 返回（拿到的仍是第一页），无法安全返回第 offset 条；请改用 limit 翻页或从 offset=0 取值",
               offset, limit,
+            }, null, 2) }],
+            isError: true,
+          };
+        }
+        if (!honoredByUpstream && !sameFirst) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              error: "INCONSISTENT_PAGE",
+              message: "上游返回条数超过 limit 且起点不是 offset=0，无法安全切页；请改用 limit 翻页",
+              offset, limit, returned: items.length,
             }, null, 2) }],
             isError: true,
           };

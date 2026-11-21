@@ -42,7 +42,19 @@ export const repoCreate: McpTool = {
     const name = args?.name as string;
     const slug = args?.slug as string | undefined;
     const description = args?.description as string | undefined;
-    const isPublic = (args?.public as number) ?? 0;
+    // public 直接决定库的可见性，不能把它半猜着交给上游
+    const publicArg = args?.public;
+    if (publicArg !== undefined && ![0, 1, 2].includes(publicArg as number)) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "INVALID_PUBLIC",
+          message: "public 只能是 0（私有）/ 1（公开）/ 2（团队公开）",
+          received: publicArg,
+        }, null, 2) }],
+        isError: true,
+      };
+    }
+    const isPublic = (publicArg as number) ?? 0;
     const enhancedPrivacy = args?.enhancedPrivacy as boolean | undefined;
 
     const payload: Record<string, unknown> = { name, public: isPublic };

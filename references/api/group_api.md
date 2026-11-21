@@ -83,6 +83,8 @@ GET /api/v2/groups/{login}/users?role={role}&offset={offset}
 | `group` | object | V2Group，团队信息 |
 | `user` | object | V2User，用户信息 |
 
+> ⚠️ **上表是上游结构，不是 MCP 工具输出**：`yuque_list_group_users` 默认经 `formatGroupUser` 裁剪成 6 个字段 —— `id`、`login`、`name`、`role`、`avatar_url`、`created_at`（`common/format.ts:354-364`，内部取 `data.user ?? data`，所以 `login`/`name`/`avatar_url` 来自嵌套的 `user` 而不是关联记录）。`group_id`、`user_id`、`updated_at`、`group`、`user` 都**不出现**；需要上游全量请传 `raw: true`。
+
 #### group (V2Group)
 
 | 字段 | 类型 | 说明 |
@@ -194,6 +196,8 @@ Content-Type: application/json
 | `group` | object | V2Group，团队信息（字段同上） |
 | `user` | object | V2User，用户信息（字段同上） |
 
+> 同上：`yuque_update_group_user` 默认也走 `formatGroupUser`，只输出 6 个字段（`id`、`login`、`name`、`role`、`avatar_url`、`created_at`），`related`/`updated_at` 等需 `raw: true`。
+
 ## 删除成员
 
 ```http
@@ -208,6 +212,7 @@ DELETE /api/v2/groups/{login}/users/{id}
 |------|------|------|------|
 | `login` | path | string | 团队 Login 或 ID（必填） |
 | `id` | path | string | 用户 Login 或 ID（必填） |
+| `confirm` | — | string | 危险操作二次确认，工具层必填，值必须是 `DELETE`（`group/delete-user.ts:27`、:38-39 的 `checkConfirmation`），不传直接拦截、不发请求 |
 
 ### 返回结构
 
@@ -224,3 +229,5 @@ DELETE /api/v2/groups/{login}/users/{id}
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `user_id` | string | 被删除的用户 ID |
+
+> ⚠️ `yuque_delete_group_user` 默认走 `formatGroupUser`（`group/delete-user.ts:46`），而删除响应里只有 `user_id`，那 6 个字段取不到，序列化后接近空对象 `{}`——**看不到 `user_id`**。要拿上游原样（`{ "data": { "user_id": "…" } }`）请传 `raw: true`；判断是否删除成功以无错误返回为准，不要依赖返回体字段。

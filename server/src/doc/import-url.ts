@@ -56,6 +56,17 @@ export const docImportUrl: McpTool = {
       requiredString(url, "url"),
     );
     if (__v) return __v;
+    // format 决定清洗分支与入库格式：拼错会按 markdown 清洗却以 lake 之类入库，必须在入口拦下
+    if (format !== "markdown" && format !== "html") {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          error: "INVALID_FORMAT",
+          message: "format 只能是 markdown 或 html",
+          received: format,
+        }, null, 2) }],
+        isError: true,
+      };
+    }
 
     // 解析 paths
     let paths: string[];

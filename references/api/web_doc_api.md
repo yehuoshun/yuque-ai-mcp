@@ -73,7 +73,9 @@
 
 > ⚠️ **`offset` 上游不可靠**：`/api/docs` 可能忽略 `offset`（代码注释记录同族 `/api/books` 已实测如此，`/api/docs` 有同样风险）。当 `offset>0` 且上游返回不足一页时，工具会再探一次 `offset=0` 的首页，若首条 `id` 与本次首条相同，即判定 offset 被无视，返回 `isError` 的 `OFFSET_NOT_SUPPORTED`（附 `offset`、`limit`），而**不会**静默把第一页当成第 `offset` 条返回；此时应改用 `limit` 翻页或始终从 `offset=0` 取值（`web-doc/list-docs.ts:112-128`）。
 >
-> 返回结构：`total`（上游 `meta.total`，取不到为 `null`）、`total_is_partial`（上游未给 total 时为 `true`）、`offset`、`limit`、`returned`（本页条数）、`has_more`、`data`。上游返回超过 `limit` 时一律在本地切片（`web-doc/list-docs.ts:106,130-132,147`）。
+> 上游**返回超过 `limit`** 时也有保护：工具同样探一次 `offset=0` 首页，若首条 `id` 与本次首条**不同**，说明上游不是从 0 开始给的，`slice(offset, offset+limit)` 会切错页，此时返回 `isError` 的 `INCONSISTENT_PAGE`（附 `offset`、`limit`、`returned`），不静默错页。
+>
+> 返回结构：`total`（上游 `meta.total`，取不到为 `null`）、`total_is_partial`（上游未给 total 时为 `true`）、`offset`、`limit`、`returned`（本页条数）、`has_more`、`data`。上游返回超过 `limit` 且已确认从 `offset=0` 开始时，在本地切片（`web-doc/list-docs.ts:106-147`）。
 
 ### yuque_web_list_repos
 

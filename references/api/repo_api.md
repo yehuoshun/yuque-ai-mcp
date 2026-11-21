@@ -104,6 +104,8 @@ Content-Type: application/json
 | `enhancedPrivacy` | body | bool | 增强私密性：非管理员成员也设为无权限 | - |
 | `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 | false |
 
+> `public` 只接受 `0` / `1` / `2`；其他值报 `INVALID_PUBLIC` 且**不发请求**（避免手误把私密库建成公开库，`repo/create-repo.ts`）。
+
 ### 返回结构
 
 返回 V2Book（字段同获取列表）。MCP 工具默认同样按 `formatRepo` 裁剪，`raw=true` 时透传上游完整 JSON。

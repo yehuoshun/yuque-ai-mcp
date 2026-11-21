@@ -14,7 +14,8 @@
     "references/api/",
     "SKILL.md",
     "README.md",
-    "README_CN.md"
+    "README_CN.md",
+    "LICENSE"
   ],
   "keywords": [
     "yuque",
@@ -31,15 +32,19 @@
     "dev:http": "tsx watch src/http.ts",
     "start": "node dist/index.js",
     "start:http": "node dist/http.js",
-    "prepublishOnly": "npm run build && mkdir -p config && cp ../config/config.example.json config/ && cp -r ../references . && cp ../README.md ../README_CN.md ../SKILL.md . 2>/dev/null; true"
+    "prepublishOnly": "npm run build && node scripts/copy-assets.mjs"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/yehuoshun/yuque-ai-mcp"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.25 || ^4.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

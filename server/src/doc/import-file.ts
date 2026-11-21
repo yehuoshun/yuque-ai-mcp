@@ -24,9 +24,12 @@ import {
  *
  * namespace 形如 login/book_slug（个人库）或 group/book_slug（团队库），取自 GET /repos/{book_id}。
  * 以前这里写死成某个账号（https://www.yuque.com/<某账号>/<book_id>/<slug>），换账号或导入团队库时，
- * embed_assets 模式生成的所有附件链接都会指向错误空间；取不到 namespace 时退回入参 book_id。
+ * embed_assets 模式生成的所有附件链接都会指向错误空间。
+ *
+ * 取不到 namespace 时返回 null，而不是退回 book_id：语雀网页端链接的中间段必须是 login/book_slug，
+ * 用数字 book_id 拼出来的地址一定是 404，宁可让调用方看到「链接未替换」的告警。
  */
-async function resolveRepoLinkBase(bookId: string): Promise<string> {
+async function resolveRepoLinkBase(bookId: string): Promise<string | null> {
   try {
     const res = await apiGet(`/repos/${bookId}`, undefined, "Get repo for embed link base");
     if (!isErrorResult(res)) {
@@ -36,9 +39,9 @@ async function resolveRepoLinkBase(bookId: string): Promise<string> {
       }
     }
   } catch {
-    // 拿不到就退回 book_id，至少不会指向别人账号下的路径
+    // 网络/权限错误同样视为解析失败，由调用方决定降级方式
   }
-  return `https://www.yuque.com/${bookId}`;
+  return null;
 }
 
 export const docImportFile: McpTool = {
@@ -86,11 +89,10 @@ export const docImportFile: McpTool = {
     const filePath = args?.file_path as string;
     const bookId = args?.book_id as string;
     const mode = (args?.mode as ImportMode) || "direct";
-    const title = (args?.title as string) || basename(filePath).replace(/\.[^.]+$/, "") || "无标题";
     const slug = args?.slug as string | undefined;
     const format = (args?.format as string) || "markdown";
 
-    // 校验
+    // 校验（必须排在 title 之前：file_path 缺失时 basename(undefined) 会先抛 TypeError）
     const __v = check(
       requiredString(filePath, "file_path"),
       requiredString(bookId, "book_id"),
@@ -98,6 +100,10 @@ export const docImportFile: McpTool = {
     if (__v) return __v;
     const modeErr = oneOf(mode, "mode", ["direct", "upload_assets", "embed_assets"]);
     if (modeErr) return modeErr;
+    const formatErr = oneOf(format, "format", ["markdown", "lake", "html"]);
+    if (formatErr) return formatErr;
+
+    const title = (args?.title as string) || basename(filePath).replace(/\.[^.]+$/, "") || "无标题";
 
     // 解析 paths
     // 解析 paths
@@ -146,12 +152,15 @@ export const docImportFile: McpTool = {
     const refs = extractLocalRefs(body, dirname(filePath));
     const assetResults = await processAssets(mode, refs, bookId, cfg);
 
-    // 如果 processAssets 返回了错误（如 NO_COOKIE），直接返回
+    // processAssets 整批失败时透传真实原因：只有确实是缺 Cookie/ctoken 才报 NO_COOKIE，
+    // 文件不存在、路径越界、格式不支持等一律按 ASSET_ERROR 返回，避免把排障方向带偏。
     if (assetResults.length === 1 && assetResults[0].type === "error") {
+      const detail = assetResults[0].error || "资源处理失败";
+      const needCookie = /cookie|ctoken/i.test(detail);
       return {
         content: [{ type: "text" as const, text: JSON.stringify({
-          error: "NO_COOKIE",
-          message: assetResults[0].error,
+          error: needCookie ? "NO_COOKIE" : "ASSET_ERROR",
+          message: detail,
         }, null, 2) }],
         isError: true,
       };
@@ -167,13 +176,21 @@ export const docImportFile: McpTool = {
     // 只在真有附件被转成文档时才查一次，direct / upload_assets 模式不额外发请求。
     const embedLinkBase = assetResults.some((r) => r.embedDocId && r.embedDocSlug)
       ? await resolveRepoLinkBase(bookId)
-      : "";
+      : null;
+    let embedLinkWarning = "";
 
     for (const result of assetResults) {
       if (result.cdnUrl) {
         finalBody = finalBody.replaceAll(result.original, result.cdnUrl);
         assetsUploaded++;
       } else if (result.embedDocId) {
+        if (!embedLinkBase) {
+          // namespace 没解析出来：拼 book_id 一定是 404，保留原引用并把该条记为失败
+          assetsFailed++;
+          embedLinkWarning =
+            "无法从 GET /repos/{book_id} 解析知识库 namespace，附件链接未替换，正文保留原引用";
+          continue;
+        }
         const yuqueLink = `${embedLinkBase}/${result.embedDocSlug}`;
         finalBody = finalBody.replaceAll(result.original, yuqueLink);
         assetsEmbedded++;
@@ -224,6 +241,7 @@ export const docImportFile: McpTool = {
         title,
         book_id: bookId,
         paths,
+        ...(embedLinkWarning ? { warning: embedLinkWarning } : {}),
         assets: {
           total: refs.length,
           uploaded: assetsUploaded,

@@ -50,11 +50,11 @@ GET /api/v2/notes?status={status}&page={page}&limit={limit}
 | `notes` | array | 普通小记 |
 | `notes[].id` | int | 小记 ID |
 | `notes[].slug` | string | 路径 |
-| `notes[].content.abstract` | string | 内容摘要 |
 | `notes[].word_count` | int | 字数 |
-| `notes[].tags` | array | 标签 |
-| `notes[].pinned_at` | string | 置顶时间（null 未置顶） |
-| `notes[].status` | int | 0=正常 / 9=已删除 |
+| `notes[].updated_at` | string | 更新时间 (ISO 8601) |
+| `notes[].abstract` | string | 摘要：由上游 `content.abstract` 去掉 HTML 标签后截断 200 字，**是扁平字符串、不是 `content` 对象路径**（`common/format.ts:384-396` 的 `formatNoteSummary`） |
+
+> 上表是 `yuque_list_notes` 的实际输出（每个元素经 `formatNoteSummary` 裁剪成 5 个字段）。上游还有的 `tags`、`pinned_at`、`status`、`title`、`content` 等**不会出现**，本工具也**没有** `raw` 参数可拿全量；要完整对象请按 `id` 调 `yuque_get_note`。
 | `has_more` | bool | 是否有更多（MCP 工具 `yuque_list_notes` 默认裁剪：只返回 `pin_notes` / `notes`，不透出 `has_more` 与 `meta`） |
 
 ---
@@ -110,9 +110,7 @@ Content-Type: application/json
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | int | 新小记 ID |
-| `slug` | string | 路径 |
-| `note_url` | string | 小记链接 |
+返回创建后的小记详情（同获取详情，`note/create-note.ts:36` 的 `handleApiCall(data, formatNote, raw)`），默认 10 个字段：`id`、`slug`、`title`、`content`、`word_count`、`public`、`book_id`、`created_at`、`updated_at`、`note_url`（`common/format.ts:368-382`）；`raw: true` 返回上游全量。
 
 ---
 

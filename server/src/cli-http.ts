@@ -10,8 +10,12 @@ import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const args = [resolve(__dirname, "http.js"), ...process.argv.slice(2)];
-const child = spawn("node", args, {
+// 同 cli.ts：用当前解释器 + 转发终止信号（容器/进程管理器停服务时要真停到 http.js）
+const child = spawn(process.execPath, args, {
   stdio: "inherit",
   env: { ...process.env },
 });
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => child.kill(signal));
+}
 child.on("exit", (code) => process.exit(code ?? 0));

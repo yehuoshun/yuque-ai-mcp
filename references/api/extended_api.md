@@ -80,6 +80,10 @@
 - `results[]` 每个 path 一条，成功含 `doc_id` / `slug`，失败含 `error`；TOC 挂载失败但文档已建时多一个 `warning`。
 - `assets.total` 是本地引用总数；`assets.details[]` 逐条给出 `original` / `type`，外加 `cdnUrl`（上传成功）、`embedDocId` + `embedDocSlug`（附件转文档）或 `error`（失败）。
 - `upload_assets` 模式缺 Cookie / ctoken 时直接返回 `{ "error": "NO_COOKIE", … }`，不建文档。
+- `embed_assets` 的子文档链接按知识库真实 namespace 生成：`https://www.yuque.com/{login 或 group}/{book_slug}/{doc_slug}`（namespace 取自 `GET /repos/{book_id}`）。解析不到 namespace 时**不会**退回用数字 `book_id` 拼链接（那一定是 404），而是正文保留原引用、`assets.details[]` 该条带 `error`，顶层另给一个 `warning`（`doc/import-file.ts:175-191`）。
+- `embed_assets` 模式里的图片也会上传到 CDN 并回填 `cdnUrl`（`doc/import-file-utils.ts` 调 `uploadImage`）；缺 Cookie 时该条记 `error`，不会出现「统计 failed=0 但图片仍指向本地路径」。
+- 资源处理失败不再一律报 `NO_COOKIE`：只有错误文本含 cookie / ctoken 才是 `NO_COOKIE`，其余（文件不存在、路径越界、格式不支持）按 `ASSET_ERROR` 透传原始错误与 `code`。
+- `format` 只接受 `markdown` / `lake` / `html`，其他值直接报 `INVALID_FORMAT`（不会再按 markdown 清洗却以别的格式入库）。
 
 ---
 
@@ -407,7 +411,7 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 }
 ```
 
-`embed_url` 固定为 `<文档地址>?view=doc_embed&from=<from>`（`title` / `outline` / `translate` 传了才追加）；`params` 里未传的项显示为 `默认（显示）` 或 `无`，`supported_languages` 列出全部 20 个语种。
+`embed_url` 固定为 `<文档地址>?view=doc_embed&from=<from>`（`title` / `outline` / `translate` 传了才追加）；`params` 里未传的项显示为 `默认（显示）` 或 `无`，`supported_languages` 列出全部 19 个语种（`doc/embed-url.ts:127-147` 的映射只有 19 个键，同文前面列的 19 个语种是对的）。
 
 ---
 
@@ -441,7 +445,7 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 ```
 
 - `docs` 仅在至少 1 篇成功时出现：以请求里传入的 id（字符串化）为 key 的对象，**不是数组**；`errors` 仅在有条目失败时出现，`errors[].detail` 是上游原始错误对象。
-- 没有 `success` / `failed` 字段，`ok` 即成功篇数；`docs` 各 value 是 `formatDoc` 结果的 JSON 字符串（因 `wrapResult` 已序列化一次），客户端取值后需再 parse 一次。
+- 没有 `success` / `failed` 字段，`ok` 即成功篇数；`docs` 各 value 是 `formatDoc` 结果的对象（`doc/batch-get-docs.ts` 已把 `wrapResult` 序列化出的字符串 parse 回对象，**客户端直接取字段即可，不用再 parse**）。
 
 ---
 
@@ -471,7 +475,7 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 
 - `repos` 仅在至少 1 个成功时出现：以请求里传入的 id（字符串化）为 key 的对象，**不是数组**；有条目失败时多一个 `errors: [{ id, detail }]`。
 - 没有 `success` / `failed` 字段，`ok` 即成功个数；本工具无 `type` / `raw` 参数，固定返回 `formatRepo` 精简字段。
-- `repos` 各 value 是 `formatRepo` 结果的 JSON 字符串（因 `wrapResult` 已序列化一次），客户端取值后需再 parse 一次。
+- `repos` 各 value 是 `formatRepo` 结果的对象（`repo/batch-get-repos.ts` 已 parse 回对象，**客户端不用再 parse**）。
 
 ---
 

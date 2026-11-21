@@ -6,6 +6,8 @@ COPY server/package.json server/package-lock.json ./
 RUN npm ci
 COPY server/ ./
 RUN npm run build
+# 运行阶段只该带生产依赖：tsc/tsx/@types 留在镜像里白占几十 MB
+RUN npm prune --omit=dev
 
 # 运行阶段：仅保留 dist 与生产依赖
 FROM node:20-alpine AS runtime

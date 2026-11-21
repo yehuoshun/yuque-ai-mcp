@@ -57,6 +57,21 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 
 > **Note**: `npm run dev:http` uses `tsx` for hot-reload during development, but it shares the production HTTP entry — it **also requires `YUQUE_MCP_HTTP_TOKEN`** or the process exits.
 
+### Install from npm (no clone needed)
+
+```bash
+npm install -g yuque-ai-mcp
+yuque-mcp            # stdio transport
+yuque-mcp-http       # HTTP SSE transport (needs YUQUE_MCP_HTTP_TOKEN)
+
+# or run straight from the registry without a global install
+npx -y -p yuque-ai-mcp yuque-mcp
+```
+
+The package ships two binaries: `yuque-mcp` (stdio, what MCP clients should point at) and `yuque-mcp-http` (SSE). Config is read from `--config <path>` first, then `./yuque-config.json`, then `~/.yuque-mcp/config.json` (there is no environment-variable token override — the token must be in the config file).
+
+**Windows**: when a client config rejects `npx`, use `"command": "npx.cmd"` (PowerShell) or `"command": "node", "args": ["C:/path/to/node_modules/yuque-ai-mcp/dist/cli.js"]`. If PowerShell blocks `.ps1` shims, call `npx.cmd` instead of `npx`.
+
 ### Export output is sandboxed by default
 
 `yuque_export_repo` / `yuque_export_doc` / `yuque_export_resources` only write inside the current working directory (or `YUQUE_EXPORT_ROOT`); absolute paths outside it return `INVALID_OUTPUT_DIR` instead of writing. To allow another location:
