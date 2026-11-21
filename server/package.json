@@ -1,7 +1,7 @@
 {
   "name": "yuque-ai-mcp",
   "version": "4.0.0",
-  "description": "Yuque MCP Server — 65 tools (Yuque OpenAPI coverage + 19 web-API tools requiring browser session cookie)",
+  "description": "Yuque MCP Server — 65 tools (Yuque OpenAPI coverage + 20 web-API tools requiring browser session cookie)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

@@ -4,7 +4,7 @@
 
 yuque-ai-mcp 是一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 的语雀全功能 MCP Server。
 
-当前版本：**v2.14.1** | 工具数：**62** | 域：**13**
+当前版本：**v4.0.0** | 工具数：**65** | 域：**13**
 
 ## 前置条件
 

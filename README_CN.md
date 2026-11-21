@@ -81,7 +81,9 @@ curl -N "http://127.0.0.1:3099/sse?token=$YUQUE_MCP_HTTP_TOKEN"
 
 能自定义请求头的客户端请用 `Authorization: Bearer <token>`（浏览器的 `EventSource` 无法设置请求头，才需要 query 参数）。
 可选环境变量：`HOST`（默认 `127.0.0.1`）、`PORT`（默认 `3099`）、
-`YUQUE_MCP_CORS_ORIGINS`（逗号分隔的来源白名单；留空表示不回任何 CORS 头）。
+`YUQUE_MCP_CORS_ORIGINS`（逗号分隔的来源白名单；留空表示不回任何 CORS 头）、
+`YUQUE_TRUSTED_RESOURCE_HOSTS`（`yuque_export_resources` 下载图片/附件时的域名白名单，默认 `yuque.com,nlark.com,yuque.net`）。
+设 `DEBUG=1` 会把重试日志打到 stderr。
 
 ## 工具概览
 

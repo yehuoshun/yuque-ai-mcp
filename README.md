@@ -79,7 +79,9 @@ curl -N "http://127.0.0.1:3099/sse?token=$YUQUE_MCP_HTTP_TOKEN"
 Clients that can set headers should send `Authorization: Bearer <token>` instead of the query parameter
 (browsers' `EventSource` cannot set headers, hence the query form).
 Optional env: `HOST` (default `127.0.0.1`), `PORT` (default `3099`),
-`YUQUE_MCP_CORS_ORIGINS` (comma-separated allowlist; empty means no CORS headers).
+`YUQUE_MCP_CORS_ORIGINS` (comma-separated allowlist; empty means no CORS headers),
+`YUQUE_TRUSTED_RESOURCE_HOSTS` (host allowlist for resource downloads in `yuque_export_resources`, default `yuque.com,nlark.com,yuque.net`).
+Set `DEBUG=1` to log retry attempts to stderr.
 
 ## Tool Overview
 
