@@ -58,7 +58,7 @@ export const webRepoList: McpTool = {
     "Includes permission info (abilities.create_doc, modify_setting, destroy). " +
     "No membership required. " +
     "GET /api/books. " +
-    "详见 references/api/repo_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

@@ -88,7 +88,7 @@ export const webDocGet: McpTool = {
     "No membership required, no Token rate limiting. " +
     "GET /api/docs/{id}?book_id={book_id}. " +
     "id supports doc slug; book_id supports namespace/slug (e.g. group/book_slug) or numeric. " +
-    "详见 references/api/doc_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

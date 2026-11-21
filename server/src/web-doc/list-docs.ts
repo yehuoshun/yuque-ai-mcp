@@ -58,7 +58,7 @@ export const webDocList: McpTool = {
     "Returns richer fields than v2 list_docs (draft_version, editor_meta, read_status, etc.). " +
     "No membership required. " +
     "GET /api/docs?book_id={book_id}. " +
-    "详见 references/api/doc_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

@@ -23,7 +23,7 @@ function lockKey(bookId: string, title: string, parentUuid?: string): string {
 
 /**
  * 回读 TOC，确认 docIds 全部挂在 targetUuid 之下（targetUuid 为 null 表示根目录）。
- * 语雀的 TOC 写接口存在「HTTP 200 但没生效」的假成功（见 references/api/toc_api.md:155/:160），
+ * 语雀的 TOC 写接口存在「HTTP 200 但没生效」的假成功（详见 references/api/toc_api.md「高频连续创建 → TOC 写路径静默积压」节），
  * 所有移动/挂载类操作都必须回读校验后才能对调用方报成功。
  */
 async function verifyDocPlacement(
