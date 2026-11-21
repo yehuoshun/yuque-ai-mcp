@@ -21,6 +21,13 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm run build
+      # tag 与 package.json 的 version 必须一致：对不上就中止，
+      # 否则会把 latest 指到错版本（npm 不允许重发同版本号，只能再升一版补救）
+      - name: 校验 tag 与 package.json version 一致
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          node -e "const v=require('./package.json').version; const tag=process.env.TAG; if ('v'+v!==tag) { console.error('tag/version mismatch: tag='+tag+' version='+v); process.exit(1); } console.log('tag 与 version 一致:', tag);"
       - run: npm publish --registry https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
