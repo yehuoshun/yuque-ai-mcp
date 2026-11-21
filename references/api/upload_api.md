@@ -6,37 +6,90 @@
 > 配置：`config.json` 中的 `cookie` 和 `ctoken` 字段。
 > 获取方式：浏览器登录 yuque.com → F12 → Application → Cookies → 复制 `_yuque_session` 和 `yuque_ctoken`
 
-## 上传文件到 CDN
+## 工具索引
+
+| 工具 | 端点 | 说明 |
+|------|------|------|
+| `yuque_upload_attachment` | `POST /api/upload/attach` | 上传图片/附件/视频到语雀 CDN，返回 CDN 地址（Cookie 认证） |
+
+---
+
+## yuque_upload_attachment — 上传文件到 CDN
+
+**端点**：
 
 ```http
 POST /api/upload/attach?attachable_type=User&attachable_id={user_id}&type={type}&ctoken={ctoken}
-Content-Type: multipart/form-data
+Content-Type: multipart/form-data（流式构造，零依赖）
 ```
 
-**用途**：上传图片/附件/视频到语雀 CDN，返回 CDN URL。
-
-> 单文件上限（专业会员）：图片 20MB / 附件 500MB / 视频 500MB。超级会员：图片 50MB / 附件 2GB / 视频 2GB。
+**用途**：上传图片/附件/视频到语雀 CDN，返回 CDN 地址。
 
 ### 参数
 
-| 参数 | 位置 | 类型 | 说明 |
-|------|------|------|------|
-| `attachable_type` | query | string | 固定 `User` |
-| `attachable_id` | query | string | 用户 ID |
-| `type` | query | string | image / attachment / video |
-| `ctoken` | query | string | CSRF Token |
-| `file` | body | file | 文件（multipart） |
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|:----:|------|
+| `file_path` | string | ✅ | 本地文件路径（不存在或不可读返回 `FILE_NOT_FOUND`） |
+| `type` | string | ❌ | 文件类型：`image` / `attachment` / `video`，默认 `attachment`；未知值按 `attachment` 上限预检，并原样作为 `type` 发给上游 |
+| `user_id` | string | ❌ | 用户 ID（`attachable_id`）；省略时自动调 `GET /api/v2/user` 取当前用户 id，取不到时以空串继续上传（通常由上游报错） |
+
+> `attachable_type` 固定为 `User`；`ctoken` 同时作为 query 参数与 `x-csrf-token` 请求头发送，Cookie 请求头取自 `config.json` 的 `cookie`。
+> 缺 `cookie` 或 `ctoken` 时直接返回 `MISSING_COOKIE`，不发请求。
+
+### 工具预检（本地拦截，均不发请求）
+
+| 预检 | 触发条件 | 返回 |
+|------|---------|------|
+| Cookie | 缺 `cookie` / `ctoken` | `MISSING_COOKIE` |
+| 扩展名 | 不在白名单（见下节） | `EXT_NOT_ALLOWED` |
+| 文件读取 | `stat` 失败（不存在/无权限） | `FILE_NOT_FOUND` |
+| 体积 | 超过 `LIMITS` 上限 | `FILE_TOO_LARGE` |
+
+### 大小上限（工具预检 vs 会员额度）
+
+- **工具预检上限**：图片 50MB / 附件 2048MB / 视频 2048MB（`LIMITS`：image 50 / attachment 2048 / video 2048）。
+- **实际额度取决于会员等级**：工具不做会员分级预检（代码无 tier 判断），超出会员额度的文件由上游返回错误——`UPLOAD_FAILED`，带 `status` 与 `message`。
+- 扩展名白名单之外的格式先打包成 zip 再传（本地直接拒绝，见下节）。
 
 ### 返回字段
 
+成功（不带 `isError`）：
+
+```json
+{
+  "success": true,
+  "url": "https://cdn.nlark.com/<filekey>",
+  "accessUrl": "https://www.yuque.com/attachments/<filekey>",
+  "filekey": "文件 key",
+  "extname": "扩展名",
+  "type": "image | attachment | video"
+}
+```
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `url` | string | CDN 直链（`cdn.nlark.com/...`），**无签名 403，不能直接分享**（兼容保留）|
-| `accessUrl` | string | **正式可访问地址**（`https://www.yuque.com/attachments/<filekey>`，登录语雀后可下载/分享）|
+| `success` | boolean | 成功固定为 `true`（失败走错误结构，不带该字段） |
+| `url` | string | CDN 直链（`cdn.nlark.com/<filekey>`），**无签名 403，不能直接分享**（兼容保留） |
+| `accessUrl` | string | **正式可访问地址**（`https://www.yuque.com/attachments/<filekey>`，登录语雀后可下载/分享）；上游未返回时由工具按 `filekey` 拼接 |
 | `filekey` | string | 文件 key |
-| `extname` | string | 扩展名 |
+| `extname` | string | 扩展名（取自上游响应，缺失为空串） |
+| `type` | string | 回显本次上传的 `type`（默认 `attachment`） |
 
 > ⚠️ **B2（语雀设计，非 bug）**：`accessUrl`（`/attachments/...`）需要登录语雀才能下载——不带 cookie 请求会 302 到登录页。分享给他人时，对方也需登录语雀。
+
+### 错误返回
+
+| `error` | 触发 | 附加字段 |
+|---------|------|---------|
+| `MISSING_COOKIE` | 缺 cookie / ctoken | `message` |
+| `EXT_NOT_ALLOWED` | 扩展名不在白名单 | `file`、`reference` |
+| `FILE_NOT_FOUND` | 路径不存在/不可读 | `detail` |
+| `FILE_TOO_LARGE` | 超工具预检上限 | `path` |
+| `UPLOAD_FAILED` | 上游非 2xx | `status`、`message`（响应体前 200 字符） |
+| `UPLOAD_TIMEOUT` | 超 25 分钟未完成 | `message` |
+| `NETWORK_ERROR` | 网络异常 | `message` |
+
+> 失败自动重试一次（共 2 次尝试），两次都失败才返回最后一个错误。
 
 ### 扩展名白名单（本地预检）
 
@@ -48,7 +101,6 @@ Content-Type: multipart/form-data
   {"error":"EXT_NOT_ALLOWED","message":"语雀不支持 .w3x 扩展名，请打包成 zip 后上传 / ...","file":"t_small.w3x","reference":"https://www.yuque.com/yuque/gpvawt/ca13hg"}
   ```
 - 未知/特殊格式（如 .w3x 地图文件）请先打包成 zip 再上传
-- 大小上限（超级会员）：图片 50MB / 附件 2GB / 视频 2GB
 - **体积实测（v2.15.9+，25min 内部超时 + 流式）**：250MB / 450MB 单次直传均成功（450MB 约 90s，≈5MB/s）；「单次 ~100MB 上限」的旧结论源自当时 30s 内部超时，已作废
 - 网络环境差时仍可按 ~90MB 分卷作为兜底（非必需）
 

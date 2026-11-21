@@ -2,6 +2,10 @@
 
 > 基地址：`https://www.yuque.com/api/v2`
 
+> 本文覆盖 5 个知识库工具：`yuque_list_repos`、`yuque_create_repo`、`yuque_get_repo`、`yuque_update_repo`、`yuque_delete_repo`；`yuque_batch_get_repos`、`yuque_export_repo`、`yuque_copy_repo` 的完整参数见 `SKILL.md` 与对应工具 description（批量/导出细节见 `references/api/extended_api.md`）。
+>
+> 每个工具都有 `raw` 参数（MCP 层，非上游字段）：默认 `false` 时按 `formatRepo` 裁剪字段，`raw=true` 时透传上游完整 JSON（`common/format.ts:335-350,441-446`）。
+
 ## 获取知识库列表
 
 ```http
@@ -10,6 +14,8 @@ GET /api/v2/groups/{login}/repos?type={type}&offset={offset}&limit={limit}
 ```
 
 **用途**：获取用户或团队下的知识库列表，支持类型过滤和权限过滤。
+
+> MCP 工具 `yuque_list_repos` 先请求 `/users/{login}/repos`，返回 404 时自动改请求 `/groups/{login}/repos`，调用方不需要自己判断是用户还是团队（`repo/list-repos.ts:50-55`、`common/api-client.ts:293-318`）。
 
 ### 参数
 
@@ -20,6 +26,7 @@ GET /api/v2/groups/{login}/repos?type={type}&offset={offset}&limit={limit}
 | `offset` | query | int | 偏移量（分页） | 0 |
 | `limit` | query | int | 每页数量 | 100（≤100） |
 | `filterByAbility` | query | string | 权限过滤：`create_doc`（仅返回有创建文档权限的知识库） | - |
+| `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 | false |
 
 ### 返回结构
 
@@ -69,6 +76,8 @@ GET /api/v2/groups/{login}/repos?type={type}&offset={offset}&limit={limit}
 | `user` | object | V2User，创建者 |
 | `namespace` | string | 完整路径 |
 
+> 上表是上游 `V2Book` 的字段；MCP 工具默认只返回 `id`/`slug`/`name`/`namespace`/`description`/`public`/`items_count`/`likes_count`/`user_id`/`created_at`/`updated_at`，其余 `type`/`creator_id`/`watches_count`/`content_updated_at`/`user` 需 `raw=true` 才透出（`common/format.ts:335-350`）。
+
 ## 创建知识库
 
 ```http
@@ -76,10 +85,12 @@ POST /api/v2/users/{login}/repos
 POST /api/v2/groups/{login}/repos
 Content-Type: application/json
 
-{"name": "名称", "slug": "路径", "public": 0}
+{"name": "名称", "slug": "路径（可选，缺省自动生成）", "public": 0}
 ```
 
 **用途**：在用户或团队下创建新知识库。
+
+> 工具先 `POST /users/{login}/repos`，返回 404 时自动改 `POST /groups/{login}/repos`（`repo/create-repo.ts:53-58`、`common/api-client.ts:261-290`）。
 
 ### 参数
 
@@ -87,14 +98,15 @@ Content-Type: application/json
 |------|------|------|------|------|
 | `login` | path | string | 用户/团队的 Login 或 ID（必填） | - |
 | `name` | body | string | 知识库名称（必填） | - |
-| `slug` | body | string | 知识库路径（必填） | - |
-| `description` | body | string | 简介（**上限 255 字符**，2026-09-30 老板确认） | - |
+| `slug` | body | string | 知识库路径；缺省时按 `autoSlug(name)` 自动生成（名称 ASCII 化 + 36 进制时间戳，非 ASCII 名称退化为 `repo-<时间戳>`） | 自动生成 |
+| `description` | body | string | 简介（工具不校验长度，超长由上游报错） | - |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 | 0 |
 | `enhancedPrivacy` | body | bool | 增强私密性：非管理员成员也设为无权限 | - |
+| `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 | false |
 
 ### 返回结构
 
-返回 V2Book（字段同获取列表）。
+返回 V2Book（字段同获取列表）。MCP 工具默认同样按 `formatRepo` 裁剪，`raw=true` 时透传上游完整 JSON。
 
 ## 获取知识库详情
 
@@ -104,13 +116,14 @@ GET /api/v2/repos/{book_id}
 
 等价于 `GET /api/v2/repos/{group_login}/{book_slug}`。
 
-**用途**：获取知识库完整信息，包括 `toc_yml` 目录。
+**用途**：获取知识库完整信息；上游返回含 `toc_yml` 目录，但 MCP 工具默认裁剪不含它（见下方返回结构说明）。
 
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
 | `book_id` | path | string | 知识库 ID 或 namespace（必填） |
+| `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 |
 
 ### 返回结构 (V2BookDetail)
 
@@ -119,6 +132,8 @@ GET /api/v2/repos/{book_id}
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `toc_yml` | string | 目录结构（YAML 格式） |
+
+> MCP 工具 `yuque_get_repo` 默认走 `formatRepo`：不含 `toc_yml`，也不含 `type`/`creator_id`/`watches_count`/`content_updated_at`/`user`；需要这些字段（含目录）请传 `raw=true`，此时直接透传上游 JSON（`common/format.ts:335-350,441-446`）。
 
 ## 更新知识库
 
@@ -140,13 +155,14 @@ Content-Type: application/json
 | `book_id` | path | string | 知识库 ID 或 namespace（必填） |
 | `name` | body | string | 名称 |
 | `slug` | body | string | 路径 |
-| `description` | body | string | 简介（**上限 255 字符**，2026-09-30 老板确认） |
+| `description` | body | string | 简介（工具不校验长度，超长由上游报错） |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 |
 | `toc` | body | string | 目录（Markdown 格式，全量替换，示例：`- [分组]()\n - [文档](slug)`） |
+| `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 |
 
 ### 返回结构
 
-返回 V2Book（字段同获取列表）。
+返回 V2Book（字段同获取列表）。MCP 工具默认按 `formatRepo` 裁剪，`raw=true` 时透传上游完整 JSON。
 
 ## 删除知识库
 
@@ -156,14 +172,18 @@ DELETE /api/v2/repos/{book_id}
 
 等价于 `DELETE /api/v2/repos/{group_login}/{book_slug}`。
 
-**用途**：删除指定知识库。⚠️ 不可恢复。
+**用途**：删除指定知识库（必须传 `confirm=DELETE`）。⚠️ 不可恢复。
 
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
 | `book_id` | path | string | 知识库 ID 或 namespace（必填） |
+| `confirm` | MCP | string | 二次确认，必须为 `DELETE`（必填） |
+| `raw` | MCP | boolean | 返回上游原始 JSON；默认 false 时按 formatRepo 裁剪 |
+
+> 未传或传错 `confirm` 时工具直接返回错误、不请求上游：「⚠️ 危险操作需二次确认，请将参数 `confirm` 设为 'DELETE' 后重试 / Destructive operation requires confirmation. Set parameter `confirm` to the exact string 'DELETE' to proceed.」（`repo/delete-repo.ts:26,34-35`、`common/errors.ts:138-166`）
 
 ### 返回结构
 
-返回被删除的 V2Book。
+返回被删除的 V2Book（MCP 工具默认按 `formatRepo` 裁剪，`raw=true` 时透传上游完整 JSON）。

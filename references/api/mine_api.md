@@ -137,6 +137,10 @@
 }
 ```
 
+**行为与校验**：`PUT /api/mine/book_stack/move` **成功和失败都返回 HTTP 200 + `{}`**，从响应体判断不出真实结果。所以工具在请求之后回查 `GET /api/mine/book_stacks`，**轮询 3 次、每次间隔 1500ms**，确认该知识库的 `id` 出现在 `stack_id` 分组的 `books` 里才返回 `success: true`（`mine/update-book-stack.ts:61-88`）。
+
+> 3 次仍未命中则返回 `isError`，文本为：`移动失败：知识库 {book_id} 未出现在分组 {stack_id}（已重试 3 次）`（`mine/update-book-stack.ts:90-98`）。注意失败文案不区分「上游真的没动」和「上游动了但回查时还没生效」，看到它先手工确认分组，再决定是否重发。
+
 ### sort_book_stack
 
 `PUT /api/mine/book_stack/move`（与 update 共用同一端点，传参方式不同）
@@ -168,6 +172,12 @@
 }
 ```
 
+**行为与校验**：与 `update_book_stack` 同一端点，同样**200 + `{}` 假成功**；工具回查 `GET /api/mine/book_stacks`，轮询 3 次、每次间隔 1500ms（`mine/sort-book-stack.ts:60-89`）。
+
+> ⚠️ **回查只校验成员、不校验顺序**：判定条件是「传入的每个 `book_id` 都出现在该分组的 `books` 集合里」（`mine/sort-book-stack.ts:70-71` 的 `bookIds.every((id) => got.has(id))`），**没有**比对 `books` 数组的实际次序。因此 `success: true` 只代表成员齐全，**不代表顺序真的按传入顺序生效**；上面的成功文案（「已按传入顺序排序」）措辞强于实际校验能力。要确认顺序请自己再调 `yuque_get_book_stacks` 看 `books` 顺序。
+
+> 3 次回查后仍有 `book_id` 不在该分组时返回 `isError`，文本为：`移动失败：分组 {stack_id} 内缺少部分知识库（已重试 3 次），缺失: {id, id}`（`mine/sort-book-stack.ts:91-100`）。
+
 ### create_book_stack
 
 `POST /api/mine/book_stack`（创建）+ `PUT /api/book_stacks/{stack_id}`（改名）
@@ -196,9 +206,22 @@
   "success": true,
   "stack_id": 57039609,
   "name": "我的分组",
-  "renamed": true
+  "renamed": true,
+  "created_raw": { "data": { "id": 57039609, "name": "新建分组" } }
 }
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `success` | create 请求本身失败会直接透传错误、不返回本结构，所以拿到本结构时恒为 `true` |
+| `stack_id` | 新建分组 ID；create 响应里没有 `data.id` 时为 `null` |
+| `name` | 传入的名称 |
+| `renamed` | 自动改名是否成功；`false` 说明分组仍叫默认名「新建分组」 |
+| `rename_warning` | **仅改名失败时出现**，固定文案「创建成功但改名失败」 |
+| `rename_error` | **仅改名失败时出现**，改名请求的原始错误对象 |
+| `created_raw` | create 接口的原始返回；`stack_id` 为 `null` 时据此排查上游到底给了什么 |
+
+依据：`mine/create-book-stack.ts:67-85`（`stack_id: stackId ?? null`、`renamed`、`...(renameError ? { rename_warning, rename_error } : {})`、`created_raw: created`）。
 
 ### rename_book_stack
 
@@ -222,8 +245,14 @@
 **返回**：
 
 ```json
-{ "success": true, "message": "分组 57039609 已重命名为「新名字」" }
+{
+  "success": true,
+  "message": "分组 57039609 已重命名为「新名字」",
+  "raw": {}
+}
 ```
+
+> `raw` 是 `PUT /api/book_stacks/{stack_id}` 的原始返回，实测通常是空对象 `{}`，**不能**据此判断是否真的改名成功（该接口同样没有可靠回执）。依据：`mine/rename-book-stack.ts:54-64`。
 
 ### delete_book_stack
 

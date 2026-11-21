@@ -55,7 +55,7 @@ GET /api/v2/notes?status={status}&page={page}&limit={limit}
 | `notes[].tags` | array | 标签 |
 | `notes[].pinned_at` | string | 置顶时间（null 未置顶） |
 | `notes[].status` | int | 0=正常 / 9=已删除 |
-| `has_more` | bool | 是否有更多 |
+| `has_more` | bool | 是否有更多（MCP 工具 `yuque_list_notes` 默认裁剪：只返回 `pin_notes` / `notes`，不透出 `has_more` 与 `meta`） |
 
 ---
 
@@ -71,7 +71,7 @@ GET /api/v2/notes/{id}
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
-| `id` | path | int | 小记 ID（必填） |
+| `id` | path | int | 小记 ID（必填）。⚠️ MCP 工具参数名是 `note_id`，按 `id` 传会报必填缺失 |
 
 ### 返回字段 (详情)
 
@@ -84,6 +84,8 @@ GET /api/v2/notes/{id}
 | `published_at` | string | 发布时间 (ISO 8601) |
 | `likes_count` | int | 点赞数 |
 | `comments_count` | int | 评论数 |
+
+> ⚠️ MCP 工具层默认裁剪：`yuque_get_note` 只输出 id/slug/title/content/word_count/public/book_id/created_at/updated_at/note_url，上面三个字段（published_at / likes_count / comments_count）需 `raw: true` 才能看到。
 
 ---
 
@@ -129,8 +131,8 @@ Content-Type: application/json
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
-| `id` | path | int | 小记 ID（必填） |
-| `body` | body | string | 新内容（纯文本或 Markdown，不填则保持不变） |
+| `id` | path | int | 小记 ID（必填）。⚠️ MCP 工具参数名是 `note_id` |
+| `body` | body | string | 新内容（纯文本或 Markdown）。语法上可省略，但 `status=0`（从已删除恢复）时**必须**传：语雀 PUT /notes 要求 html/source/abstract 必填，软删后原内容已被占位覆盖，工具会直接报「恢复小记需要 body 参数」，不会自动回填 |
 | `status` | body | int | 状态：0=正常 / 9=删除 |
 
 ### 返回结构

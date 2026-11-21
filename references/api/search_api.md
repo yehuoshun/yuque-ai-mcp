@@ -2,6 +2,9 @@
 
 > 基地址：`https://www.yuque.com/api/v2`
 
+> 本文覆盖三个工具：`yuque_search`（API v2 `GET /search`）、`yuque_web_search`（Cookie 态 `GET /api/zsearch`）、`yuque_rag_search`（多关键词并发 + 取正文，见文末）。
+> 文中两处「返回结构」写的是**语雀 HTTP 响应**；MCP 工具输出会再裁剪一层（见各节「MCP 工具输出」）。
+
 ## 通用搜索
 
 ```http
@@ -248,7 +251,7 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | `q` | query | string | 搜索关键词（必填） | - |
 | `type` | query | string | 搜索类型 | `content`（文档）/ `book`（知识库）/ `user`（用户），默认 `content` |
 | `scope` | query | string | 搜索范围 | `/` 全局，`/group_slug` 团队，`/group_slug/book_slug` 知识库 |
-| `p` | query | int | 页码 | 1-based，默认 1 |
+| `p` | query | int | 页码 | 1-based，默认 1，上限 100（工具层校验） |
 | `sence` | query | string | 固定值 | `searchPage` |
 
 ### 返回结构
@@ -322,7 +325,7 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | `group_name` | string | 所属团队名 |
 | `slug` | string | 文档 slug |
 | `privacy` | int | 隐私级别 |
-| `_record` | object | 完整对象（等同于 get_doc / get_repo 返回值） |
+| `_record` | object | 上游完整对象；**MCP 工具里键名是 `doc`**，见下节 |
 
 #### _record（type=Doc 时）
 
@@ -345,6 +348,46 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | `likes_count` | int | 点赞数 |
 | `read_count` | int | 阅读数 |
 
+### MCP 工具输出（`yuque_web_search`）
+
+工具不原样回传上游 JSON，而是 `{ meta, data }`（`server/src/search/web-search.ts` 的 `formatWebSearchResult`）：
+
+```json
+{
+  "meta": { "total": 5000, "num_hits": 20, "page": 1, "type": "content", "scope": "/", "q": "关键词" },
+  "data": [
+    {
+      "id": 0,
+      "title": "string",
+      "abstract": "去掉 <em> 的高亮摘要",
+      "abstract_html": "<em>高亮</em>摘要",
+      "type": "Doc",
+      "url": "/user/book_slug/doc_slug",
+      "book_name": "知识库名",
+      "group_name": "团队名",
+      "slug": "doc_slug",
+      "privacy": 0,
+      "doc": {
+        "id": 0, "slug": "doc_slug", "title": "string", "format": "markdown", "word_count": 0,
+        "book_id": 0, "user_id": 0, "description": "", "created_at": "…", "updated_at": "…",
+        "content_updated_at": "…", "status": 1, "public": 0,
+        "comments_count": 0, "likes_count": 0, "read_count": 0
+      }
+    }
+  ]
+}
+```
+
+与上游的差异：
+
+| 上游 | 工具输出 | 说明 |
+|------|----------|------|
+| `data.totalHits` | `meta.total` | 精确总命中数 |
+| `data.numHits` | `meta.num_hits` | 当前页命中数 |
+| `data.hits[].abstract` | `abstract` + `abstract_html` | `abstract` 已去 `<em>`；`abstract_html` 保留原标签 |
+| `data.hits[]._record` | `doc` | **键名是 `doc`，不是 `_record`**，且只保留 16 个字段；要完整对象请用 `yuque_get_doc` 或 `raw=true` |
+| `data.errorHits` / `message` / `info` | 不输出 | 仅上游内部诊断用 |
+
 ### 与 API v2 搜索对比
 
 | | API v2 `GET /search` | Cookie `GET /api/zsearch` |
@@ -352,7 +395,7 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | 认证 | Token | Cookie + ctoken |
 | 返回文档 | 摘要（需二次 get_doc） | 完整 `_record` |
 | 总数 | ❌ | ✅ `totalHits` |
-| 高亮摘要 | ❌ | ✅ `abstract` |
+| 高亮摘要 | ⚠️ `title`/`summary` 上游带 `<em>`，工具默认去标签 | ✅ `abstract`（另有去标签版 `abstract` + 原样 `abstract_html`） |
 | 搜用户 | ❌ | ✅ `type=user` |
 | 搜知识库 | ✅ `type=repo` | ✅ `type=book` |
 | scope 过滤 | ✅ | ✅ |
@@ -425,3 +468,64 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | `is:public` | `搜索 is:public` | 仅公开内容 |
 
 > ⚠️ `is:related` 和 `url:` 同时使用时，`url:` 会被忽略，仅召回 `is:related` 结果。
+
+---
+
+## RAG 检索（`yuque_rag_search`）
+
+> 端点：并发复用 `GET /api/v2/search` + 逐篇 `GET /api/v2/repos/docs/{id}`（Token 认证，不需要 Cookie）。
+> 实现：`server/src/search/rag-search.ts`、`server/src/search/rag-search-utils.ts`。
+
+**用途**：调用方 LLM 先自己生成 5–10 个关键词，本工具并发搜索、按 `doc_id` 去重合并，再取前 N 篇正文一次性返回，省掉多轮 `search` + `get_doc` 往返（总结由调用方 LLM 做，工具不做生成）。
+
+### 参数
+
+| 参数 | 类型 | 说明 | 默认 / 上限 |
+|------|------|------|-------------|
+| `keywords` | string | **必填**。关键词串，分隔符为逗号 `,`、中文逗号 `，`、顿号 `、` 或空白 | - |
+| `scope` | string | 搜索范围，语义同 `yuque_search` 的 `scope`（`group` 或 `group/book_slug`），留空全局 | - |
+| `creator` | string | 仅搜指定作者 login | - |
+| `max_results` | number | 合并去重后返回的结果条数 | 默认 10，上限 50 |
+| `fetch_docs` | number | 额外取前 N 篇正文 | 默认 3，上限 10 |
+
+关键词预处理（`normalizeKeywords`）：先去掉 `[](){}`、中英文引号、书名号一类纯符号；含 `-` `.` `_` 的关键词会**同时**生成「符号换空格」和「符号删掉」两个变体（语雀分词器对这类符号几乎不命中）；去重后最多保留 **10 个**关键词，多给的会被截断，实际使用的列表回显在 `meta.keywords_used`。
+
+### 返回结构
+
+```json
+{
+  "meta": {
+    "total": 10,
+    "method": "rag_search",
+    "keywords_used": ["符号过滤后实际使用的关键词"],
+    "raw_keywords": ["调用方传入的原始关键词"],
+    "docs_fetched": 3,
+    "errors": ["某一路搜索/取正文失败的原因（全部成功时该键不出现）"]
+  },
+  "data": [
+    {
+      "id": 0,
+      "doc_id": 0,
+      "title": "去 <em> 的标题",
+      "summary": "去 <em> 的摘要",
+      "url": "/user/book_slug/doc_slug",
+      "book_name": "知识库名",
+      "book_slug": "book_slug",
+      "updated_at": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "docs": [
+    {
+      "doc_id": 0,
+      "title": "标题",
+      "body": "正文全文（上游返回什么就放什么，不额外截断）",
+      "url": "https://www.yuque.com/{namespace}/{slug}",
+      "book_name": "知识库名"
+    }
+  ]
+}
+```
+
+- `data` 是各关键词返回结果按顺序交错后的合并去重列表（按 `doc_id` 去重），**不做相关性重排**。
+- `docs` 是按 `data` 顺序取前 `fetch_docs` 篇的正文；单篇失败只记进 `meta.errors`，其余照常返回。
+- 关键词分隔后为空数组时，直接返回 `{ "meta": { "total": 0, "method": "rag_search", "keywords_used": [], "errors": [] }, "data": [], "docs": [] }`，不请求上游。
