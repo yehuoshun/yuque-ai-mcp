@@ -18,7 +18,7 @@ export const docStatistics: McpTool = {
     type: "object",
     properties: {
       login: { type: "string", description: "Group login or ID (required)" },
-      bookId: { type: "number", description: "Filter by repository ID" },
+      bookId: { type: ["string", "number"], description: "Filter by repository ID. number 或数字字符串都接受" },
       name: { type: "string", description: "Filter by document name" },
       range: { type: "number", description: "Date range: 0=all, 30=last 30 days, 365=last year (default 0)" },
       page: { type: "number", description: "Page number, default 1" },

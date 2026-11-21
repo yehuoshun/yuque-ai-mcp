@@ -38,7 +38,7 @@ export const docCopySingle: McpTool = {
       paths: {
         type: "array",
         items: { type: "string" },
-        description: "Directory paths, e.g. [\"Java/Spring\",\"Database/MySQL\"]. 1-5 paths (required)",
+        description: "Directory paths, e.g. [\"Java/Spring\",\"Database/MySQL\"]. 0-5 paths: 传空数组表示复制到知识库根目录（不建目录、不挂 TOC）",
       },
       source_url: {
         type: "string",
@@ -49,7 +49,7 @@ export const docCopySingle: McpTool = {
         description: "Source document title for the footer link",
       },
     },
-    required: ["target_book_id", "title", "body", "format", "paths"],
+    required: ["target_book_id", "title", "body", "format"],
   },
 
   async handler(args) {
@@ -77,17 +77,40 @@ export const docCopySingle: McpTool = {
     } else {
       return pathsResult;
     }
-    if (paths.length === 0) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_PATHS", message: "paths 不能为空" }, null, 2) }],
-        isError: true,
-      };
-    }
-    paths = paths.slice(0, 5);
+    // 空数组 = 复制到知识库根目录：不建目录、不挂 TOC
+    const toRoot = paths.length === 0;
+    if (!toRoot) paths = paths.slice(0, 5);
 
     // 追尾源链接
     if (sourceUrl) {
       body = appendSourceLink(body, sourceUrl, sourceTitle || "原文档");
+    }
+
+    if (toRoot) {
+      const data = await apiPost(`/repos/${targetBookId}/docs`, { title, body, format }, "Copy doc to repo root");
+      if (isErrorResult(data)) return data;
+      const newDoc = (data as { data?: { id: number; slug: string } }).data;
+      if (!newDoc?.id) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "CREATE_FAILED", message: "文档创建返回无 ID" }, null, 2) }],
+          isError: true,
+        };
+      }
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            title,
+            target_book_id: targetBookId,
+            paths: [],
+            results: [{ path: "", doc_id: newDoc.id, slug: newDoc.slug }],
+            total: 1,
+            success: 1,
+            failed: 0,
+            toc: "skipped（paths 为空，复制到知识库根目录）",
+          }, null, 2),
+        }],
+      };
     }
 
     // 逐路径创建副本

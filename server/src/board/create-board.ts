@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPost } from "../common/api-client.js";
 import { handleApiCall } from "../common/format.js";
-import { check, requiredString } from "../common/validate.js";
+import { check, requiredString, optId, toIdNum } from "../common/validate.js";
 
 export const boardCreate: McpTool = {
   name: "yuque_create_board",
@@ -16,7 +16,7 @@ export const boardCreate: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      doc_id: { type: "number", description: "Document ID (mutually exclusive with url)" },
+      doc_id: { type: ["string", "number"], description: "Document ID (mutually exclusive with url). number 或数字字符串都接受" },
       url: { type: "string", description: "Document URL (mutually exclusive with doc_id)" },
       type: { type: "string", description: "Board type (required): mindmap, flowchart, architecturediagram" },
       dsl: { type: "string", description: "Board DSL text content (required), format depends on type" },
@@ -30,9 +30,10 @@ export const boardCreate: McpTool = {
     const __v = check(
       requiredString(args?.type, "type"),
       requiredString(args?.dsl, "dsl"),
+      optId(args?.doc_id, "doc_id"),
     );
     if (__v) return __v;
-    const docId = args?.doc_id as number | undefined;
+    const docId = args?.doc_id === undefined || args?.doc_id === null ? undefined : toIdNum(args.doc_id);
     const url = args?.url as string | undefined;
     const type = args?.type as string;
     const dsl = args?.dsl as string;

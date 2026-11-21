@@ -17,7 +17,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
-import { requiredString, check } from "../common/validate.js";
+import { requiredString, check, reqIdLike, toIdStr } from "../common/validate.js";
 import { resolveExportDir } from "../common/export-common.js";
 import { loadConfig } from "../common/config.js";
 import { extractResources, downloadFile } from "../common/export-common.js";
@@ -30,8 +30,8 @@ export const docExportResources: McpTool = {
     type: "object",
     properties: {
       id: {
-        type: "string",
-        description: "Document ID or slug (required)",
+        type: ["string", "number"],
+        description: "Document ID or slug (required). number 或字符串都接受",
       },
       book_id: {
         type: "string",
@@ -50,12 +50,12 @@ export const docExportResources: McpTool = {
 
     // @validate
     const __v = check(
-      requiredString(args?.id, "id"),
+      reqIdLike(args?.id, "id"),
       requiredString(args?.output_dir, "output_dir"),
     );
     if (__v) return __v;
 
-    const id = args?.id as string;
+    const id = toIdStr(args?.id);
     // 围栏：导出目录必须落在 YUQUE_EXPORT_ROOT（默认 cwd）之内，防止参数被注入后写到系统目录
     const dirGuard = resolveExportDir(args?.output_dir as string);
     if (dirGuard.error) {

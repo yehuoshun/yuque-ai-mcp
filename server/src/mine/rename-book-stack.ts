@@ -21,17 +21,17 @@ export const mineRenameBookStack: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      stack_id: { type: "number", description: "分组 ID（书架 ID，必填）" },
+      stack_id: { type: ["string", "number"], description: "分组 ID（书架 ID，必填）。number 或数字字符串都接受" },
       name: { type: "string", description: "新名称（必填）" },
     },
     required: ["stack_id", "name"],
   },
 
   async handler(args?: Record<string, unknown>) {
-    const stackId = args?.stack_id as number | undefined;
+    const stackId = args?.stack_id as number | string | undefined;
     const name = args?.name as string | undefined;
 
-    if (!stackId) {
+    if (stackId === undefined || stackId === null || stackId === "") {
       return {
         content: [{ type: "text" as const, text: "错误：stack_id 是必填参数" }],
         isError: true,

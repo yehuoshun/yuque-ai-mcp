@@ -8,7 +8,7 @@
 import type { McpTool } from "../common/types.js";
 import { confirmationParam, checkConfirmation } from "../common/errors.js";
 import { apiPut } from "../common/api-client.js";
-import { positiveInt, optionalBoolean } from "../common/validate.js";
+import { reqId, optionalBoolean, toIdNum } from "../common/validate.js";
 import { formatNote, handleApiCall } from "../common/format.js";
 
 
@@ -19,7 +19,7 @@ export const noteUpdate: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      note_id: { type: "number", description: "Note ID (required)" },
+      note_id: { type: ["string", "number"], description: "Note ID (required). number 或数字字符串都接受" },
       body: { type: "string", description: "New content (plain text or Markdown, unchanged if omitted)" },
       status: { type: "number", description: "Status: 0=active, 9=deleted (unchanged if omitted)" },
       confirm: confirmationParam.confirm,
@@ -30,11 +30,11 @@ export const noteUpdate: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = positiveInt(args?.note_id, "note_id")
+    const __v = reqId(args?.note_id, "note_id")
       || optionalBoolean(args?.raw, "raw");
     if (__v) return __v;
     const raw = args?.raw as boolean | undefined;
-    const noteId = args?.note_id as number;
+    const noteId = toIdNum(args?.note_id);
     const body = args?.body as string | undefined;
     const status = args?.status as number | undefined;
 

@@ -28,6 +28,7 @@ import {
 import { buildTocDocDirMap } from "./export-toc.js";
 import { buildIndexMd } from "./export-index.js";
 import { buildGraphMd, extractYuqueLinks } from "./export-graph.js";
+import { reqIdLike, toIdStr } from "../common/validate.js";
 
 // ─── 主工具 ────────────────────────────────────────────
 
@@ -39,8 +40,8 @@ export const repoExport: McpTool = {
     type: "object",
     properties: {
       book_id: {
-        type: "string",
-        description: "Repository ID (numeric) or namespace like group/book_slug (required)",
+        type: ["string", "number"],
+        description: "Repository ID (numeric) or namespace like group/book_slug (required). number 或字符串都接受",
       },
       output_dir: {
         type: "string",
@@ -60,7 +61,9 @@ export const repoExport: McpTool = {
 
   async handler(args) {
     const cfg = loadConfig();
-    const bookId = args?.book_id as string;
+    const __v = reqIdLike(args?.book_id, "book_id");
+    if (__v) return __v;
+    const bookId = toIdStr(args?.book_id);
     const downloadImages = args?.download_images !== false;
     const rawBody = args?.raw_body === true;
 

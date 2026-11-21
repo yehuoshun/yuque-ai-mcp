@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { isErrorResult } from "../common/api-client.js";
 import { webRequest } from "../common/web-request.js";
-import { positiveInt } from "../common/validate.js";
+import { reqId, toIdNum } from "../common/validate.js";
 import { MINE_BASE } from "./common.js";
 
 const RECYCLE_REFERER = "https://www.yuque.com/dashboard/recycles";
@@ -19,16 +19,16 @@ export const recycleRestore: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      recycle_id: { type: "number", description: "Recycle bin item ID (required)" },
+      recycle_id: { type: ["string", "number"], description: "Recycle bin item ID (required). number 或数字字符串都接受" },
     },
     required: ["recycle_id"],
   },
 
   async handler(args) {
     // @validate
-    const __v = positiveInt(args?.recycle_id, "recycle_id");
+    const __v = reqId(args?.recycle_id, "recycle_id");
     if (__v) return __v;
-    const recycleId = args?.recycle_id as number;
+    const recycleId = toIdNum(args?.recycle_id);
 
     const restoreResult = await webRequest(`${MINE_BASE}/${recycleId}/restore`, { method: "PUT", referer: RECYCLE_REFERER });
     if (isErrorResult(restoreResult)) return restoreResult;
