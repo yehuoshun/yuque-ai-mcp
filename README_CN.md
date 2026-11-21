@@ -60,6 +60,21 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 > 开发时用 `npm run dev:http` 启动 `tsx` 热重载；该模式与生产同一入口，**同样必须设置 `YUQUE_MCP_HTTP_TOKEN`**，否则进程直接退出。
 
+### 从 npm 安装（不必克隆仓库）
+
+```bash
+npm install -g yuque-ai-mcp
+yuque-mcp            # stdio 传输
+yuque-mcp-http       # HTTP SSE 传输（需 YUQUE_MCP_HTTP_TOKEN）
+
+# 也可以用 npx 直接跑，不装到全局
+npx -y -p yuque-ai-mcp yuque-mcp
+```
+
+包内提供两个可执行入口：`yuque-mcp`（stdio，MCP 客户端填这个）与 `yuque-mcp-http`（SSE）。配置查找顺序：`--config <path>` → `./yuque-config.json` → `~/.yuque-mcp/config.json`（Token 只能写在配置文件里，没有对应的环境变量，也不会读 `YUQUE_TOKEN`）。
+
+**Windows**：客户端配置不认 `npx` 时，用 `"command": "npx.cmd"`（PowerShell）或 `"command": "node", "args": ["C:/path/to/node_modules/yuque-ai-mcp/dist/cli.js"]`；PowerShell 执行策略拦 `.ps1` 时也调用 `npx.cmd`。
+
 ### 导出目录围栏
 
 `yuque_export_repo` / `yuque_export_doc` / `yuque_export_resources` 的 `output_dir` 只允许写在工作目录（或 `YUQUE_EXPORT_ROOT` 指定目录）之内，越界的绝对路径会返回 `INVALID_OUTPUT_DIR` 而不是落盘。需要写到别处时显式设置：

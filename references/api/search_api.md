@@ -3,7 +3,7 @@
 > 基地址：`https://www.yuque.com/api/v2`
 
 > 本文覆盖三个工具：`yuque_search`（API v2 `GET /search`）、`yuque_web_search`（Cookie 态 `GET /api/zsearch`）、`yuque_rag_search`（多关键词并发 + 取正文，见文末）。
-> 文中两处「返回结构」写的是**语雀 HTTP 响应**；MCP 工具输出会再裁剪一层（见各节「MCP 工具输出」）。
+> 「返回结构」写的是**语雀 HTTP 响应**；MCP 工具输出会再裁剪一层——`yuque_search` 见「通用搜索」节末的「MCP 工具输出」，`yuque_web_search` 见「Cookie 态 Web 搜索」节的同名小节，`yuque_rag_search` 见文末。
 
 ## 通用搜索
 
@@ -28,6 +28,8 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 | `creator` | query | string | 仅搜索指定作者 login（筛选） | - |
 | `creatorId` | query | int | Deprecated，仅搜索指定作者 ID | - |
 | `offset` | query | int | Deprecated，同 `page`，勿用 | 1-100 |
+
+> 表中 `creatorId` / `offset` 是**上游**参数，MCP 工具 `yuque_search` 的 schema 只有 `q`、`type`、`scope`、`page`、`creator` 五项（`search/search.ts:18-28`，必填 `["q","type"]`），传 `creatorId` / `offset` 不会生效。
 
 ### scope 说明
 
@@ -232,6 +234,36 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 | `updated_at` | string | 更新时间 (ISO 8601) |
 | `user` | object | V2User，创建者 |
 | `namespace` | string | 完整路径 |
+
+### MCP 工具输出（`yuque_search`）
+
+工具把每条命中拍平成 13 个字段，整体仍是 `{ meta, data[] }`（`common/format.ts:174-190` 的 `formatSearchResult`，由 `search/search.ts:46` 的 `handleApiCall` 包装）：
+
+```json
+{
+  "meta": { "total": 0 },
+  "data": [
+    {
+      "id": 0,
+      "title": "标题（已去 <em>）",
+      "summary": "摘要（已去 <em>）",
+      "url": "文档链接",
+      "info": "…",
+      "doc_id": 0,
+      "slug": "doc_slug",
+      "book_id": 0,
+      "book_name": "知识库名",
+      "book_slug": "book_slug",
+      "namespace": "user/book_slug",
+      "word_count": 0,
+      "updated_at": "…"
+    }
+  ]
+}
+```
+
+与上游的差异：`title` / `summary` 去掉了 `<em>` 高亮；`doc_id` / `slug` / `book_id` / `book_name` / `book_slug` / `namespace` / `word_count` / `updated_at` 全部取自上游的 `target`（`latest_version_id`、`type` 等字段不输出）；`updated_at` 优先取 `target.content_updated_at`，没有再取 `target.updated_at`。要上游全量结构请直接用 HTTP 按上面「返回结构」自行请求——本工具**没有** `raw` 参数。
+
 ---
 
 ## Cookie 态 Web 搜索
@@ -385,7 +417,7 @@ GET /api/zsearch?q={q}&type={type}&scope={scope}&p={p}&sence=searchPage
 | `data.totalHits` | `meta.total` | 精确总命中数 |
 | `data.numHits` | `meta.num_hits` | 当前页命中数 |
 | `data.hits[].abstract` | `abstract` + `abstract_html` | `abstract` 已去 `<em>`；`abstract_html` 保留原标签 |
-| `data.hits[]._record` | `doc` | **键名是 `doc`，不是 `_record`**，且只保留 16 个字段；要完整对象请用 `yuque_get_doc` 或 `raw=true` |
+| `data.hits[]._record` | `doc` | **键名是 `doc`，不是 `_record`**，且只保留 16 个字段；要完整对象请用 `yuque_get_doc`（`yuque_web_search` 本身没有 `raw` 参数，schema 只有 `q`/`type`/`scope`/`p`） |
 | `data.errorHits` / `message` / `info` | 不输出 | 仅上游内部诊断用 |
 
 ### 与 API v2 搜索对比

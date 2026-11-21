@@ -172,11 +172,13 @@
 }
 ```
 
-**行为与校验**：与 `update_book_stack` 同一端点，同样**200 + `{}` 假成功**；工具回查 `GET /api/mine/book_stacks`，轮询 3 次、每次间隔 1500ms（`mine/sort-book-stack.ts:60-89`）。
+**行为与校验**：与 `update_book_stack` 同一端点，同样**200 + `{}` 假成功**；工具回查 `GET /api/mine/book_stacks`，轮询 3 次、每次间隔 1500ms（`mine/sort-book-stack.ts:62-94`）。
 
-> ⚠️ **回查只校验成员、不校验顺序**：判定条件是「传入的每个 `book_id` 都出现在该分组的 `books` 集合里」（`mine/sort-book-stack.ts:70-71` 的 `bookIds.every((id) => got.has(id))`），**没有**比对 `books` 数组的实际次序。因此 `success: true` 只代表成员齐全，**不代表顺序真的按传入顺序生效**；上面的成功文案（「已按传入顺序排序」）措辞强于实际校验能力。要确认顺序请自己再调 `yuque_get_book_stacks` 看 `books` 顺序。
+> ✅ **回查同时校验成员与顺序**：先判成员是否齐全（`mine/sort-book-stack.ts:72-74` 的 `got` 与 `bookIds.every((id) => got.has(id))`），齐了再把每个 `book_id` 在分组 `books` 数组里的下标取出来逐个比较（`mine/sort-book-stack.ts:75-76` 的 `positions` / `inOrder`）——下标必须严格递增，顺序不符就不返回成功。
 
-> 3 次回查后仍有 `book_id` 不在该分组时返回 `isError`，文本为：`移动失败：分组 {stack_id} 内缺少部分知识库（已重试 3 次），缺失: {id, id}`（`mine/sort-book-stack.ts:91-100`）。
+> 两类失败都返回 `isError`，分别对应两种文本：
+> - 成员不齐：`移动失败：分组 {stack_id} 内缺少部分知识库（已重试 3 次），缺失: {id, id}`（`mine/sort-book-stack.ts:96-98`）；
+> - 成员齐但顺序不符：`排序未生效：分组 {stack_id} 内成员都在，但顺序与传入不一致；实际顺序: {id, id}（move 接口只回 200，需上游支持排序）`（`mine/sort-book-stack.ts:97-99`），文案自带实际顺序，便于判断是上游完全不排序还是只排了一部分。
 
 ### create_book_stack
 

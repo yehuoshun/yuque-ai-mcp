@@ -86,6 +86,8 @@ Content-Type: multipart/form-data（流式构造，零依赖）
 | `FILE_NOT_FOUND` | 路径不存在/不可读 | `detail` |
 | `FILE_TOO_LARGE` | 超工具预检上限 | `path` |
 | `UPLOAD_FAILED` | 上游非 2xx | `status`、`message`（响应体前 200 字符） |
+| `UPLOAD_NO_FILEKEY` | 上游 200 但响应里没有 `filekey`（也就拼不出任何可用链接） | `message`（响应体前 200 字符） |
+| `UPLOAD_BAD_RESPONSE` | 200 但响应体不是 JSON（典型是 cookie 失效被重定向到 HTML 登录页） | `message` |
 | `UPLOAD_TIMEOUT` | 超 25 分钟未完成 | `message` |
 | `NETWORK_ERROR` | 网络异常 | `message` |
 
