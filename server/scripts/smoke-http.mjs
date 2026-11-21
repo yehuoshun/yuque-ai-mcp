@@ -39,6 +39,45 @@ add("/sse 无凭据 401 且不回 CORS 通配", sseNoAuth && sseNoAuth.status ==
 const health = await fetch("http://127.0.0.1:" + PORT + "/health").catch(() => null);
 add("/health 公开可达", health && health.ok, health ? health.status : "no response");
 
+// 走完一次真实握手：SSE 拿到 endpoint 后再 POST /message，
+// 这条用例专门盯「token 只在 /sse 生效、/message 全 401」那个坑（endpoint 必须自带凭据）
+let sessionOk = false;
+let sessionDetail = "no sse";
+try {
+  const ac = new AbortController();
+  const sseRes = await fetch(`http://127.0.0.1:${PORT}/sse?token=${encodeURIComponent(TOKEN)}`, { signal: ac.signal });
+  const reader = sseRes.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let endpoint = "";
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline && !endpoint) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value);
+    const m = /event: endpoint\ndata: (\S+)/.exec(buf);
+    if (m) endpoint = m[1];
+  }
+  if (endpoint) {
+    const post = await fetch(new URL(endpoint, `http://127.0.0.1:${PORT}`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "smoke", version: "1" } } }),
+    });
+    // 202 Accepted 是 SSEServerTransport 对 POST /message 的正常应答（消息入队即返回）
+  sessionOk = post.status === 200 || post.status === 202;
+    sessionDetail = endpoint + " -> " + post.status;
+    await post.text().catch(() => "");
+  } else {
+    sessionDetail = "no endpoint event";
+  }
+  ac.abort();
+  await reader.cancel().catch(() => {});
+} catch (e) {
+  sessionDetail = String(e).slice(0, 120);
+}
+add("SSE endpoint 自带凭据（initialize 能 POST 通）", sessionOk && /token=/.test(sessionDetail), sessionDetail);
+
 child.kill("SIGTERM");
 await wait(300);
 try { child.kill("SIGKILL"); } catch {}

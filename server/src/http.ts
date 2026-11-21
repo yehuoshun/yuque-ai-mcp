@@ -94,7 +94,13 @@ const httpServer = createServer(async (req, res) => {
 
   // SSE: GET /sse → 建立 SSE 长连接
   if (req.method === "GET" && url.pathname === "/sse") {
-    const transport = new SSEServerTransport("/message", res);
+    // 把共享密钥编进 endpoint：EventSource 建连时只能带 query（?token=），
+    // 而客户端后续 POST /message 是按这条 endpoint 的 URL 原样发（不会继承 /sse 的 query），
+    // 若 endpoint 里没有 token，握手能过、每条消息都 401。SDK 会再追加 &sessionId=xxx。
+    const transport = new SSEServerTransport(
+      `/message?token=${encodeURIComponent(AUTH_TOKEN)}`,
+      res,
+    );
     const sessionServer = createMcpServer();
     transports.set(transport.sessionId, transport);
     res.on("close", () => transports.delete(transport.sessionId));
@@ -127,7 +133,7 @@ const httpServer = createServer(async (req, res) => {
 const server = httpServer.listen(PORT, HOST, () => {
   console.error(`yuque-ai-mcp HTTP Server 已启动: http://${HOST}:${PORT}`);
   console.error(`  SSE: GET http://${HOST}:${PORT}/sse?token=<YUQUE_MCP_HTTP_TOKEN>`);
-  console.error(`  Message: POST http://${HOST}:${PORT}/message?sessionId=xxx`);
+  console.error(`  Message: POST http://${HOST}:${PORT}/message?token=<YUQUE_MCP_HTTP_TOKEN>&sessionId=xxx`);
   console.error(`  Health: GET http://${HOST}:${PORT}/health`);
 });
 
@@ -166,3 +172,14 @@ async function gracefulShutdown(signal: string) {
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// 未捕获异常兜底：请求处理里有 await（connect / handlePostMessage），
+// Node 15+ 对 unhandledRejection 默认直接杀进程，长跑服务会静默消失且不留线索。
+process.on("unhandledRejection", (reason) => {
+  console.error("未处理的 Promise 拒绝:", reason);
+  void gracefulShutdown("unhandledRejection");
+});
+process.on("uncaughtException", (err) => {
+  console.error("未捕获异常:", err);
+  void gracefulShutdown("uncaughtException");
+});
