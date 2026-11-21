@@ -96,7 +96,7 @@ npm run start:http
 | **stdio**（生产） | `npm start` | MCP Client 子进程启动 | 标准 MCP 协议，适合 Claude Desktop、Cursor、OpenClaw 等 |
 | **stdio**（开发） | `npm run dev` | 开发调试 | tsx 热重载 |
 | **HTTP SSE**（开发） | `npm run dev:http` | 开发调试 | 端口 3099，tsx 热重载 |
-| **HTTP SSE**（生产） | `npm run start:http` | 独立 HTTP 服务 | 端口 3099，适合需要独立服务进程的场景 |
+| **HTTP SSE**（生产） | `npm run start:http` | 独立 HTTP 服务 | 端口 3099，**必须设置 YUQUE_MCP_HTTP_TOKEN**，默认只绑 127.0.0.1 |
 
 ## 验证安装
 
@@ -109,12 +109,12 @@ curl http://localhost:3099/health
 正常返回：
 
 ```json
-{"status":"ok","version":"2.14.1","tools":62,"domains":{"user":3,"search":3,"group":3,"doc":15,"toc":3,"repo":8,"statistic":4,"note":4,"recycle":3,"upload":1,"board":3,"mine":4,"web_doc":8}}
+{"status":"ok","version":"4.0.0","tools":65,"domains":{"user":3,"search":3,"group":3,"doc":15,"toc":3,"repo":8,"statistic":4,"note":4,"recycle":3,"upload":1,"board":3,"mine":7,"web_doc":8}}
 ```
 
 ### 工具列表验证
 
-服务启动后可通过 MCP Client 的 `list_tools` 或 `tools/list` 接口查看全部 62 个工具。
+服务启动后可通过 MCP Client 的 `list_tools` 或 `tools/list` 接口查看全部 65 个工具。
 
 ## 集成到 MCP Client
 
@@ -133,13 +133,13 @@ curl http://localhost:3099/health
 }
 ```
 
-或使用 HTTP 模式：
+或使用 HTTP 模式（服务端须先设置 `YUQUE_MCP_HTTP_TOKEN`；能设请求头的客户端用 `Authorization: Bearer <token>`）：
 
 ```json
 {
   "yuque": {
     "transport": "http",
-    "url": "http://localhost:3099/sse"
+    "url": "http://127.0.0.1:3099/sse?token=<YUQUE_MCP_HTTP_TOKEN>"
   }
 }
 ```

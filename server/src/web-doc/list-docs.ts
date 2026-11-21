@@ -101,9 +101,16 @@ export const webDocList: McpTool = {
     const items = res?.data ?? [];
     const meta = res?.meta ?? {};
 
+    // total 原来是「本页条数」，调用方无法判断是否还有下一页；这里改成上游 total（拿不到则 null
+    // 并标 total_is_partial），同时补 returned / has_more，超过 limit 的返回一律本地切片。
+    const honoredByUpstream = items.length <= limit;
+    const page = honoredByUpstream ? items : items.slice(offset, offset + limit);
+    const total = honoredByUpstream ? ((meta as { total?: number }).total ?? null) : items.length;
+    const hasMore = honoredByUpstream ? items.length >= limit : items.length > offset + limit;
+
     if (raw) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ meta, data: items }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ meta, total, offset, limit, returned: page.length, has_more: hasMore, data: page }, null, 2) }],
       };
     }
 
@@ -113,10 +120,13 @@ export const webDocList: McpTool = {
           type: "text" as const,
           text: JSON.stringify({
             meta,
-            total: items.length,
+            total,
+            total_is_partial: honoredByUpstream && (meta as { total?: number }).total === undefined,
             offset,
             limit,
-            data: items.map(formatDocSummary),
+            returned: page.length,
+            has_more: hasMore,
+            data: page.map(formatDocSummary),
           }, null, 2),
         },
       ],

@@ -60,6 +60,21 @@ npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 
 > 开发时用 `npm run dev:http` 启动 `tsx` 热重载。
 
+### HTTP / SSE 模式必须配置访问令牌
+
+`dist/http.js` 会把全部工具暴露到网络上，因此**没有令牌会拒绝启动**：
+
+```bash
+export YUQUE_MCP_HTTP_TOKEN="$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")"
+npm run start:http                        # 默认只绑 127.0.0.1:3099
+curl http://127.0.0.1:3099/health         # /health 保持公开
+curl -N "http://127.0.0.1:3099/sse?token=$YUQUE_MCP_HTTP_TOKEN"
+```
+
+能自定义请求头的客户端请用 `Authorization: Bearer <token>`（浏览器的 `EventSource` 无法设置请求头，才需要 query 参数）。
+可选环境变量：`HOST`（默认 `127.0.0.1`）、`PORT`（默认 `3099`）、
+`YUQUE_MCP_CORS_ORIGINS`（逗号分隔的来源白名单；留空表示不回任何 CORS 头）。
+
 ## 工具概览
 
 | 域 | 工具数 | 亮点 |

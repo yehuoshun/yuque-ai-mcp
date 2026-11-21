@@ -29,6 +29,45 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * 该请求是否幂等（可以安全重放）。
+ * 只有 GET/HEAD/OPTIONS 能无副作用重试；POST/PUT/DELETE/PATCH 重放会重复建文档、
+ * 重复上传、重复删除，所以只在 429（服务端明确拒收、请求未生效）时重试。
+ */
+function isIdempotent(options: RequestInit): boolean {
+  const method = String(options.method ?? "GET").toUpperCase();
+  return method === "GET" || method === "HEAD" || method === "OPTIONS";
+}
+
+/**
+ * 读取响应体并解析 JSON。
+ * 204 空 body（DELETE 成功常见）返回 null，避免 et.json() 抛 SyntaxError 被当成网络错误；
+ * 非 JSON（网关 HTML 错误页）返回结构化 isError，明确标成「响应格式异常」而不是 NETWORK_ERROR。
+ */
+async function parseJsonResponse(
+  res: Response,
+  context: string,
+): Promise<unknown | { content: Array<{ type: "text"; text: string }>; isError: true }> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify({
+          error: "INVALID_RESPONSE",
+          message: `响应不是合法 JSON / Response is not valid JSON: ${context}`,
+          status: res.status,
+          body: text.slice(0, 200),
+        }, null, 2),
+      }],
+      isError: true,
+    };
+  }
+}
+
 /** 执行 fetch 并自动重试。导出供外部 URL 请求（import-url）复用 */
 export async function fetchWithRetry(
   url: string,
@@ -41,7 +80,9 @@ export async function fetchWithRetry(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
-    if (shouldRetry(res) && attempt <= MAX_RETRIES) {
+    // 幂等请求才重试 5xx/网络异常；非幂等请求只在 429 时重试（服务端拒收、未生效）
+    const retryable = shouldRetry(res) && (isIdempotent(options) || res.status === 429);
+    if (retryable && attempt <= MAX_RETRIES) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
       // 重试日志仅在 DEBUG 环境变量设置时输出
       if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次失败 (${res.status})，${delay}ms 后重试`);
@@ -50,7 +91,8 @@ export async function fetchWithRetry(
     }
     return res;
   } catch (err) {
-    if (attempt <= MAX_RETRIES) {
+    // 网络异常/超时时无法确认写请求是否已落库，非幂等请求直接抛出，不重放
+    if (isIdempotent(options) && attempt <= MAX_RETRIES) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
       if (process.env.DEBUG) console.error(`[RETRY] ${context} 第 ${attempt} 次网络异常，${delay}ms 后重试`);
       await sleep(delay);
@@ -110,7 +152,7 @@ export async function apiGet(
     const url = buildUrl(path, params);
     const res = await fetchWithRetry(url, { headers: authHeaders() }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -131,7 +173,7 @@ export async function apiPost(
       body: JSON.stringify(body),
     }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -152,7 +194,7 @@ export async function apiPut(
       body: JSON.stringify(body),
     }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -171,7 +213,7 @@ export async function apiDelete(
       headers: authHeaders(),
     }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -192,7 +234,7 @@ export async function apiUpload(
       body: formData,
     }, ctx);
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -241,7 +283,7 @@ export async function apiPostWithFallback(
     }
 
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }
@@ -269,7 +311,7 @@ export async function apiGetWithFallback(
     }
 
     if (!res.ok) return handleApiError(res, ctx);
-    return res.json();
+    return parseJsonResponse(res, ctx);
   } catch (err) {
     return networkError(ctx, err);
   }

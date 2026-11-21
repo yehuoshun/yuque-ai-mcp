@@ -19,6 +19,33 @@ function lockKey(bookId: string, title: string, parentUuid?: string): string {
   return `${bookId}::${title}::${parentUuid ?? "__root__"}`;
 }
 
+// ─── 写操作回读校验 ────────────────────────────────────
+
+/**
+ * 回读 TOC，确认 docIds 全部挂在 targetUuid 之下（targetUuid 为 null 表示根目录）。
+ * 语雀的 TOC 写接口存在「HTTP 200 但没生效」的假成功（见 references/api/toc_api.md:155/:160），
+ * 所有移动/挂载类操作都必须回读校验后才能对调用方报成功。
+ */
+async function verifyDocPlacement(
+  bookId: string,
+  targetUuid: string | null,
+  docIds: number[],
+): Promise<{ ok: boolean; missing: number[] }> {
+  invalidateTocCache(bookId);
+  let nodes: Array<Record<string, unknown>> = [];
+  try {
+    nodes = await getTocCached(bookId);
+  } catch {
+    return { ok: false, missing: docIds };
+  }
+  const missing = docIds.filter((docId) => {
+    const node = nodes.find((n) => n.doc_id === docId);
+    if (!node) return true;
+    return String(node.parent_uuid ?? "") !== (targetUuid ?? "");
+  });
+  return { ok: missing.length === 0, missing };
+}
+
 // ─── 目录查找 ──────────────────────────────────────────
 
 /**
@@ -360,8 +387,14 @@ export async function executeOp(
           moved.push(docId);
         }
 
-        invalidateTocCache(opBookId);
-        return { success: true, detail: `挂载文档 ${moved.join(",")} 到目录（先挂根再移）` };
+        const verified = await verifyDocPlacement(opBookId, targetUuid, docIds);
+        if (!verified.ok) {
+          return {
+            success: false,
+            error: `挂载未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
+          };
+        }
+        return { success: true, detail: `挂载文档 ${moved.join(",")} 到目录（已回读校验）` };
       }
 
       // 无目标目录：直接挂到根目录
@@ -432,8 +465,14 @@ export async function executeOp(
         moved.push(docId);
       }
 
-      invalidateTocCache(opBookId);
-      return { success: true, detail: `首插文档 ${moved.join(",")} 到目录（先挂根再 prepend）` };
+      const verified = await verifyDocPlacement(opBookId, targetUuid, docIds);
+      if (!verified.ok) {
+        return {
+          success: false,
+          error: `首插未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
+        };
+      }
+      return { success: true, detail: `首插文档 ${moved.join(",")} 到目录（已回读校验）` };
     }
 
     case "removeNode": {

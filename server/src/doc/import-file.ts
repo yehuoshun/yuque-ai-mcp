@@ -7,7 +7,7 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, dirname } from "node:path";
 import type { McpTool } from "../common/types.js";
 import { apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf, check, idsArgToArray } from "../common/validate.js";
@@ -120,7 +120,8 @@ export const docImportFile: McpTool = {
     }
 
     // ── 2. 提取引用 + 按模式处理 ──
-    const refs = extractLocalRefs(body, filePath);
+    // 第二个参数是「基准目录」：原来误传文件路径，导致 upload_assets 模式下所有相对引用都解析失败
+    const refs = extractLocalRefs(body, dirname(filePath));
     const assetResults = await processAssets(mode, refs, bookId, cfg);
 
     // 如果 processAssets 返回了错误（如 NO_COOKIE），直接返回
