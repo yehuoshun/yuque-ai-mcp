@@ -26,7 +26,7 @@ export const webDocDelete: McpTool = {
     "DELETE /api/docs/{id}?book_id={book_id}. " +
     "No membership required, alternative to v2 delete_doc when Token is rate-limited/expired. " +
     "⚠️ Requires confirm='DELETE'. " +
-    "详见 references/api/doc_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

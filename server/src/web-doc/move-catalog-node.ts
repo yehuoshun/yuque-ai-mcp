@@ -19,7 +19,7 @@ const MOVE_REFERER = "https://www.yuque.com/";
 
 /**
  * 回读目标库 TOC，确认节点真的落到目标目录下。
- * PUT /api/catalog_nodes/move 会「假成功」（HTTP 200 但节点没动，见 references/api/toc_api.md:155/:160），
+ * PUT /api/catalog_nodes/move 会「假成功」（HTTP 200 但节点没动，详见 references/api/web_doc_api.md），
  * 所以必须回读校验，不能把请求被接受当成移动完成。
  */
 async function verifyNodeUnderTarget(

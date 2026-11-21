@@ -44,7 +44,7 @@ export const webTocGet: McpTool = {
     "Cookie-based: Get repo TOC tree (flat array, navigable via uuid/parent_uuid/child_uuid). " +
     "Same structure as v2 get_toc, but no membership required. " +
     "GET /api/catalog_nodes?book_id={book_id}. " +
-    "详见 references/api/toc_api.md",
+    "详见 references/api/web_doc_api.md",
 
   inputSchema: {
     type: "object",

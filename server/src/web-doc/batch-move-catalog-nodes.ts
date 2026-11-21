@@ -19,7 +19,7 @@ const CATALOG_REFERER = "https://www.yuque.com/";
 /**
  * 回读目标库 TOC，确认这批节点真的落到 targetUuid 之下。
  * PUT /api/catalog_nodes/batch 只要 HTTP 200 就返回，实际可能一个都没动
- * （见 references/api/toc_api.md:155/:160），不能把请求条数当成移动条数。
+ * （详见 references/api/web_doc_api.md），不能把请求条数当成移动条数。
  */
 async function verifyNodesUnderTarget(
   bookId: string | number,
