@@ -8,6 +8,8 @@
 GET /api/v2/user
 ```
 
+> **MCP 工具输出（`yuque_get_user`）**：默认只返回 7 个字段——`id`、`login`、`name`、`description`、`avatar_url`、`books_count`、`followers_count`（`server/src/common/format.ts` 的 `formatUser`）；`type`、`public_books_count`、`following_count`、`public`、`created_at`、`updated_at` 这些字段只有传 `raw: true` 才会透传。下面写的是语雀 HTTP 响应的全量结构。
+
 **返回结构**：
 
 ```json
@@ -89,6 +91,8 @@ GET /api/v2/users/{id}/groups?role={role}&offset={offset}
 | `offset` | query | int | 偏移量（分页） | 0 |
 
 > PageSize 固定为 100。
+
+> **MCP 工具输出（`yuque_get_user_groups`）**：默认每个团队只返回 `id`、`login`、`name`、`description`、`avatar_url`（`formatUserGroup`），`raw: true` 取全量。
 
 **返回结构**：
 

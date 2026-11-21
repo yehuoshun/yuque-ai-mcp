@@ -68,14 +68,14 @@ GET /api/v2/groups/{login}/statistics
 | `baike` | 百科全书卷数 |
 | `table_count` | 数据表数量 |
 
-以下指标也适用时间维度规则（_count, _count_30, _count_365）：`write`, `read`, `comment`, `like`, `follow`, `collect`
+以下指标也适用时间维度规则（后缀见文首「统计字段命名规则」表；每个指标支持到 `_count_7` / `_count_30` / `_count_365` 的哪一档以实际返回字段为准，下文按指标逐一列出）：`write`, `read`, `comment`, `like`, `follow`, `collect`
 
 ---
 
 ## 团队成员统计数据
 
 ```http
-GET /api/v2/groups/{login}/statistics/members?range={range}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
+GET /api/v2/groups/{login}/statistics/members?range={range}&name={name}&page={page}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
 ```
 
 **用途**：获取团队成员维度的统计数据，支持姓名过滤、时间范围和排序。
@@ -108,7 +108,7 @@ GET /api/v2/groups/{login}/statistics/members?range={range}&sortField={sortField
 ## 团队知识库统计数据
 
 ```http
-GET /api/v2/groups/{login}/statistics/books?range={range}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
+GET /api/v2/groups/{login}/statistics/books?range={range}&name={name}&page={page}&sortField={sortField}&sortOrder={sortOrder}&limit={limit}
 ```
 
 **用途**：获取团队知识库维度的统计数据，支持名称过滤、时间范围和排序。
