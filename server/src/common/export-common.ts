@@ -165,9 +165,27 @@ export function formatFrontMatter(doc: {
 
 // ─── 辅助函数 ─────────────────────────────────────────
 
-/** 安全文件名：去除非法字符 */
+/** 安全文件名：去除非法字符、按 UTF-8 字节截断、去掉结尾点与空格
+ *  Linux（ext4/xfs、Docker overlayfs）单个文件名上限是 255 字节，不是 255 个字符：
+ *  200 个汉字 = 600 字节，按字符截断在 Linux 上会 ENAMETOOLONG 导致整篇导出失败。
+ *  这里按 180 字节截断给 ".md" 和去重后缀留余量，并且不切断代理对/多字节序列。 */
 export function sanitizeFilename(name: string): string {
-  return name.replace(/[<>:"/\\|?*]/g, "_").substring(0, 200);
+  let out = name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").trim();
+  // Windows 不允许结尾的点与空格（Linux 允许），交叉导出时统一去掉
+  out = out.replace(/[. ]+$/, "");
+  const encoder = new TextEncoder();
+  if (encoder.encode(out).length > 180) {
+    let bytes = 0;
+    let cut = "";
+    for (const ch of out) {
+      const n = encoder.encode(ch).length;
+      if (bytes + n > 180) break;
+      bytes += n;
+      cut += ch;
+    }
+    out = cut;
+  }
+  return out || "untitled";
 }
 
 /** 简单 HTML → Markdown 转换 */
