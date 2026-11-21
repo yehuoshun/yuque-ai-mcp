@@ -97,12 +97,21 @@ export const webRepoList: McpTool = {
 
     if (isErrorResult(result)) return result;
 
-    const res = result as { data?: Array<Record<string, unknown>> };
+    const res = result as { data?: Array<Record<string, unknown>>; meta?: Record<string, unknown> };
     const items = res?.data ?? [];
+    const meta = res?.meta ?? {};
+
+    // 上游 /api/books 实测忽略 offset/limit（limit=1 仍返回全部 787 条、约 715 KB），
+    // 因此「返回条数 > 请求的 limit」说明上游没分页，必须在本地再切一刀，
+    // 否则单次调用就能把整个书架塞进上下文（约 18 万 token）。
+    const honoredByUpstream = items.length <= limit;
+    const page = honoredByUpstream ? items : items.slice(offset, offset + limit);
+    const total = honoredByUpstream ? (meta.total as number | undefined) ?? null : items.length;
+    const hasMore = honoredByUpstream ? items.length >= limit : items.length > offset + limit;
 
     if (raw) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ total: items.length, data: items }, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ total, offset, limit, returned: page.length, has_more: hasMore, data: page }, null, 2) }],
       };
     }
 
@@ -111,10 +120,13 @@ export const webRepoList: McpTool = {
         {
           type: "text" as const,
           text: JSON.stringify({
-            total: items.length,
+            total,
+            total_is_partial: honoredByUpstream && meta.total === undefined,
             offset,
             limit,
-            data: items.map(formatRepo),
+            returned: page.length,
+            has_more: hasMore,
+            data: page.map(formatRepo),
           }, null, 2),
         },
       ],
