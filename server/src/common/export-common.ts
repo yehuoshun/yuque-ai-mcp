@@ -68,15 +68,39 @@ export interface DownloadResult {
   error?: string;
 }
 
+// 语雀的图片/附件只会落在这些域名上。原实现对 body_html 里抽出的任意 URL 都附带用户认证头去下载：
+// 文档正文里写一个 <img src="https://attacker/"> 就能拿到用户 token（同时也构成 SSRF）。
+const TRUSTED_RESOURCE_HOSTS = (process.env.YUQUE_TRUSTED_RESOURCE_HOSTS || "yuque.com,nlark.com,yuque.net")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+/** 只允许 https/http + 白名单域名；IP 字面量、localhost、内网主机名一律拒绝 */
+export function isTrustedResourceUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (/^[\d.]+$/.test(host) || host.includes(":") || host === "localhost" || host.endsWith(".localhost")) return false;
+  return TRUSTED_RESOURCE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
 export async function downloadFile(
   url: string,
   destPath: string,
-  token: string,
+  _token?: string,
 ): Promise<DownloadResult> {
+  // 下载资源不携带任何凭据（语雀 CDN 的图片本来就是签名 URL，不需要 token）
+  if (!isTrustedResourceUrl(url)) {
+    return { url, localPath: destPath, success: false, error: "非语雀资源域名，已跳过下载（不发送任何凭据）" };
+  }
   try {
     const res = await fetchWithRetry(url, {
       headers: {
-        "X-Auth-Token": token,
         "User-Agent": "yuque-ai-mcp/2.1.0",
       },
     }, `Download: ${url}`);
