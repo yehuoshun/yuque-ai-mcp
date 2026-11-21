@@ -9,8 +9,8 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { join, dirname, extname, basename } from "node:path";
-import { execSync } from "node:child_process";
+import { join, dirname, extname, basename, resolve, sep } from "node:path";
+import { execFileSync } from "node:child_process";
 import { apiPost, apiGet, isErrorResult, fetchWithRetry } from "../common/api-client.js";
 
 // ─── 类型 ──────────────────────────────────────────────
@@ -140,7 +140,8 @@ export function parseAttachmentContent(filePath: string, ext: string): string {
   // PDF: 尝试用 pdftotext
   if (ext === ".pdf") {
     try {
-      const text = execSync(`pdftotext -layout "${filePath}" -`, {
+      // execFileSync + 参数数组：不经 shell，filePath 里的引号、分号、$( ) 都不会变成命令
+      const text = execFileSync("pdftotext", ["-layout", filePath, "-"], {
         encoding: "utf-8",
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
@@ -154,10 +155,11 @@ export function parseAttachmentContent(filePath: string, ext: string): string {
   // docx: 尝试用 pandoc
   if (ext === ".docx") {
     try {
-      const text = execSync(`pandoc "${filePath}" -t markdown --wrap=none 2>/dev/null`, {
+      const text = execFileSync("pandoc", [filePath, "-t", "markdown", "--wrap=none"], {
         encoding: "utf-8",
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "ignore"],
       });
       if (text.trim()) return text.trim();
     } catch {
@@ -170,14 +172,15 @@ export function parseAttachmentContent(filePath: string, ext: string): string {
     try {
       const script = `
 import openpyxl, sys
-wb = openpyxl.load_workbook("${filePath}", data_only=True)
+wb = openpyxl.load_workbook(sys.argv[1], data_only=True)
 for name in wb.sheetnames:
     ws = wb[name]
     print(f"## {name}")
     for row in ws.iter_rows(values_only=True):
         print(" | ".join(str(c) if c is not None else "" for c in row))
 `;
-      const text = execSync(`python3 -c "${script.replace(/"/g, '\\"')}"`, {
+      // 路径通过 argv 传入（sys.argv[1]），脚本内不再有任何字符串插值
+      const text = execFileSync("python3", ["-c", script, filePath], {
         encoding: "utf-8",
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
@@ -192,8 +195,9 @@ for name in wb.sheetnames:
   if (ext === ".pptx") {
     try {
       const script = `
+import sys
 from pptx import Presentation
-prs = Presentation("${filePath}")
+prs = Presentation(sys.argv[1])
 for i, slide in enumerate(prs.slides, 1):
     print(f"## 幻灯片 {i}")
     for shape in slide.shapes:
@@ -207,7 +211,8 @@ for i, slide in enumerate(prs.slides, 1):
             for row in table.rows:
                 print(" | ".join(cell.text for cell in row.cells))
 `;
-      const text = execSync(`python3 -c "${script.replace(/"/g, '\\"')}"`, {
+      // 路径通过 argv 传入（sys.argv[1]），脚本内不再有任何字符串插值
+      const text = execFileSync("python3", ["-c", script, filePath], {
         encoding: "utf-8",
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
@@ -220,10 +225,11 @@ for i, slide in enumerate(prs.slides, 1):
 
   // 通用降级：pandoc
   try {
-    const text = execSync(`pandoc "${filePath}" -t markdown --wrap=none 2>/dev/null`, {
+    const text = execFileSync("pandoc", [filePath, "-t", "markdown", "--wrap=none"], {
       encoding: "utf-8",
       timeout: 30_000,
       maxBuffer: 10 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
     });
     if (text.trim()) return text.trim();
   } catch {
@@ -234,6 +240,17 @@ for i, slide in enumerate(prs.slides, 1):
 }
 
 // ─── 引用提取 ──────────────────────────────────────────
+
+/**
+ * 把 Markdown 里的本地引用解析成绝对路径，并强制限制在 baseDir 内。
+ * 逃出基准目录（../、外部绝对路径、Windows 盘符路径）一律返回空串，由调用方标记失败。
+ */
+function resolveLocalRef(baseDir: string, rawPath: string): string {
+  const base = resolve(baseDir);
+  const target = resolve(base, rawPath);
+  if (target !== base && !target.startsWith(base + sep)) return "";
+  return target;
+}
 
 /** 从 Markdown 内容中提取本地引用（图片 + 附件） */
 export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
@@ -249,9 +266,7 @@ export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
     if (seen.has(rawPath)) continue;
     seen.add(rawPath);
 
-    const absolutePath = rawPath.startsWith("/")
-      ? rawPath
-      : join(baseDir, rawPath);
+    const absolutePath = resolveLocalRef(baseDir, rawPath);
     const ext = extname(rawPath).toLowerCase();
 
     refs.push({
@@ -259,6 +274,7 @@ export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
       absolutePath,
       type: "image",
       ext,
+      ...(absolutePath ? {} : { error: `引用路径超出导入目录，已跳过: ${rawPath}` }),
     });
   }
 
@@ -271,9 +287,7 @@ export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
     if (seen.has(rawPath)) continue;
     seen.add(rawPath);
 
-    const absolutePath = rawPath.startsWith("/")
-      ? rawPath
-      : join(baseDir, rawPath);
+    const absolutePath = resolveLocalRef(baseDir, rawPath);
     const ext = extname(rawPath).toLowerCase();
 
     // 判断是图片还是附件
@@ -285,6 +299,7 @@ export function extractLocalRefs(md: string, baseDir: string): AssetRef[] {
       absolutePath,
       type,
       ext,
+      ...(absolutePath ? {} : { error: `引用路径超出导入目录，已跳过: ${rawPath}` }),
     });
   }
 
@@ -340,6 +355,10 @@ export async function processAssets(
     } catch { /* 继续 */ }
 
     for (const ref of refs) {
+      if (ref.error) {
+        results.push({ original: ref.originalPath, type: ref.type, error: ref.error });
+        continue;
+      }
       if (!existsSync(ref.absolutePath)) {
         results.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
         continue;
@@ -367,6 +386,10 @@ export async function processAssets(
   if (mode === "embed_assets") {
     for (const ref of refs) {
       try {
+        if (ref.error) {
+          results.push({ original: ref.originalPath, type: ref.type, error: ref.error });
+          continue;
+        }
         if (!existsSync(ref.absolutePath)) {
           results.push({ original: ref.originalPath, type: ref.type, error: "文件不存在" });
           continue;
