@@ -5,9 +5,25 @@
  */
 
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { unescapeHtml } from "./text-utils.js";
 import { fetchWithRetry } from "./api-client.js";
+
+// ─── 导出目录围栏 ───────────────────────────────────────
+
+/**
+ * 解析并校验导出目录：必须落在 YUQUE_EXPORT_ROOT（默认进程 cwd）之内。
+ * 三个导出工具（export_repo / export_doc / export_resources）共用，
+ * 避免「只给 export_repo 加了围栏、另外两个仍可写任意绝对路径」的绕过面。
+ */
+export function resolveExportDir(rawOutputDir: string): { dir: string; error?: string } {
+  const root = resolve(process.env.YUQUE_EXPORT_ROOT || process.cwd());
+  const dir = resolve(root, rawOutputDir);
+  if (dir !== root && !dir.startsWith(root + sep)) {
+    return { dir, error: `output_dir 必须位于 ${root} 之内（可设置 YUQUE_EXPORT_ROOT 放宽）: ${dir}` };
+  }
+  return { dir };
+}
 
 // ─── 资源提取 ─────────────────────────────────────────
 
