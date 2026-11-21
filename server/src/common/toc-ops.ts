@@ -30,10 +30,11 @@ async function verifyDocPlacement(
   bookId: string,
   targetUuid: string | null,
   docIds: number[],
-): Promise<{ ok: boolean; missing: number[] }> {
+): Promise<{ ok: boolean; missing: number[]; unavailable?: boolean }> {
   // 上游目录写接口是最终一致的：刚 PUT 完立刻回读经常还是旧结构，
   // 实测（2026-11-21 临时知识库）成功移动会被判成「未生效」。故轮询 3 次再下结论。
   let missing = docIds;
+  let unavailable = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt));
     invalidateTocCache(bookId);
@@ -42,6 +43,7 @@ async function verifyDocPlacement(
       nodes = await getTocCached(bookId);
     } catch {
       missing = docIds;
+      unavailable = true;
       continue;
     }
     missing = docIds.filter((docId) => {
@@ -51,7 +53,38 @@ async function verifyDocPlacement(
     });
     if (missing.length === 0) return { ok: true, missing: [] };
   }
-  return { ok: false, missing };
+  return { ok: false, missing, unavailable };
+}
+
+/**
+ * 回读 TOC，确认 nodeUuid 挂在 targetUuid 之下（moveNode 用：手上只有 node_uuid）。
+ * 与 verifyDocPlacement 同一套轮询策略；返回 state 以便区分「没落位」和「读不到」。
+ */
+async function verifyNodePlacement(
+  bookId: string,
+  targetUuid: string | null,
+  nodeUuid: string,
+): Promise<{ ok: boolean; state: "ok" | "not_applied" | "unavailable"; observedParent: string | null }> {
+  let last: { ok: boolean; state: "ok" | "not_applied" | "unavailable"; observedParent: string | null } = {
+    ok: false, state: "not_applied", observedParent: null,
+  };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt));
+    invalidateTocCache(bookId);
+    let nodes: Array<Record<string, unknown>> = [];
+    try {
+      nodes = await getTocCached(bookId);
+    } catch {
+      last = { ok: false, state: "unavailable", observedParent: null };
+      continue;
+    }
+    const node = nodes.find((n) => n.uuid === nodeUuid);
+    if (!node) { last = { ok: false, state: "not_applied", observedParent: null }; continue; }
+    const parent = String(node.parent_uuid ?? "");
+    if (parent === (targetUuid ?? "")) return { ok: true, state: "ok", observedParent: parent || null };
+    last = { ok: false, state: "not_applied", observedParent: parent || null };
+  }
+  return last;
 }
 
 // ─── 目录查找 ──────────────────────────────────────────
@@ -312,6 +345,7 @@ export interface OpResult {
   detail?: string;
   error?: string;
   new_node_uuid?: string;
+  observed_parent_uuid?: string | null;
 }
 
 // ─── 批量 op 执行 ─────────────────────────────────────
@@ -323,7 +357,7 @@ export interface OpResult {
 export async function executeOp(
   op: TocOp,
   bookId: string,
-): Promise<{ success: boolean; detail?: string; error?: string; new_node_uuid?: string }> {
+): Promise<{ success: boolean; detail?: string; error?: string; new_node_uuid?: string; observed_parent_uuid?: string | null }> {
   switch (op.action) {
     case "createTitle": {
       const opBookId = (op as any).book_id || bookId;
@@ -399,7 +433,9 @@ export async function executeOp(
         if (!verified.ok) {
           return {
             success: false,
-            error: `挂载未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
+            error: verified.unavailable
+              ? `挂载结果无法确认（回读 TOC 失败，请手动 list_toc 核对）: 目标目录 ${targetUuid}`
+              : `挂载未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
           };
         }
         return { success: true, detail: `挂载文档 ${moved.join(",")} 到目录（已回读校验）` };
@@ -477,7 +513,9 @@ export async function executeOp(
       if (!verified.ok) {
         return {
           success: false,
-          error: `首插未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
+          error: verified.unavailable
+            ? `首插结果无法确认（回读 TOC 失败，请手动 list_toc 核对）: 目标目录 ${targetUuid}`
+            : `首插未生效（回读 TOC 校验失败）: 目标目录 ${targetUuid}，未落位文档 ${verified.missing.join(",")}`,
         };
       }
       return { success: true, detail: `首插文档 ${moved.join(",")} 到目录（已回读校验）` };
@@ -559,10 +597,19 @@ export async function executeOp(
         return { success: false, error: `移动节点失败: ${nodeUuid}` };
       }
 
-      invalidateTocCache(opBookId);
+      const verified = await verifyNodePlacement(opBookId, targetUuid ?? null, nodeUuid);
+      if (!verified.ok) {
+        return {
+          success: false,
+          error: verified.state === "unavailable"
+            ? `移动结果无法确认（回读 TOC 失败，请手动 list_toc 核对）: 节点 ${nodeUuid}`
+            : `移动未生效（回读 TOC 校验失败）: 节点 ${nodeUuid} 不在目标目录 ${targetUuid ?? "(根目录)"} 下（回读显示当前父目录：${verified.observedParent === undefined ? "未知" : (verified.observedParent ?? "根目录")}，可用 yuque_get_toc 复核）`,
+          observed_parent_uuid: verified.observedParent,
+        };
+      }
       const detail = !node
-        ? `移动游离节点: doc_id=${nodeDocId} → 目标目录`
-        : `移动节点: ${nodeUuid}`;
+        ? `移动游离节点: doc_id=${nodeDocId} → 目标目录（已回读校验）`
+        : `移动节点: ${nodeUuid}（已回读校验）`;
       return { success: true, detail };
     }
 
