@@ -9,7 +9,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import type { McpTool } from "../common/types.js";
-import { apiPost, isErrorResult } from "../common/api-client.js";
+import { apiGet, apiPost, isErrorResult } from "../common/api-client.js";
 import { requiredString, oneOf, check, idsArgToArray } from "../common/validate.js";
 import { loadConfig } from "../common/config.js";
 import { ensureDirectoryPath, appendDocToToc } from "../common/toc-ops.js";
@@ -18,6 +18,28 @@ import {
   extractLocalRefs,
   processAssets,
 } from "./import-file-utils.js";
+
+/**
+ * 解析知识库在语雀网页端的链接前缀：https://www.yuque.com/<namespace>
+ *
+ * namespace 形如 login/book_slug（个人库）或 group/book_slug（团队库），取自 GET /repos/{book_id}。
+ * 以前这里写死成某个账号（https://www.yuque.com/<某账号>/<book_id>/<slug>），换账号或导入团队库时，
+ * embed_assets 模式生成的所有附件链接都会指向错误空间；取不到 namespace 时退回入参 book_id。
+ */
+async function resolveRepoLinkBase(bookId: string): Promise<string> {
+  try {
+    const res = await apiGet(`/repos/${bookId}`, undefined, "Get repo for embed link base");
+    if (!isErrorResult(res)) {
+      const ns = (res as { data?: { namespace?: string } }).data?.namespace;
+      if (typeof ns === "string" && ns.trim()) {
+        return `https://www.yuque.com/${ns.trim()}`;
+      }
+    }
+  } catch {
+    // 拿不到就退回 book_id，至少不会指向别人账号下的路径
+  }
+  return `https://www.yuque.com/${bookId}`;
+}
 
 export const docImportFile: McpTool = {
   name: "yuque_import_file",
@@ -141,12 +163,18 @@ export const docImportFile: McpTool = {
     let assetsEmbedded = 0;
     let assetsFailed = 0;
 
+    // embed_assets 模式的链接前缀按知识库真实 namespace 生成（个人库 login/book_slug、团队库 group/book_slug），
+    // 只在真有附件被转成文档时才查一次，direct / upload_assets 模式不额外发请求。
+    const embedLinkBase = assetResults.some((r) => r.embedDocId && r.embedDocSlug)
+      ? await resolveRepoLinkBase(bookId)
+      : "";
+
     for (const result of assetResults) {
       if (result.cdnUrl) {
         finalBody = finalBody.replaceAll(result.original, result.cdnUrl);
         assetsUploaded++;
       } else if (result.embedDocId) {
-        const yuqueLink = `https://www.yuque.com/yehuoshun/${bookId}/${result.embedDocSlug}`;
+        const yuqueLink = `${embedLinkBase}/${result.embedDocSlug}`;
         finalBody = finalBody.replaceAll(result.original, yuqueLink);
         assetsEmbedded++;
       } else if (result.error) {
