@@ -58,7 +58,15 @@ npm start              # stdio 模式
 npm run dev:http       # HTTP SSE 模式 (http://localhost:3099)
 ```
 
-> 开发时用 `npm run dev:http` 启动 `tsx` 热重载。
+> 开发时用 `npm run dev:http` 启动 `tsx` 热重载；该模式与生产同一入口，**同样必须设置 `YUQUE_MCP_HTTP_TOKEN`**，否则进程直接退出。
+
+### 导出目录围栏
+
+`yuque_export_repo` / `yuque_export_doc` / `yuque_export_resources` 的 `output_dir` 只允许写在工作目录（或 `YUQUE_EXPORT_ROOT` 指定目录）之内，越界的绝对路径会返回 `INVALID_OUTPUT_DIR` 而不是落盘。需要写到别处时显式设置：
+
+```bash
+export YUQUE_EXPORT_ROOT="/path/to/exports"
+```
 
 ### HTTP / SSE 模式必须配置访问令牌
 

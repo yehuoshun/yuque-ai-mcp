@@ -82,7 +82,8 @@ npm start
 # Stdio 模式（开发，tsx 热重载）
 npm run dev
 
-# HTTP SSE 模式（开发，端口 3099，tsx 热重载）
+# HTTP SSE 模式（开发，端口 3099，tsx 热重载，同样必须设置 YUQUE_MCP_HTTP_TOKEN）
+export YUQUE_MCP_HTTP_TOKEN="<随机字符串>"
 npm run dev:http
 
 # HTTP SSE 模式（生产，端口 3099）
@@ -95,7 +96,7 @@ npm run start:http
 |------|------|------|------|
 | **stdio**（生产） | `npm start` | MCP Client 子进程启动 | 标准 MCP 协议，适合 Claude Desktop、Cursor、OpenClaw 等 |
 | **stdio**（开发） | `npm run dev` | 开发调试 | tsx 热重载 |
-| **HTTP SSE**（开发） | `npm run dev:http` | 开发调试 | 端口 3099，tsx 热重载 |
+| **HTTP SSE**（开发） | `npm run dev:http` | 开发调试 | 端口 3099，tsx 热重载，**同样必须设置 YUQUE_MCP_HTTP_TOKEN**（与生产同一入口） |
 | **HTTP SSE**（生产） | `npm run start:http` | 独立 HTTP 服务 | 端口 3099，**必须设置 YUQUE_MCP_HTTP_TOKEN**，默认只绑 127.0.0.1 |
 
 ## 验证安装

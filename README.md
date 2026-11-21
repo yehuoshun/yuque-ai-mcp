@@ -55,7 +55,15 @@ npm start              # stdio mode
 npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 ```
 
-> **Note**: `npm run dev:http` uses `tsx` for hot-reload during development.
+> **Note**: `npm run dev:http` uses `tsx` for hot-reload during development, but it shares the production HTTP entry — it **also requires `YUQUE_MCP_HTTP_TOKEN`** or the process exits.
+
+### Export output is sandboxed by default
+
+`yuque_export_repo` / `yuque_export_doc` / `yuque_export_resources` only write inside the current working directory (or `YUQUE_EXPORT_ROOT`); absolute paths outside it return `INVALID_OUTPUT_DIR` instead of writing. To allow another location:
+
+```bash
+export YUQUE_EXPORT_ROOT="/path/to/exports"
+```
 
 ### HTTP / SSE mode requires an access token
 
