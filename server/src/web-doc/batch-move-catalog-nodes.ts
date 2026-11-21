@@ -16,6 +16,32 @@ import { check, requiredString, optionalString, fail } from "../common/validate.
 
 const CATALOG_REFERER = "https://www.yuque.com/";
 
+/**
+ * 回读目标库 TOC，确认这批节点真的落到 targetUuid 之下。
+ * PUT /api/catalog_nodes/batch 只要 HTTP 200 就返回，实际可能一个都没动
+ * （见 references/api/toc_api.md:155/:160），不能把请求条数当成移动条数。
+ */
+async function verifyNodesUnderTarget(
+  bookId: string | number,
+  nodeUuids: string[],
+  targetUuid: string,
+): Promise<{ moved: string[]; notMoved: string[]; error?: string }> {
+  const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
+  const result = await webRequest(url, { referer: CATALOG_REFERER });
+  if (isErrorResult(result)) {
+    return { moved: [], notMoved: nodeUuids, error: "回读目标库 TOC 失败" };
+  }
+  const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
+  const moved: string[] = [];
+  const notMoved: string[] = [];
+  for (const uuid of nodeUuids) {
+    const node = nodes.find((n) => n.uuid === uuid);
+    if (node && String(node.parent_uuid ?? "") === targetUuid) moved.push(uuid);
+    else notMoved.push(uuid);
+  }
+  return { moved, notMoved };
+}
+
 export const webBatchMoveCatalogNodes: McpTool = {
   name: "yuque_web_batch_move_catalog_nodes",
   description:
@@ -149,10 +175,32 @@ export const webBatchMoveCatalogNodes: McpTool = {
 
     if (isErrorResult(result)) return result;
 
+    // 回读校验：只报实际落位的节点，避免把「请求条数」当成「移动条数」
+    const targetUuid = args!.target_uuid as string;
+    const verified = await verifyNodesUnderTarget(targetBookId, nodeUuids, targetUuid);
+    if (verified.notMoved.length > 0) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          success: false,
+          error: "BATCH_MOVE_PARTIAL_OR_NOT_APPLIED",
+          message: `接口返回成功，但回读 TOC 后 ${nodeUuids.length} 个节点里有 ${verified.notMoved.length} 个不在目标目录 ${targetUuid} 下 / Batch move not verified`,
+          book_id: bookId,
+          target_book_id: targetBookId,
+          target_uuid: targetUuid,
+          moved_count: verified.moved.length,
+          moved: verified.moved,
+          not_moved: verified.notMoved,
+          verify_error: verified.error,
+        }, null, 2) }],
+        isError: true,
+      };
+    }
+
     return {
       content: [{ type: "text" as const, text: JSON.stringify({
         success: true,
-        moved_count: nodeUuids.length,
+        verified: true,
+        moved_count: verified.moved.length,
         node_uuids: nodeUuids,
         target_uuid: args!.target_uuid,
         book_id: bookId,

@@ -17,6 +17,28 @@ import { check, requiredString, optionalString, optionalBoolean } from "../commo
 
 const MOVE_REFERER = "https://www.yuque.com/";
 
+/**
+ * 回读目标库 TOC，确认节点真的落到目标目录下。
+ * PUT /api/catalog_nodes/move 会「假成功」（HTTP 200 但节点没动，见 references/api/toc_api.md:155/:160），
+ * 所以必须回读校验，不能把请求被接受当成移动完成。
+ */
+async function verifyNodeUnderTarget(
+  bookId: string | number,
+  nodeUuid: string,
+  targetUuid: string | null,
+): Promise<{ ok: boolean; found: boolean; observedParent: string | null; error?: string }> {
+  const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
+  const result = await webRequest(url, { referer: MOVE_REFERER });
+  if (isErrorResult(result)) {
+    return { ok: false, found: false, observedParent: null, error: "回读目标库 TOC 失败" };
+  }
+  const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
+  const node = nodes.find((n) => n.uuid === nodeUuid);
+  if (!node) return { ok: false, found: false, observedParent: null };
+  const parent = String(node.parent_uuid ?? "");
+  return { ok: parent === (targetUuid ?? ""), found: true, observedParent: parent || null };
+}
+
 export const webMoveCatalogNode: McpTool = {
   name: "yuque_web_move_catalog_node",
   description:
@@ -114,9 +136,28 @@ export const webMoveCatalogNode: McpTool = {
 
     if (isErrorResult(result)) return result;
 
+    const verify = await verifyNodeUnderTarget(targetBookId, args!.node_uuid as string, targetUuid);
+    if (!verify.ok) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({
+          success: false,
+          error: "MOVE_NOT_APPLIED",
+          message: `接口返回成功，但回读 TOC 校验未通过：节点未出现在目标目录 ${targetUuid ?? "(根目录)"} 下 / Move not verified`,
+          book_id: bookId,
+          target_book_id: targetBookId,
+          node_uuid: args!.node_uuid,
+          target_uuid: targetUuid,
+          node_found_in_target: verify.found,
+          observed_parent_uuid: verify.observedParent,
+        }, null, 2) }],
+        isError: true,
+      };
+    }
+
     return {
       content: [{ type: "text" as const, text: JSON.stringify({
         success: true,
+        verified: true,
         book_id: bookId,
         target_book_id: targetBookId,
         node_uuid: args!.node_uuid,
