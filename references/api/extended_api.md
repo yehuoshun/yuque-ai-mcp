@@ -40,28 +40,46 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| `file_path` | string | ✅ | 本地文件绝对路径（`.md` / `.html`）；文件不存在报 `FILE_NOT_FOUND`，读失败报 `READ_ERROR` |
 | `book_id` | string | ✅ | 目标知识库 ID 或 namespace |
-| `file_path` | string | ✅ | 本地文件绝对路径 |
-| `mode` | string | ❌ | 导入模式：`direct` / `upload_assets` / `embed_assets`，默认 `direct` |
-| `paths` | string | ❌ | JSON 数组，TOC 目录路径，如 `["收集/技术"]` |
-| `public` | number | ❌ | 可见性：0=私密，1=公开，2=团队内公开 |
-| `slug` | string | ❌ | 自定义文档 slug |
-| `format` | string | ❌ | 文档格式：`markdown` / `lake` / `html`，默认 markdown |
+| `paths` | string[] | ✅ | TOC 目录路径，如 `["收集/技术"]`；1-5 个（超过 5 个截断为前 5 个），空数组报 `INVALID_PATHS`；也接受 JSON 字符串 `"[\"收集/技术\"]"` |
+| `mode` | string | ❌ | 导入模式：`direct` / `upload_assets` / `embed_assets`，默认 `direct`；其他取值直接报错 |
+| `title` | string | ❌ | 文档标题，默认取文件名去扩展名；都取不到时为 `无标题` |
+| `slug` | string | ❌ | 自定义文档 slug，省略则由语雀自动生成 |
+| `format` | string | ❌ | 文档格式：`markdown` / `lake` / `html`，默认 `markdown` |
 
 ### 返回
 
 ```json
 {
-  "doc_id": 123456,
-  "title": "文档标题",
-  "slug": "slug",
   "mode": "upload_assets",
-  "images_uploaded": 3,
-  "images_failed": 0,
-  "attachments_embedded": 1,
-  "path": "收集/技术"
+  "source_file": "D:/docs/demo.md",
+  "title": "demo",
+  "book_id": "80346623",
+  "paths": ["收集/技术"],
+  "assets": {
+    "total": 4,
+    "uploaded": 3,
+    "embedded": 1,
+    "failed": 0,
+    "details": [
+      { "original": "images/a.png", "type": "image", "cdnUrl": "https://cdn.nlark.com/xxx" },
+      { "original": "files/spec.pdf", "type": "attachment", "embedDocId": 654321, "embedDocSlug": "spec" }
+    ]
+  },
+  "results": [
+    { "path": "收集/技术", "doc_id": 123456, "slug": "abc123" }
+  ],
+  "total": 1,
+  "success": 1,
+  "failed": 0
 }
 ```
+
+- 没有顶层 `doc_id` / `slug` / `images_uploaded` / `attachments_embedded` 字段：单篇结果在 `results[]` 里，资源统计在 `assets` 里。
+- `results[]` 每个 path 一条，成功含 `doc_id` / `slug`，失败含 `error`；TOC 挂载失败但文档已建时多一个 `warning`。
+- `assets.total` 是本地引用总数；`assets.details[]` 逐条给出 `original` / `type`，外加 `cdnUrl`（上传成功）、`embedDocId` + `embedDocSlug`（附件转文档）或 `error`（失败）。
+- `upload_assets` 模式缺 Cookie / ctoken 时直接返回 `{ "error": "NO_COOKIE", … }`，不建文档。
 
 ---
 
@@ -83,21 +101,31 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `book_id` | string | ✅ | 目标知识库 ID 或 namespace |
-| `url` | string | ✅ | 网页 URL |
-| `paths` | string | ✅ | JSON 数组，1-5 个目录路径 |
-| `public` | number | ❌ | 可见性，默认继承知识库设置 |
-| `format` | string | ❌ | 文档格式，默认 `markdown` |
+| `url` | string | ✅ | 网页 URL；抓取失败报 `FETCH_URL_FAILED`（HTTP 非 2xx）/ `FETCH_URL_ERROR`（网络异常） |
+| `paths` | string[] | ✅ | TOC 目录路径，1-5 个（超过 5 个截断），空数组报 `INVALID_PATHS` |
+| `title` | string | ❌ | 文档标题，默认取网页 `<title>`，取不到时用域名 |
+| `format` | string | ❌ | 文档格式：`markdown` / `html`，默认 `markdown` |
 
 ### 返回
 
 ```json
 {
-  "doc_id": 123456,
+  "source_url": "https://example.com/article",
+  "source_title": "页面标题",
   "title": "页面标题",
-  "url": "https://example.com/article",
-  "path": "收集/技术文章"
+  "book_id": "80346623",
+  "paths": ["收集/技术文章"],
+  "results": [
+    { "path": "收集/技术文章", "doc_id": 123456, "slug": "abc123" }
+  ],
+  "total": 1,
+  "success": 1,
+  "failed": 0
 }
 ```
+
+- `source_title` 是抓取到的网页标题，`title` 是最终落库标题（传了 `title` 则为传入值）。
+- 正文末尾会自动追加「原文」链接；`results[]` 失败项带 `error`，TOC 挂载异常带 `warning`。
 
 ---
 
@@ -116,8 +144,11 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `id` | string | ✅ | 文档 ID 或 slug |
-| `output_dir` | string | ✅ | 输出目录路径 |
-| `raw_body` | boolean | ❌ | 直接输出原始 body 字段，默认 false |
+| `book_id` | string | ❌ | 知识库 ID 或 namespace，schema 标注「用 slug 定位文档时推荐填写」（当前实现只按 id 请求，book_id 尚未拼进请求路径） |
+| `output_dir` | string | ✅ | 输出目录路径，文件名固定为 `<output_dir>/<标题>.md` |
+| `raw_body` | boolean | ❌ | 直接用 body 字段，不做 body_html → Markdown 转换，默认 `false` |
+
+`output_dir` 由 `resolveExportDir()` 校验：入参可传相对或绝对路径，解析后必须等于或位于 `YUQUE_EXPORT_ROOT`（默认 `process.cwd()`）之下，越界返回 `INVALID_OUTPUT_DIR`。返回体里的 `output_dir` / `file` 是**解析后的绝对路径**，与入参写法无关。
 
 ### 返回
 
@@ -125,8 +156,8 @@
 {
   "status": "done",
   "doc": { "id": "123", "slug": "my-doc", "title": "文档标题", "format": "markdown" },
-  "output_dir": "./export/my-doc",
-  "file": "./export/my-doc/文档标题.md",
+  "output_dir": "D:/notes/export/my-doc",
+  "file": "D:/notes/export/my-doc/文档标题.md",
   "word_count": 1500,
   "note": "图片/附件引用保留原始 URL。如需下载资源，请调用 yuque_export_resources"
 }
@@ -157,7 +188,10 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `id` | string | ✅ | 文档 ID 或 slug |
-| `output_dir` | string | ✅ | 资源保存目录 |
+| `book_id` | string | ❌ | 知识库 ID 或 namespace，schema 标注「用 slug 定位文档时推荐填写」（当前实现只按 id 请求，book_id 尚未拼进请求路径） |
+| `output_dir` | string | ✅ | 资源保存目录，资源落到 `<output_dir>/images/` 与 `<output_dir>/attachments/` |
+
+`output_dir` 由 `resolveExportDir()` 校验：入参可传相对或绝对路径，解析后必须等于或位于 `YUQUE_EXPORT_ROOT`（默认 `process.cwd()`）之下，越界返回 `INVALID_OUTPUT_DIR`；返回体里的 `output_dir` / `mapping[].localPath` 是**解析后的绝对路径**。
 
 ### 返回
 
@@ -165,15 +199,18 @@
 {
   "status": "done",
   "doc": { "id": "123", "title": "文档标题" },
-  "output_dir": "./export/my-doc",
+  "output_dir": "D:/notes/export/my-doc",
   "resources_total": 3,
   "downloaded": 2,
   "failed": 1,
   "mapping": [
-    { "url": "https://cdn.../img.png", "localPath": "images/img.png", "type": "image", "success": true }
+    { "url": "https://cdn.../img.png", "localPath": "D:/notes/export/my-doc/images/img.png", "type": "image", "success": true }
   ]
 }
 ```
+
+- `mapping[].localPath` 是**绝对落盘路径**（已 join 到 `output_dir` 下），失败项含 `error`；已存在的文件不重复下载，但仍计入 `mapping` 且 `success: true`。
+- 文档无 `body_html` 时返回 `{ "status": "skipped", "doc": {…}, "message": "文档无 body_html 内容，无需下载资源", "output_dir": …, "resources": [], "downloaded": 0, "failed": 0 }`，此时没有 `mapping` / `resources_total` 字段。
 
 ---
 
@@ -181,39 +218,66 @@
 
 ### 端点
 
-`GET /api/v2/repos/:book_id/docs`（分页获取文档列表）  
+`GET /api/v2/repos/:book_id`（获取知识库信息：slug / name）  
+`GET /api/v2/repos/:book_id/toc`（获取 TOC 目录树）  
+`GET /api/v2/repos/:book_id/docs`（分页获取文档列表，`offset` + `limit=100`）  
 `GET /api/v2/repos/docs/:id`（逐个获取文档内容）
 
 ### 流程
 
-1. 分页获取全部文档列表
-2. 逐个获取文档详情
-3. 下载图片/附件
-4. 输出 Markdown 文件 + 资源目录 + 导出报告
+1. 获取知识库信息（slug / name）与 TOC 目录树
+2. 分页获取全部文档列表（`offset` + `limit=100`，取到不满一页为止）
+3. 并发（5）逐个获取文档详情
+4. 下载图片/附件，成功的替换为本地相对路径，失败的保留原链接
+5. 按 TOC 目录结构落盘 Markdown；同目录同名文档追加 `-<doc_id>` 去重
+6. 生成 `INDEX.md`、`GRAPH.md`（已存在且非本工具生成的同名文件会先改名备份）
+7. 输出导出报告
 
 ### 参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `book_id` | string | ✅ | 知识库 ID 或 namespace |
-| `output_dir` | string | ❌ | 输出目录，默认 `/tmp/yuque-export/<book_slug>` |
-| `download_images` | boolean | ❌ | 是否下载图片，默认 `true` |
-| `raw` | boolean | ❌ | 返回原始 JSON，默认 `false` |
+| `output_dir` | string | ❌ | 输出目录，默认 `./yuque-export/<book_slug>`（相对进程 cwd） |
+| `download_images` | boolean | ❌ | 是否下载图片/附件，默认 `true` |
+| `raw_body` | boolean | ❌ | 直接用 body 字段，不做 body_html → Markdown 转换，默认 `false` |
+
+`output_dir` 由 `resolveExportDir()` 校验：入参可传相对或绝对路径，解析后必须位于 `YUQUE_EXPORT_ROOT`（默认 `process.cwd()`）之下，越界返回 `INVALID_OUTPUT_DIR`；返回体里的 `output_dir` / `index_file` / `graph_file` / `files[].file` 都是**解析后的绝对路径**。默认值里的 `<book_slug>` 取知识库 `slug`，取不到时用 `book_id` 把 `/` 换成 `_`。
 
 ### 返回
 
 ```json
 {
-  "book_id": 123456,
-  "book_name": "知识库名称",
-  "output_dir": "/tmp/yuque-export/ns",
-  "total_docs": 50,
-  "exported": 50,
-  "failed": 0,
-  "images_downloaded": 120,
-  "images_failed": 3
+  "status": "done",
+  "repo": { "id": "80346623", "slug": "ns", "name": "知识库名称" },
+  "output_dir": "D:/notes/yuque-export/ns",
+  "summary": {
+    "total_docs": 50,
+    "ok": 50,
+    "error": 0,
+    "images_downloaded": 120,
+    "images_failed": 3
+  },
+  "index_file": "D:/notes/yuque-export/ns/INDEX.md",
+  "graph_file": "D:/notes/yuque-export/ns/GRAPH.md",
+  "files": [
+    {
+      "doc_id": 123,
+      "slug": "abc",
+      "title": "文档标题",
+      "status": "ok",
+      "file": "D:/notes/yuque-export/ns/收集/技术/文档标题.md",
+      "dir": "收集/技术",
+      "images_downloaded": 3,
+      "images_failed": 0,
+      "outboundLinks": ["https://www.yuque.com/group/ns/def"]
+    }
+  ]
 }
 ```
+
+- 知识库无文档时返回 `{ "status": "empty", "message": "知识库 \"…\" 没有文档" }`，不写任何文件。
+- `files[]` 逐篇给出 `status`（`ok` / `error`）、`file`、`dir`（TOC 目录，根目录下为空串）、`images_downloaded` / `images_failed`、`outboundLinks`；失败项带 `error`，且 `file` / `dir` 为空串。
 
 ---
 
@@ -236,7 +300,7 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 | `title` | string | ✅ | 文档标题 |
 | `body` | string | ✅ | 文档内容（Agent 清洗后） |
 | `format` | string | ✅ | 格式：`markdown` / `lake` / `html` |
-| `paths` | string | ✅ | JSON 数组，1-5 个目录路径 |
+| `paths` | string[] | ✅ | 目录路径数组，1-5 个（超过 5 个截断）；空数组报 `INVALID_PATHS`；也接受 JSON 字符串 |
 | `source_url` | string | ❌ | 源文档 URL，追尾为脚注链接 |
 | `source_title` | string | ❌ | 源文档标题，用于脚注 |
 
@@ -277,20 +341,31 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `target_book_id` | string | ✅ | 目标知识库 ID 或 namespace |
-| `documents` | string | ✅ | JSON 数组，每个元素含 `title`/`body`/`format`/`paths` |
+| `documents` | string | ✅ | JSON 数组（也接受数组类型），每个元素含 `title`/`body`/`format`/`paths`，可选 `source_url`/`source_title`（追尾为脚注链接）；空数组报 `INVALID_DOCUMENTS`；每个元素的 `paths` 超过 5 个截断 |
+| `raw` | boolean | ❌ | schema 已声明，但当前 handler 未读取该参数，固定返回下面的精简结构 |
 
 ### 返回
 
 ```json
 {
-  "total": 10,
-  "created": 10,
-  "failed": 0,
-  "docs": [
-    { "doc_id": 123456, "title": "文档1", "path": "分类A" }
+  "target_book_id": "80346623",
+  "total_docs": 10,
+  "total_copies": 10,
+  "total_failed": 0,
+  "details": [
+    {
+      "title": "文档1",
+      "paths": ["分类A"],
+      "results": [
+        { "path": "分类A", "doc_id": 123456, "slug": "abc123" }
+      ]
+    }
   ]
 }
 ```
+
+- `total_copies` / `total_failed` 按「文档 × path」逐条计数：同一篇文档复制到 2 个目录记为 2 次。
+- `details[].results[]` 失败项带 `error`，TOC 挂载异常带 `warning`；元素的 `paths` 为空时该条 results 为 `[{ "path": "", "error": "paths 为空" }]`。
 
 ---
 
@@ -304,18 +379,35 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `url` | string | ❌ | 语雀文档完整 URL（与 doc_id+book_id 互斥） |
-| `doc_id` | string | ❌ | 文档 ID（需配合 book_id 或 namespace） |
-| `book_id` | string | ❌ | 知识库 ID 或 namespace |
+| `from` | string | ✅ | 调用方应用名，拼进 URL 的 `from` 参数；缺失报 `from is required` |
+| `url` | string | ❌ | 语雀文档完整 URL（与 doc_id + book_id 二选一）；原有 query 会被清空后重新拼接 |
+| `doc_id` | string | ❌ | 文档 ID（需配合 book_id） |
+| `book_id` | string | ❌ | 知识库 ID 或 namespace（如 `yuque/developer`），与 doc_id 搭配使用 |
+| `title` | number | ❌ | 是否显示标题：1=显示，0=隐藏；不传按语雀默认（显示） |
+| `outline` | number | ❌ | 是否显示大纲侧栏：1=显示，0=隐藏；不传按语雀默认（显示） |
+| `translate` | string | ❌ | 翻译语种：`en`/`zh`/`ru`/`pt`/`es`/`fr`/`ja`/`ar`/`de`/`it`/`ko`/`tr`/`vi`/`pl`/`he`/`id`/`hi`/`nl`/`th` |
+
+`url` 与 `doc_id` + `book_id` 都没给时直接返回错误（`isError: true`）：`{ "error": "请提供 url 或 (doc_id + book_id) ...", "usage": { "url": "…", "from": "your_appname" } }`。
 
 ### 返回
 
 ```json
 {
-  "embed_url": "https://www.yuque.com/embed/yuque/developer/doc?app=myapp",
-  "note": "嵌入模式仅支持公开文档"
+  "embed_url": "https://www.yuque.com/yuque/developer/embed?view=doc_embed&from=myapp",
+  "iframe_code": "<iframe src=\"https://www.yuque.com/yuque/developer/embed?view=doc_embed&from=myapp\" width=\"100%\" height=\"600\" frameborder=\"0\"></iframe>",
+  "params": {
+    "view": "doc_embed",
+    "from": "myapp",
+    "title": "默认（显示）",
+    "outline": "默认（显示）",
+    "translate": "无"
+  },
+  "note": "嵌入模式仅支持公开文档，私密文档请通过 API 获取内容后自行渲染 / Embed mode only supports public documents. For private docs, fetch content via API and render yourself.",
+  "supported_languages": { "en": "英语", "zh": "中文", "ru": "俄罗斯语" }
 }
 ```
+
+`embed_url` 固定为 `<文档地址>?view=doc_embed&from=<from>`（`title` / `outline` / `translate` 传了才追加）；`params` 里未传的项显示为 `默认（显示）` 或 `无`，`supported_languages` 列出全部 20 个语种。
 
 ---
 
@@ -323,28 +415,33 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 
 ### 端点
 
-`GET /api/v2/repos/docs/:id`（并发 N 个请求）
+`GET /api/v2/repos/:book_id/docs/:id?raw=1|0`（并发 N 个请求，`raw` 走 URL query，取值 `1` / `0`）
 
 ### 参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `book_id` | string | ✅ | 知识库 ID 或 namespace |
-| `ids` | string | ✅ | JSON 数组，文档 ID 或 slug，最多 20 个 |
-| `raw` | boolean | ❌ | 返回原始 JSON |
+| `book_id` | string | ✅ | 知识库 ID 或 namespace（所有文档共用） |
+| `ids` | array | ✅ | 文档 ID / slug 数组，如 `[123,456]` 或 `["slug-a"]`；最多 20 个，空数组或超过 20 个直接报错；也接受 JSON 字符串 |
+| `raw` | boolean | ❌ | 返回原始全量 JSON（默认 false，返回 `formatDoc` 精简字段） |
 
 ### 返回
 
 ```json
 {
   "total": 5,
-  "success": 5,
-  "failed": 0,
-  "docs": [
-    { "id": 123, "title": "文档1", "body": "..." }
+  "ok": 4,
+  "docs": {
+    "123": { "id": 123, "slug": "doc-1", "title": "文档1", "type": "Doc", "format": "markdown", "public": 1, "word_count": 1500, "body": "...", "body_html": "...", "book_id": 80346623, "updated_at": "2026-01-01T00:00:00.000Z" }
+  },
+  "errors": [
+    { "id": "missing-doc", "detail": { "…": "上游错误原文" } }
   ]
 }
 ```
+
+- `docs` 仅在至少 1 篇成功时出现：以请求里传入的 id（字符串化）为 key 的对象，**不是数组**；`errors` 仅在有条目失败时出现，`errors[].detail` 是上游原始错误对象。
+- 没有 `success` / `failed` 字段，`ok` 即成功篇数；`docs` 各 value 是 `formatDoc` 结果的 JSON 字符串（因 `wrapResult` 已序列化一次），客户端取值后需再 parse 一次。
 
 ---
 
@@ -358,22 +455,23 @@ Agent 通过 `yuque_get_doc` 拉取源文档 → 清洗内容 → 调用本工�
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `ids` | string | ✅ | JSON 数组，知识库 ID 或 namespace，最多 20 个 |
-| `type` | string | ❌ | 知识库类型：`Book` / `Group` / `Team`，默认 `Book` |
-| `raw` | boolean | ❌ | 返回原始 JSON |
+| `ids` | array | ✅ | 知识库 ID / namespace 数组，如 `[123]` 或 `["group/repo-a"]`；最多 20 个，空数组或超过 20 个直接报错；也接受 JSON 字符串 |
 
 ### 返回
 
 ```json
 {
   "total": 3,
-  "success": 3,
-  "failed": 0,
-  "repos": [
-    { "id": 456, "name": "知识库1", "slug": "ns1" }
-  ]
+  "ok": 3,
+  "repos": {
+    "456": { "id": 456, "slug": "ns1", "name": "知识库1", "namespace": "group/ns1", "public": 1, "items_count": 10, "likes_count": 2, "user_id": 1, "created_at": "…", "updated_at": "…" }
+  }
 }
 ```
+
+- `repos` 仅在至少 1 个成功时出现：以请求里传入的 id（字符串化）为 key 的对象，**不是数组**；有条目失败时多一个 `errors: [{ id, detail }]`。
+- 没有 `success` / `failed` 字段，`ok` 即成功个数；本工具无 `type` / `raw` 参数，固定返回 `formatRepo` 精简字段。
+- `repos` 各 value 是 `formatRepo` 结果的 JSON 字符串（因 `wrapResult` 已序列化一次），客户端取值后需再 parse 一次。
 
 ---
 

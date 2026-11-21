@@ -3,8 +3,8 @@
 > 基地址：`https://www.yuque.com/api/mine/recycles`
 > ⚠️ Web API（非 v2 OpenAPI），需要 Cookie 登录态认证。
 >
-> 环境变量：`YUQUE_COOKIE`（登录 Cookie）、`YUQUE_CTOKEN`（CSRF Token）
-> 获取方式：浏览器登录 yuque.com → F12 → Application → Cookies → 复制 `_yuque_session` 和 `yuque_ctoken`
+> 凭据来源：`config.json` 的 `cookie`（完整 Cookie 字符串）与 `ctoken`（其中的 `yuque_ctoken` 值）——工具不读环境变量，设 `YUQUE_COOKIE` / `YUQUE_CTOKEN` 不会生效
+> 获取方式：浏览器登录 yuque.com → F12 → Application → Cookies → 复制完整 Cookie 字符串，再从中取出 `yuque_ctoken`
 
 ## 列出回收站项目
 
@@ -45,7 +45,7 @@ PUT /api/mine/recycles/{id}/restore
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
-| `id` | path | int | 回收站项目 ID（必填） |
+| `id` | path | int | 回收站项目 ID（必填）。⚠️ MCP 工具参数名是 `recycle_id` |
 
 ### 返回
 
@@ -61,13 +61,14 @@ PUT /api/mine/recycles/{id}/restore
 DELETE /api/mine/recycles/{id}
 ```
 
-> ⚠️ 不可恢复。
+> ⚠️ 不可恢复。MCP 工具 `yuque_destroy_recycle` 还要求显式二次确认：必须同时传 `confirm="DELETE"`，否则直接报错不发请求。
 
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
-| `id` | path | int | 回收站项目 ID（必填） |
+| `id` | path | int | 回收站项目 ID（必填）。⚠️ MCP 工具参数名是 `recycle_id` |
+| `confirm` | tool | string | MCP 工具层必填，值必须是 `DELETE` |
 
 ### 返回
 
