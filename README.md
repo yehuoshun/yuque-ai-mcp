@@ -57,6 +57,22 @@ npm run dev:http       # HTTP SSE mode (http://localhost:3099)
 
 > **Note**: `npm run dev:http` uses `tsx` for hot-reload during development.
 
+### HTTP / SSE mode requires an access token
+
+`dist/http.js` exposes all tools over the network, so it **refuses to start** unless a shared token is set:
+
+```bash
+export YUQUE_MCP_HTTP_TOKEN="$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")"
+npm run start:http                        # binds 127.0.0.1:3099 by default
+curl http://127.0.0.1:3099/health         # /health stays public
+curl -N "http://127.0.0.1:3099/sse?token=$YUQUE_MCP_HTTP_TOKEN"
+```
+
+Clients that can set headers should send `Authorization: Bearer <token>` instead of the query parameter
+(browsers' `EventSource` cannot set headers, hence the query form).
+Optional env: `HOST` (default `127.0.0.1`), `PORT` (default `3099`),
+`YUQUE_MCP_CORS_ORIGINS` (comma-separated allowlist; empty means no CORS headers).
+
 ## Tool Overview
 
 | Domain | Tools | Highlights |
