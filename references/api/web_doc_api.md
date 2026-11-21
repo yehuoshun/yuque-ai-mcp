@@ -51,12 +51,12 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `id` | string | ✅ | 文档 ID 或 **slug** |
-| `book_id` | string | ✅ | 知识库 ID：**支持 namespace/slug（如 `yehuoshun/utuif2`）或纯数字**，原样透传、不做 `Number` 强转 |
+| `book_id` | string | ✅ | 知识库 ID：**支持 namespace/slug（如 `group/book_slug`）或纯数字**，原样透传、不做 `Number` 强转 |
 | `raw` | boolean | ❌ | 返回原始 JSON（默认 false，返回裁剪字段） |
 
-> `id` 与 `book_id` 都以字符串原样拼进 `/api/docs/{id}?book_id={book_id}`：`id` 可传文档 slug，`book_id` 可传 namespace/slug（如 `yehuoshun/utuif2`）或数字，代码不做 `Number` 强转，仅在 `encodeURIComponent` 之后把 `%2F` 还原成 `/`，以保住 namespace 里的斜杠（`web-doc/get-doc.ts:90,111-116`）。
+> `id` 与 `book_id` 都以字符串原样拼进 `/api/docs/{id}?book_id={book_id}`：`id` 可传文档 slug，`book_id` 可传 namespace/slug（如 `group/book_slug`）或数字，代码不做 `Number` 强转，仅在 `encodeURIComponent` 之后把 `%2F` 还原成 `/`，以保住 namespace 里的斜杠（`web-doc/get-doc.ts:90,111-116`）。
 >
-> ⚠️ **此处曾有相反结论、存在矛盾**：本节旧版写「`book_id` 必须是数字，传 `yehuoshun/utuif2` / `utuif2` 都会 404」并自称实测。本次只核对了代码（代码明确声明支持并有意透传 namespace），**未重跑上游实测**，两边都自称实测，建议实测复核后再定稿。
+> ⚠️ **此处曾有相反结论、存在矛盾**：本节旧版写「`book_id` 必须是数字，传 `group/book_slug` / `utuif2` 都会 404」并自称实测。本次只核对了代码（代码明确声明支持并有意透传 namespace），**未重跑上游实测**，两边都自称实测，建议实测复核后再定稿。
 
 ### yuque_web_list_docs
 

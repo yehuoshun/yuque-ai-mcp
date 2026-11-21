@@ -35,9 +35,9 @@ GET /api/v2/search?q={q}&type={type}&scope={scope}&page={page}
 
 | 场景 | scope 值 |
 |------|---------|
-| 搜索团队里文档 | `scope={group}`，如 `yehuoshun` |
+| 搜索团队里文档 | `scope={group}`，如 `my-group` |
 | 搜索团队里知识库 | `type=repo&scope={group}` |
-| 搜索知识库里文档 | `scope={group}/{book_slug}`，如 `yehuoshun/gi49zs` |
+| 搜索知识库里文档 | `scope={group}/{book_slug}`，如 `my-group/my-book` |
 
 > 只支持 namespace 格式，**不支持 book_id**。
 
