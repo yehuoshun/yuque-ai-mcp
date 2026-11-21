@@ -2,6 +2,8 @@
 
 > 基地址：`https://www.yuque.com/api/v2`
 
+> **工具输出惯例**：本文覆盖 7 个 doc 工具 —— `yuque_list_docs` / `yuque_create_doc` / `yuque_get_doc` / `yuque_update_doc` / `yuque_delete_doc` / `yuque_get_doc_versions` / `yuque_get_doc_version_detail`，七者的 `inputSchema` 都带 `raw`（boolean，默认 `false`）。默认只返回裁剪后的常用字段，`raw=true` 时原样透传语雀返回的完整 JSON。各节「返回结构」列的是**语雀原始响应体**，不等于工具默认输出；工具实际输出见各节「工具行为」。
+
 ## 获取知识库的文档列表
 
 ```http
@@ -12,7 +14,9 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 
 **用途**：获取指定知识库下的文档列表，支持分页和额外字段。
 
-> ⚠️ `limit` 超过 100 时返回 422 参数校验失败。
+> ⚠️ `limit` 上限 100：工具侧先做参数校验，`limit` > 100 直接返回参数错误（`error: "limit 不能超过 100 / limit must be ≤ 100"`），请求不会发出；另有 `Math.min(limit, 100)` 兜底。
+>
+> 工具行为：默认输出 `id`、`slug`、`title`、`type`、`format`、`public`、`word_count`、`updated_at`（`deleted=true` 时另带 `deleted_at`、`deleted_slug`）；`read_count`/`hits`/`comments_count`/`latest_version_id`/`tags` 等字段需 `raw=true`（`read_count`/`hits` 还需 `optional_properties=hits`，`latest_version_id`/`tags` 需对应的 `optional_properties`）。
 
 ### 参数
 
@@ -24,6 +28,7 @@ GET /api/v2/repos/{book_id}/docs?offset={offset}&limit={limit}&optional_properti
 | `optional_properties` | query | string | 额外字段，逗号分隔。支持 `hits`、`tags`、`latest_version_id` | - |
 | `deleted` | query | bool | 已删除文档视图，返回项带 `deleted_at` / `deleted_slug`。⚠️ 语雀只看该参数**是否存在**（`deleted=false`/`0` 也会命中已删除视图），故工具仅在 `true` 时发送 | false |
 | `changed_at_gte` | query | string | 仅返回该 ISO 8601 时间之后变更的文档（增量同步） | - |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段 | `false` |
 
 ### 返回结构
 
@@ -157,7 +162,7 @@ Content-Type: application/json
 
 **用途**：在指定知识库中创建新文档。
 
-> ⚠️ 创建后不会自动添加到目录，需调知识库目录更新接口。
+> ⚠️ 创建成功后工具会自动把新文档追加到 TOC 末尾（根层级），传 `parent_uuid` 可挂到指定节点下；追加失败不影响创建结果，返回内容里会多一条 warning 文本（如「文档创建成功，但追加到目录失败。请手动在语雀网页端调整目录。」）。
 
 ### 参数
 
@@ -169,6 +174,8 @@ Content-Type: application/json
 | `format` | body | string | 内容格式：markdown / html / lake | `"markdown"` |
 | `body` | body | string | 正文内容（必填） | - |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开，不填继承知识库 | - |
+| `parent_uuid` | 工具 | string | TOC 父节点 UUID；指定后新文档挂到该节点下，不传则追加到 TOC 末尾（根层级） | - |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段 | `false` |
 
 ### 返回结构
 
@@ -243,10 +250,11 @@ GET /api/v2/repos/docs/{id}
 | `book_id` | - | string | 知识库 ID 或 namespace（可选；id 为 slug 时必填） | - |
 | `page_size` | query | int | 数据表分页大小 | 100（1-200） |
 | `page` | query | int | 数据表页码 | 1（≥1） |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段（含 `body_lake`/`body_draft`，以及未截断的 `body_table`/`body_sheet`） | `false` |
 
 > 工具行为：id 为纯数字 → `GET /repos/docs/{id}`；id 为 slug → `GET /repos/{book_id}/docs/{slug}`（book_id 缺失时返回友好报错）。
 >
-> v2.16.0 起默认输出新增 `type`（Doc/Sheet/Thread/Board/Table/HtmlDoc）与 `body_table`/`body_sheet` 正文透出：单字段超过 20000 字符截断并附 `body_table_truncated=true` / `body_table_full_length` 提示；完整内容用 `raw=true` 或调小 `page_size`。`body_lake`/`body_draft` 仍需 `raw=true`。
+> 默认输出包含 `type`（Doc/Sheet/Thread/Board/Table/HtmlDoc），并透出 `body_table`/`body_sheet` 正文：单字段超过 20000 字符截断并附 `<字段>_truncated=true` / `<字段>_full_length` 提示（如 `body_table_truncated`）；完整内容用 `raw=true` 或调小 `page_size`。`body_lake`/`body_draft` 仍需 `raw=true`。
 
 ### 返回结构
 
@@ -324,6 +332,7 @@ Content-Type: application/json
 | `format` | body | string | 内容格式：markdown / html / lake |
 | `body` | body | string | 正文内容 |
 | `public` | body | int | 0=私密 / 1=公开 / 2=企业内公开 |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段 |
 
 ### 返回结构
 
@@ -345,6 +354,8 @@ DELETE /api/v2/repos/{book_id}/docs/{id}
 |------|------|------|------|
 | `book_id` | path | string | 知识库 ID 或 namespace（必填） |
 | `id` | path | string | 文档 ID 或 slug（必填） |
+| `confirm` | 工具 | string | 二次确认，**必填**，且必须为字符串 `DELETE`；否则工具直接返回 isError 提示二次确认，不发起删除请求 |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段 |
 
 ### 返回结构
 
@@ -359,13 +370,14 @@ GET /api/v2/doc_versions?doc_id={doc_id}
 **用途**：获取文档最近 100 个已发布版本，按时间倒序。
 
 > 工具行为：默认返回 `id/doc_id/slug/title/user_id/user_login/user_name/created_at/updated_at`。
-> ⚠️ 官方 `V2DocVersion` **没有 `version` / `content_changed` 字段**（v2.15.4 修正）。
+> ⚠️ 官方 `V2DocVersion` **没有 `version` / `content_changed` 字段**。
 
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
 | `doc_id` | query | int | 文档 ID（必填） |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段 |
 
 ### 返回结构
 
@@ -407,13 +419,14 @@ GET /api/v2/doc_versions/{id}
 
 **用途**：获取指定版本的完整内容，包括正文和 diff。
 
-> 工具行为：默认返回完整 `format/body/body_md/body_html/body_asl/diff` + 各字段 `*_chars` 长度；单字段超过 20000 字符会截断并附 `hint`，完整内容传 `raw=true`（v2.15.4 修正：此前默认输出丢掉全部正文）。
+> 工具行为：默认返回 `user_login`/`user_name` + 完整 `format/body/body_md/body_html/body_asl/diff` + 各字段 `*_chars` 长度；单字段超过 20000 字符会截断并附 `hint`，完整内容传 `raw=true`。
 
 ### 参数
 
 | 参数 | 位置 | 类型 | 说明 |
 |------|------|------|------|
 | `id` | path | int | 版本 ID（必填） |
+| `raw` | 工具 | boolean | `false`（默认）按裁剪字段返回，`true` 返回上游全部字段（含未截断的正文） |
 
 ### 返回结构
 
