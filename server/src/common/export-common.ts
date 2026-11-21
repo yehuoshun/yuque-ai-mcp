@@ -18,8 +18,10 @@ import { fetchWithRetry } from "./api-client.js";
  */
 export function resolveExportDir(rawOutputDir: string): { dir: string; error?: string } {
   const root = resolve(process.env.YUQUE_EXPORT_ROOT || process.cwd());
+  // 根目录在 POSIX 下是 "/"，直接用 root + sep 会变成 "//"，把合法子路径误判为越界
+  const base = root.endsWith(sep) ? root : root + sep;
   const dir = resolve(root, rawOutputDir);
-  if (dir !== root && !dir.startsWith(root + sep)) {
+  if (dir !== root && !dir.startsWith(base)) {
     return { dir, error: `output_dir 必须位于 ${root} 之内（可设置 YUQUE_EXPORT_ROOT 放宽）: ${dir}` };
   }
   return { dir };

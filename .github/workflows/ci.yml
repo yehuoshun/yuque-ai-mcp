@@ -21,3 +21,5 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: 运行时冒烟（Linux runner 上真启动 HTTP，验证鉴权与回环绑定）
+        run: node scripts/smoke-http.mjs
