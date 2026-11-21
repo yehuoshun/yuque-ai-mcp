@@ -50,7 +50,7 @@ npm install
 npm run build
 
 # 复制配置模板
-cp config/config.example.json config/config.json
+cp ../config/config.example.json ../config/config.json
 # 编辑 config.json 填入你的语雀 API Token
 
 # 运行

@@ -47,7 +47,7 @@ npm install
 npm run build
 
 # Copy config template
-cp config/config.example.json config/config.json
+cp ../config/config.example.json ../config/config.json
 # Edit config.json with your Yuque API token
 
 # Run
