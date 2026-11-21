@@ -31,6 +31,18 @@ export async function webRequest(
     );
   }
 
+  // 只对语雀域名附带 Cookie/ctoken：本函数是唯一携带登录态的出口，
+  // 一旦调用方传入外部 URL（例如文档正文里抽出的链接），凭据就会外泄。
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return mcpError(`无效 URL: ${url}`);
+  }
+  if (host !== "www.yuque.com" && !host.endsWith(".yuque.com")) {
+    return mcpError(`拒绝向非语雀域名发送登录态: ${host}（webRequest 仅用于 yuque.com）`);
+  }
+
   const headers: Record<string, string> = {
     "Accept": "application/json",
     "Content-Type": "application/json",

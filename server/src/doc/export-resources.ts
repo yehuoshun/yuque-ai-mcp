@@ -18,6 +18,7 @@ import { existsSync } from "node:fs";
 import type { McpTool } from "../common/types.js";
 import { apiGet, isErrorResult } from "../common/api-client.js";
 import { requiredString, check } from "../common/validate.js";
+import { resolveExportDir } from "../common/export-common.js";
 import { loadConfig } from "../common/config.js";
 import { extractResources, downloadFile } from "../common/export-common.js";
 
@@ -55,7 +56,15 @@ export const docExportResources: McpTool = {
     if (__v) return __v;
 
     const id = args?.id as string;
-    const outputDir = args?.output_dir as string;
+    // 围栏：导出目录必须落在 YUQUE_EXPORT_ROOT（默认 cwd）之内，防止参数被注入后写到系统目录
+    const dirGuard = resolveExportDir(args?.output_dir as string);
+    if (dirGuard.error) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "INVALID_OUTPUT_DIR", message: dirGuard.error }, null, 2) }],
+        isError: true,
+      };
+    }
+    const outputDir = dirGuard.dir;
 
     // ── 获取文档详情 ──
     const params: Record<string, string> = { page_size: "200", page: "1" };

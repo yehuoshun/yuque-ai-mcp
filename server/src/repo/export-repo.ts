@@ -23,6 +23,7 @@ import {
   formatFrontMatter,
   sanitizeFilename,
   htmlToMarkdown,
+  resolveExportDir,
 } from "../common/export-common.js";
 import { buildTocDocDirMap } from "./export-toc.js";
 import { buildIndexMd } from "./export-index.js";
@@ -72,21 +73,18 @@ export const repoExport: McpTool = {
 
     // 导出目录：默认落在 cwd 下的 ./yuque-export/<slug>。output_dir 可以是绝对路径，但必须落在
     // 允许的根之内（默认 cwd，可用 YUQUE_EXPORT_ROOT 指定），避免参数被注入后写到系统目录/家目录。
-    const exportRoot = resolve(process.env.YUQUE_EXPORT_ROOT || process.cwd());
     const rawOutDir = (args?.output_dir as string) || `./yuque-export/${bookSlug}`;
-    const outputDir = resolve(exportRoot, rawOutDir);
-    if (outputDir !== exportRoot && !outputDir.startsWith(exportRoot + sep)) {
+    const dirGuard = resolveExportDir(rawOutDir);
+    if (dirGuard.error) {
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({
-            error: "INVALID_OUTPUT_DIR",
-            message: `output_dir 必须位于 ${exportRoot} 之内（可设置 YUQUE_EXPORT_ROOT 放宽）: ${outputDir}`,
-          }, null, 2),
+          text: JSON.stringify({ error: "INVALID_OUTPUT_DIR", message: dirGuard.error }, null, 2),
         }],
         isError: true,
       };
     }
+    const outputDir = dirGuard.dir;
     const imagesDir = join(outputDir, "images");
     const attachmentsDir = join(outputDir, "attachments");
 

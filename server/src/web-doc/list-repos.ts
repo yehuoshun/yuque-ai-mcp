@@ -104,7 +104,29 @@ export const webRepoList: McpTool = {
     // 上游 /api/books 实测忽略 offset/limit（limit=1 仍返回全部 787 条、约 715 KB），
     // 因此「返回条数 > 请求的 limit」说明上游没分页，必须在本地再切一刀，
     // 否则单次调用就能把整个书架塞进上下文（约 18 万 token）。
-    const honoredByUpstream = items.length <= limit;
+    let honoredByUpstream = items.length <= limit;
+
+    // 同 list-docs：offset>0 且返回不足一页时再探一次 offset=0 的首页，
+    // 首条相同说明上游无视 offset（/api/books 已知如此），此时不能假装返回第 offset 条。
+    if (honoredByUpstream && offset > 0 && items.length > 0) {
+      let probeUrl = `https://www.yuque.com/api/books?offset=0&limit=${Math.min(limit, 100)}`;
+      if (userId) probeUrl += `&user_id=${userId}`;
+      const probe = await webRequest(probeUrl, { referer: BOOK_REFERER });
+      if (!isErrorResult(probe)) {
+        const first = ((probe as { data?: Array<Record<string, unknown>> }).data ?? [])[0];
+        if (first && (first as { id?: unknown }).id === (items[0] as { id?: unknown }).id) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              error: "OFFSET_NOT_SUPPORTED",
+              message: "上游 /api/books 未按 offset 返回（拿到的仍是第一页），无法安全返回第 offset 条；请改用 limit 翻页或从 offset=0 取值",
+              offset, limit,
+            }, null, 2) }],
+            isError: true,
+          };
+        }
+      }
+    }
+
     const page = honoredByUpstream ? items : items.slice(offset, offset + limit);
     const total = honoredByUpstream ? (meta.total as number | undefined) ?? null : items.length;
     const hasMore = honoredByUpstream ? items.length >= limit : items.length > offset + limit;
