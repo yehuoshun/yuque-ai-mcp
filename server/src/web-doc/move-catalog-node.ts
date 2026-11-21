@@ -27,16 +27,26 @@ async function verifyNodeUnderTarget(
   nodeUuid: string,
   targetUuid: string | null,
 ): Promise<{ ok: boolean; found: boolean; observedParent: string | null; error?: string }> {
-  const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
-  const result = await webRequest(url, { referer: MOVE_REFERER });
-  if (isErrorResult(result)) {
-    return { ok: false, found: false, observedParent: null, error: "回读目标库 TOC 失败" };
+  // 写接口是最终一致的：立刻回读常拿到旧结构，实测会把成功移动误判成未生效。轮询 3 次。
+  let last: { ok: boolean; found: boolean; observedParent: string | null; error?: string } = {
+    ok: false, found: false, observedParent: null,
+  };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt));
+    const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
+    const result = await webRequest(url, { referer: MOVE_REFERER });
+    if (isErrorResult(result)) {
+      last = { ok: false, found: false, observedParent: null, error: "回读目标库 TOC 失败" };
+      continue;
+    }
+    const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
+    const node = nodes.find((n) => n.uuid === nodeUuid);
+    if (!node) { last = { ok: false, found: false, observedParent: null }; continue; }
+    const parent = String(node.parent_uuid ?? "");
+    if (parent === (targetUuid ?? "")) return { ok: true, found: true, observedParent: parent || null };
+    last = { ok: false, found: true, observedParent: parent || null };
   }
-  const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
-  const node = nodes.find((n) => n.uuid === nodeUuid);
-  if (!node) return { ok: false, found: false, observedParent: null };
-  const parent = String(node.parent_uuid ?? "");
-  return { ok: parent === (targetUuid ?? ""), found: true, observedParent: parent || null };
+  return last;
 }
 
 export const webMoveCatalogNode: McpTool = {

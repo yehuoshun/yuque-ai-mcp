@@ -26,20 +26,28 @@ async function verifyNodesUnderTarget(
   nodeUuids: string[],
   targetUuid: string,
 ): Promise<{ moved: string[]; notMoved: string[]; error?: string }> {
-  const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
-  const result = await webRequest(url, { referer: CATALOG_REFERER });
-  if (isErrorResult(result)) {
-    return { moved: [], notMoved: nodeUuids, error: "回读目标库 TOC 失败" };
+  // 写接口是最终一致的，轮询 3 次再判；最后一次结果即返回值。
+  let last: { moved: string[]; notMoved: string[]; error?: string } = { moved: [], notMoved: nodeUuids };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt));
+    const url = `https://www.yuque.com/api/catalog_nodes?book_id=${encodeURIComponent(bookId)}`;
+    const result = await webRequest(url, { referer: CATALOG_REFERER });
+    if (isErrorResult(result)) {
+      last = { moved: [], notMoved: nodeUuids, error: "回读目标库 TOC 失败" };
+      continue;
+    }
+    const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
+    const moved: string[] = [];
+    const notMoved: string[] = [];
+    for (const uuid of nodeUuids) {
+      const node = nodes.find((n) => n.uuid === uuid);
+      if (node && String(node.parent_uuid ?? "") === targetUuid) moved.push(uuid);
+      else notMoved.push(uuid);
+    }
+    last = { moved, notMoved };
+    if (notMoved.length === 0) return last;
   }
-  const nodes = ((result as { data?: Array<Record<string, unknown>> }).data) ?? [];
-  const moved: string[] = [];
-  const notMoved: string[] = [];
-  for (const uuid of nodeUuids) {
-    const node = nodes.find((n) => n.uuid === uuid);
-    if (node && String(node.parent_uuid ?? "") === targetUuid) moved.push(uuid);
-    else notMoved.push(uuid);
-  }
-  return { moved, notMoved };
+  return last;
 }
 
 export const webBatchMoveCatalogNodes: McpTool = {

@@ -31,19 +31,27 @@ async function verifyDocPlacement(
   targetUuid: string | null,
   docIds: number[],
 ): Promise<{ ok: boolean; missing: number[] }> {
-  invalidateTocCache(bookId);
-  let nodes: Array<Record<string, unknown>> = [];
-  try {
-    nodes = await getTocCached(bookId);
-  } catch {
-    return { ok: false, missing: docIds };
+  // 上游目录写接口是最终一致的：刚 PUT 完立刻回读经常还是旧结构，
+  // 实测（2026-11-21 临时知识库）成功移动会被判成「未生效」。故轮询 3 次再下结论。
+  let missing = docIds;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt));
+    invalidateTocCache(bookId);
+    let nodes: Array<Record<string, unknown>> = [];
+    try {
+      nodes = await getTocCached(bookId);
+    } catch {
+      missing = docIds;
+      continue;
+    }
+    missing = docIds.filter((docId) => {
+      const node = nodes.find((n) => n.doc_id === docId);
+      if (!node) return true;
+      return String(node.parent_uuid ?? "") !== (targetUuid ?? "");
+    });
+    if (missing.length === 0) return { ok: true, missing: [] };
   }
-  const missing = docIds.filter((docId) => {
-    const node = nodes.find((n) => n.doc_id === docId);
-    if (!node) return true;
-    return String(node.parent_uuid ?? "") !== (targetUuid ?? "");
-  });
-  return { ok: missing.length === 0, missing };
+  return { ok: false, missing };
 }
 
 // ─── 目录查找 ──────────────────────────────────────────
