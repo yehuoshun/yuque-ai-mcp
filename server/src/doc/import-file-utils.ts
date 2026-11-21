@@ -384,6 +384,11 @@ export async function processAssets(
   }
 
   if (mode === "embed_assets") {
+    const cookie = cfg.cookie || "";
+    const ctoken = cfg.ctoken || "";
+    /** 懒取 user_id：只有真的遇到图片才多打一次 /user */
+    let embedUserId: string | null = null;
+
     for (const ref of refs) {
       try {
         if (ref.error) {
@@ -396,7 +401,29 @@ export async function processAssets(
         }
 
         if (ref.type === "image") {
-          results.push({ original: ref.originalPath, type: "image" });
+          // 图片在 embed_assets 下同样必须换成 CDN 地址：以前这里只 push 一个空结果，
+          // 正文里的 ![](./x.png) 原样留在语雀文档里（必然裂图），而 assets 统计显示 failed=0。
+          if (!cookie || !ctoken) {
+            results.push({
+              original: ref.originalPath,
+              type: "image",
+              error: "图片需上传到语雀 CDN，但未配置 Cookie/ctoken",
+            });
+            continue;
+          }
+          if (embedUserId === null) {
+            embedUserId = "";
+            try {
+              const userData = await apiGet("/user", undefined, "Get user for embed image upload");
+              if (!isErrorResult(userData)) {
+                embedUserId = String((userData as { data: { id: number } }).data.id);
+              }
+            } catch { /* 用空 user_id 继续，上传接口会明确报错 */ }
+          }
+          const uploaded = await uploadImage(ref.absolutePath, cookie, ctoken, embedUserId);
+          results.push(uploaded.ok
+            ? { original: ref.originalPath, type: "image", cdnUrl: uploaded.url }
+            : { original: ref.originalPath, type: "image", error: uploaded.error });
           continue;
         }
 

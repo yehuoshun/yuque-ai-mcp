@@ -2,6 +2,7 @@
  * repo/export-index — INDEX.md 生成
  */
 
+import { relative, sep } from "node:path";
 import { sanitizeFilename } from "../common/export-common.js";
 
 interface TocNode {
@@ -31,6 +32,8 @@ export function buildIndexMd(
   tocNodes: TocNode[],
   results: ExportResult[],
   repoName: string,
+  /** 导出根目录：用来把落盘绝对路径换算成相对链接，避免重算文件名与落盘名不一致 */
+  outputDir?: string,
 ): string {
   const lines: string[] = [];
   lines.push(`# ${repoName} — 导出索引`);
@@ -42,7 +45,7 @@ export function buildIndexMd(
   if (tocNodes.length > 0) {
     lines.push("## 目录结构");
     lines.push("");
-    lines.push(formatTocTree(tocNodes, results));
+    lines.push(formatTocTree(tocNodes, results, outputDir));
   } else {
     lines.push("## 文档列表");
     lines.push("");
@@ -58,7 +61,7 @@ export function buildIndexMd(
   return lines.join("\n");
 }
 
-function formatTocTree(nodes: TocNode[], results: ExportResult[]): string {
+function formatTocTree(nodes: TocNode[], results: ExportResult[], outputDir?: string): string {
   const nodeByUuid = new Map<string, TocNode>();
   for (const n of nodes) {
     nodeByUuid.set(n.uuid, n);
@@ -86,7 +89,10 @@ function formatTocTree(nodes: TocNode[], results: ExportResult[]): string {
     } else if (node.type === "DOC" && node.doc_id != null) {
       const result = results.find(r => r.doc_id === node.doc_id);
       if (result && result.status === "ok") {
-        const filePath = (result.dir ? result.dir + "/" : "") + sanitizeFilename(result.title) + ".md";
+        // 以真实落盘路径为准：同名文档会落成 <name>-<doc_id>.md，按标题重算会指向别人那篇
+        const filePath = outputDir && result.file
+          ? relative(outputDir, result.file).split(sep).join("/")
+          : (result.dir ? result.dir + "/" : "") + sanitizeFilename(result.title) + ".md";
         lines.push(`${indent}- 📄 [${result.title}](${filePath})`);
       } else {
         lines.push(`${indent}- 📄 ${node.title} ${!result ? "(未找到)" : "(导出失败)"}`);

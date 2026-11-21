@@ -340,7 +340,8 @@ export type TocOp = CreateTitleOp | AppendNodeOp | RemoveNodeOp | MoveNodeOp | P
 
 export interface OpResult {
   index: number;
-  action: string;
+  /** null = 传入的 op 本身是 null，连 action 都取不到 */
+  action: string | null;
   success: boolean;
   detail?: string;
   error?: string;

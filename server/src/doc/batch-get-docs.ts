@@ -94,7 +94,9 @@ export const docBatchGet: McpTool = {
       if (r.error) {
         errors.push({ id: r.id as string | number, detail: (r as any).detail });
       } else if (r.ok && r.data) {
-        output[String(r.id)] = r.data;
+        // wrapResult 返回的是 JSON 字符串，直接塞进响应会被外层 stringify 二次转义
+        const payload = (r as { data: unknown }).data;
+        output[String(r.id)] = typeof payload === "string" ? JSON.parse(payload) : payload;
       }
     }
 

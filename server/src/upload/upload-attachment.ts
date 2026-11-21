@@ -9,6 +9,7 @@
  */
 
 import { statSync, createReadStream } from "fs";
+import { basename } from "node:path";
 import { Readable } from "stream";
 import type { McpTool } from "../common/types.js";
 import { loadConfig } from "../common/config.js";
@@ -137,12 +138,28 @@ async function doUpload(
       };
     }
 
-    const data = JSON.parse(text) as {
+    let data: {
       data?: { filekey?: string; extname?: string; url?: string };
       filekey?: string;
       url?: string;
     };
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // cookie 失效时上游回 JSON 之外的内容（HTML 登录页），不能归成网络错误
+      return {
+        ok: false,
+        result: { error: "UPLOAD_BAD_RESPONSE", status: res.status, message: text.slice(0, 200) },
+      };
+    }
     const filekey = data?.data?.filekey || data?.filekey || "";
+    if (!filekey) {
+      // 200 + 无 filekey：以前仍返回 ok:true 和空 url，调用方会把空地址当成上传成功
+      return {
+        ok: false,
+        result: { error: "UPLOAD_NO_FILEKEY", status: res.status, message: text.slice(0, 200) },
+      };
+    }
     const extname = data?.data?.extname || "";
     // accessUrl：语雀响应自带正式可访问地址（/attachments/...，登录后可下载）；缺失时兜底拼接
     // 注意：urlResult（cdn.nlark.com 直链）无签名 403，形同废字段，保留仅为兼容旧调用方
@@ -216,7 +233,7 @@ export const uploadAttachment: McpTool = {
     }
 
     // 扩展名预检（本地拦截，不浪费网络请求）
-    const preFileName = filePath.split("/").pop() || "file";
+    const preFileName = basename(filePath) || "file";
     const badExt = checkExtension(preFileName);
     if (badExt) {
       return {
@@ -242,7 +259,7 @@ export const uploadAttachment: McpTool = {
     // 文件大小预检（stat 先行，不读文件；流式上传在 doUpload 内建流）
     let fileName: string;
     try {
-      fileName = filePath.split("/").pop() || "file";
+      fileName = basename(filePath) || "file";
       const sizeMB = statSync(filePath).size / 1024 / 1024;
       const limit = LIMITS[type] || LIMITS.attachment;
       if (sizeMB > limit.max) {

@@ -61,15 +61,20 @@ export const mineSortBookStack: McpTool = {
     // 因此回查 book_stacks 确认所有知识库都落在目标分组（带重试）。
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let got = new Set<number>();
+    let actualOrder: number[] = [];
     for (let attempt = 0; attempt < 3; attempt++) {
       await sleep(1500);
       const stacks = await webRequest(`${MINE_BASE}/book_stacks`);
       if (!isErrorResult(stacks)) {
         const data = (stacks as { data?: Array<{ id: number; books?: Array<{ id: number }> }> })?.data || [];
         const target = data.find((s) => s.id === stackId);
-        got = new Set((target?.books || []).map((b) => b.id));
+        actualOrder = (target?.books || []).map((b) => b.id);
+        got = new Set(actualOrder);
+        // 成员齐了不代表顺序生效：move 接口只回 200，不校验顺序就会把「没排序」报成「已排序」
         if (bookIds.every((id) => got.has(id))) {
-          return {
+          const positions = bookIds.map((id) => actualOrder.indexOf(id));
+          const inOrder = positions.every((p, idx) => idx === 0 || p > positions[idx - 1]);
+          if (inOrder) return {
             content: [
               {
                 type: "text" as const,
@@ -89,13 +94,11 @@ export const mineSortBookStack: McpTool = {
     }
 
     const missing = bookIds.filter((id) => !got.has(id));
+    const message = missing.length > 0
+      ? `移动失败：分组 ${stackId} 内缺少部分知识库（已重试 3 次），缺失: ${missing.join(", ")}`
+      : `排序未生效：分组 ${stackId} 内成员都在，但顺序与传入不一致；实际顺序: ${actualOrder.join(", ")}（move 接口只回 200，需上游支持排序）`;
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: `移动失败：分组 ${stackId} 内缺少部分知识库（已重试 3 次），缺失: ${missing.join(", ")}`,
-        },
-      ],
+      content: [{ type: "text" as const, text: message }],
       isError: true,
     };
   },

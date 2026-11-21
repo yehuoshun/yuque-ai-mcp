@@ -150,7 +150,7 @@ export const repoExport: McpTool = {
     );
 
     // ── 6. 生成 INDEX.md 和 GRAPH.md ──
-    const indexContent = buildIndexMd(tocNodes, results, repo.name || bookSlug);
+    const indexContent = buildIndexMd(tocNodes, results, repo.name || bookSlug, outputDir);
     await writeGeneratedFile(join(outputDir, "INDEX.md"), indexContent);
 
     const graphContent = buildGraphMd(results);
@@ -311,7 +311,8 @@ async function exportSingleDoc(
   const docDir = tocDir ? join(outputDir, tocDir) : outputDir;
   await mkdir(docDir, { recursive: true });
 
-  const relDepth = tocDir ? tocDir.split("/").map(() => "..").join("/") + "/" : "";
+  // tocDir 由 node:path join 生成，Windows 下是反斜杠；统一按两种分隔符切分并用 / 拼相对路径
+  const relDepth = tocDir ? tocDir.split(/[\\/]/).filter(Boolean).map(() => "..").join("/") + "/" : "";
   const relImagesDir = relDepth + "images";
   const relAttachmentsDir = relDepth + "attachments";
 

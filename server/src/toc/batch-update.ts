@@ -102,8 +102,10 @@ export const tocBatchUpdate: McpTool = {
         const result = await executeOp(op, bookId);
         results.push({ index: i, action: op.action, ...result });
       } catch (err) {
+        // op 可能是 null（ops 里放 null 是合法 JSON）：catch 里再读 op.action 会二次抛错，
+        // 整批中断且前面已执行的结果也拿不到
         results.push({
-          index: i, action: op.action, success: false,
+          index: i, action: (op as { action?: string } | null)?.action ?? null, success: false,
           error: err instanceof Error ? err.message : String(err),
         });
       }

@@ -18,6 +18,10 @@ import { fetchWithRetry } from "./api-client.js";
  */
 export function resolveExportDir(rawOutputDir: string): { dir: string; error?: string } {
   const root = resolve(process.env.YUQUE_EXPORT_ROOT || process.cwd());
+  // 根目录本身是文件系统根时，围栏等于失效（任何绝对路径都在它之下），直接拒绝
+  if (root === resolve(root, sep)) {
+    return { dir: root, error: "YUQUE_EXPORT_ROOT 不能是文件系统根目录，请指定一个具体的导出根（如 D:/yuque-export 或 /data/yuque）" };
+  }
   // 根目录在 POSIX 下是 "/"，直接用 root + sep 会变成 "//"，把合法子路径误判为越界
   const base = root.endsWith(sep) ? root : root + sep;
   const dir = resolve(root, rawOutputDir);
