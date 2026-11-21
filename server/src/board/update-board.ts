@@ -7,7 +7,7 @@
 import type { McpTool } from "../common/types.js";
 import { apiPut } from "../common/api-client.js";
 import { handleApiCall } from "../common/format.js";
-import { requiredString } from "../common/validate.js";
+import { requiredString, optId, toIdNum, check } from "../common/validate.js";
 
 export const boardUpdate: McpTool = {
   name: "yuque_update_board",
@@ -16,7 +16,7 @@ export const boardUpdate: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      doc_id: { type: "number", description: "Document ID (mutually exclusive with url)" },
+      doc_id: { type: ["string", "number"], description: "Document ID (mutually exclusive with url). number 或数字字符串都接受" },
       url: { type: "string", description: "Document URL (mutually exclusive with doc_id)" },
       resource_id: { type: "string", description: "Board resource ID (required, extract from board://<resource_id>)" },
       text: { type: "string", description: "New textual DSL content (mutually exclusive with dsl)" },
@@ -27,9 +27,12 @@ export const boardUpdate: McpTool = {
 
   async handler(args) {
     // @validate
-    const __v = requiredString(args?.resource_id, "resource_id");
+    const __v = check(
+      requiredString(args?.resource_id, "resource_id"),
+      optId(args?.doc_id, "doc_id"),
+    );
     if (__v) return __v;
-    const docId = args?.doc_id as number | undefined;
+    const docId = args?.doc_id === undefined || args?.doc_id === null ? undefined : toIdNum(args.doc_id);
     const url = args?.url as string | undefined;
     const resourceId = args?.resource_id as string;
     const text = args?.text as string | undefined;

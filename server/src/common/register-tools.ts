@@ -61,8 +61,25 @@ export function registerAllTools(server: McpServer): void {
     if (tool.inputSchema) {
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
-        const p = prop as { type: string; description?: string; items?: { type: string }; oneOf?: Array<{ type: string; items?: { type: string } }>; anyOf?: Array<{ type: string; items?: { type: string } }> };
+        const p = prop as { type: string | string[]; description?: string; items?: { type: string }; oneOf?: Array<{ type: string; items?: { type: string } }>; anyOf?: Array<{ type: string; items?: { type: string } }> };
         let zodType: z.ZodTypeAny;
+        // JSON Schema 的联合类型（如 ["string","number"]）：每个分支各自映射成 zod，再取 union，
+        // 否则会落到 default 分支被降级成 z.string()，数字入参在 SDK 校验层就被拒
+        if (Array.isArray(p.type)) {
+          const branches = p.type.map((t) => {
+            switch (t) {
+              case "number": return z.number();
+              case "boolean": return z.boolean();
+              case "array": return p.items?.type === "number" ? z.array(z.number()) : z.array(z.string());
+              default: return z.string();
+            }
+          });
+          zodType = branches.length === 1 ? branches[0] : (z.union(branches as unknown as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]));
+          if (p.description) zodType = zodType.describe(p.description);
+          if (!tool.inputSchema.required?.includes(key)) zodType = zodType.optional();
+          shape[key] = zodType;
+          continue;
+        }
         switch (p.type) {
           case "string": zodType = z.string(); break;
           case "number": zodType = z.number(); break;

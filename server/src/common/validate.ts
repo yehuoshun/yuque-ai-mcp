@@ -54,6 +54,55 @@ export function positiveInt(value: unknown, name: string): ErrorResult | null {
   return null;
 }
 
+/**
+ * 宽松 ID：接受 number 或纯数字字符串（MCP 客户端常把 id 传成 string）。
+ * 数字型接口（/notes/:id、/doc_versions/:id、/mine/recycles/:id）用这一对。
+ */
+export function reqId(value: unknown, name: string): ErrorResult | null {
+  if (value === undefined || value === null)
+    return fail(`${name} 是必填参数`, `${name} is required`);
+  const bad = fail(`${name} 必须是正整数或数字字符串`, `${name} must be a positive integer or numeric string`);
+  if (typeof value === "number") {
+    if (!Number.isInteger(value) || value < 1) return bad;
+    return null;
+  }
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (!/^\d+$/.test(t) || Number(t) < 1) return bad;
+    return null;
+  }
+  return bad;
+}
+
+/** 可选的宽松 ID（有值时同 reqId，未给则放行） */
+export function optId(value: unknown, name: string): ErrorResult | null {
+  if (value === undefined || value === null) return null;
+  return reqId(value, name);
+}
+
+/** 宽松 ID：number 或非空字符串都接受（接口既收数字 id 又收 slug/namespace 时用） */
+export function reqIdLike(value: unknown, name: string): ErrorResult | null {
+  if (value === undefined || value === null)
+    return fail(`${name} 是必填参数`, `${name} is required`);
+  const bad = fail(`${name} 必须是正整数或非空字符串`, `${name} must be a positive integer or non-empty string`);
+  if (typeof value === "number") {
+    if (!Number.isInteger(value) || value < 1) return bad;
+    return null;
+  }
+  if (typeof value === "string" && value.trim() !== "") return null;
+  return bad;
+}
+
+/** 归一化为 number（调用前先用 reqId / optId 校验） */
+export function toIdNum(value: unknown): number {
+  return typeof value === "number" ? value : Number(String(value).trim());
+}
+
+/** 归一化为 string（调用前先用 reqIdLike 校验） */
+export function toIdStr(value: unknown): string {
+  return String(value).trim();
+}
+
 /** 数值上限 */
 export function maxValue(value: unknown, name: string, max: number): ErrorResult | null {
   if (value === undefined || value === null) return null;

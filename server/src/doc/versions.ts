@@ -7,7 +7,7 @@
 
 import type { McpTool } from "../common/types.js";
 import { apiGet } from "../common/api-client.js";
-import { positiveInt, optionalBoolean, check } from "../common/validate.js";
+import { reqId, optionalBoolean, check, toIdNum } from "../common/validate.js";
 import { formatDocVersion, handleApiCall } from "../common/format.js";
 
 
@@ -18,7 +18,7 @@ export const docVersions: McpTool = {
   inputSchema: {
     type: "object",
     properties: {
-      doc_id: { type: "number", description: "Document ID (required)" },
+      doc_id: { type: ["string", "number"], description: "Document ID (required). number 或数字字符串都接受" },
       raw: { type: "boolean", description: "Return raw full JSON (default false, returns trimmed fields)" },
     },
     required: ["doc_id"],
@@ -27,12 +27,12 @@ export const docVersions: McpTool = {
   async handler(args) {
     // @validate
     const __v = check(
-      positiveInt(args?.doc_id, "doc_id"),
+      reqId(args?.doc_id, "doc_id"),
       optionalBoolean(args?.raw, "raw"),
     );
     if (__v) return __v;
 
-    const docId = args?.doc_id as number;
+    const docId = toIdNum(args?.doc_id);
     const raw = args?.raw as boolean | undefined;
 
     const data = await apiGet("/doc_versions", { doc_id: String(docId) }, "Get doc versions");
