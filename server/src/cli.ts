@@ -8,7 +8,7 @@ import { resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const child = spawn("node", [resolve(__dirname, "index.js")], {
+const child = spawn("node", [resolve(__dirname, "index.js"), ...process.argv.slice(2)], {
   stdio: "inherit",
   env: { ...process.env },
 });
