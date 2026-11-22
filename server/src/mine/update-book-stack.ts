@@ -60,6 +60,8 @@ export const mineUpdateBookStack: McpTool = {
 
     // move 接口成功/失败都返回 200+{}，无法从返回判断真实结果，
     // 因此回查 book_stacks 确认知识库真的落在目标分组（带重试）。
+    // ⚠️ book_stacks 对每个分组最多返回 200 个知识库（语雀上限）：目标分组已满
+    // 200 时，移到末尾的知识库会落在返回窗口外，造成「实际成功却回报失败」。
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     for (let attempt = 0; attempt < 3; attempt++) {
       await sleep(1500);

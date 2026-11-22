@@ -120,6 +120,8 @@
 | `yuque_sort_book_stack` | 排序知识库分组（书架）（Cookie） |
 | `yuque_delete_book_stack` | 删除知识库分组（书架），需 confirm='DELETE'（Cookie） |
 
+> ⚠️ **单个分组最多 200 个知识库**：`yuque_get_book_stacks` 对每个分组最多返回 200 个知识库，超出部分语雀侧「默认隐藏」（网页端侧栏同样看不到），不是分页、加 `limit`/`page` 无效。实测 2026-11-22：一组 789 个知识库只回 200 个。要全量清单用 `yuque_list_repos` 按分组筛，或直接 `GET /api/books?stack_id=<id>`。**建库/导入时把每个分组的库数控制在 200 以内**，超了就拆分组。另外 `yuque_update_book_stack` / `yuque_sort_book_stack` 的回查也只在这 200 个里找，目标分组已满 200 时可能「实际成功却回报失败」。
+
 ### web_doc（8 工具，Cookie 态）
 | 工具 | 说明 |
 |------|------|
