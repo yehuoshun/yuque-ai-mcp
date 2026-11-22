@@ -61,6 +61,10 @@
 }
 ```
 
+> ⚠️ **单个分组最多只返回 200 个知识库**：`books` 数组在语雀服务端被硬截断为 200 个（实测 2026-11-22：分组「编程技术」实有 789 个知识库，`GET /api/books?stack_id=<stack_id>` 能列全 789 个，而 `book_stacks` 只回 200 个；补 `limit` / `page` / `per_page` 参数都不改变结果 —— 是硬上限，不是分页）。超出的部分在网页端侧栏同样「默认隐藏」，因此**分组内知识库建议控制在 200 个以内**，超了就另开分组。
+>
+> 要拿全量清单只能走 `GET /api/books?stack_id=<stack_id>`（v2 OpenAPI 同源，对应工具 `yuque_list_repos`）；`yuque_get_book_stacks` 在检测到某个分组正好返回 200 个时会额外给出 `warnings` + `possibly_truncated` 字段提示该分组可能被截断。
+
 ### editor_center
 
 `GET /api/mine/editor_center`
@@ -140,6 +144,8 @@
 **行为与校验**：`PUT /api/mine/book_stack/move` **成功和失败都返回 HTTP 200 + `{}`**，从响应体判断不出真实结果。所以工具在请求之后回查 `GET /api/mine/book_stacks`，**轮询 3 次、每次间隔 1500ms**，确认该知识库的 `id` 出现在 `stack_id` 分组的 `books` 里才返回 `success: true`（`mine/update-book-stack.ts:61-88`）。
 
 > 3 次仍未命中则返回 `isError`，文本为：`移动失败：知识库 {book_id} 未出现在分组 {stack_id}（已重试 3 次）`（`mine/update-book-stack.ts:90-98`）。注意失败文案不区分「上游真的没动」和「上游动了但回查时还没生效」，看到它先手工确认分组，再决定是否重发。
+>
+> ⚠️ **目标分组已有 ≥200 个知识库时，回查会误报失败**：回查用的是 `book_stacks`，而它对该分组只返回前 200 个（见上文上限说明）；移进去的知识库排在 200 名之后时回查看不到，于是「移动其实成功、工具却报失败」。判据：报错时用 `GET /api/books?stack_id={stack_id}` 确认该库是否已在分组里，在里面就别重发。
 
 ### sort_book_stack
 
@@ -174,6 +180,8 @@
 
 **行为与校验**：与 `update_book_stack` 同一端点，同样**200 + `{}` 假成功**；工具回查 `GET /api/mine/book_stacks`，轮询 3 次、每次间隔 1500ms（`mine/sort-book-stack.ts:62-94`）。
 
+> ⚠️ **排序同样受 200 上限约束**：`book_ids` 里只要有一个知识库落在该分组返回窗口（前 200 个）之外，回查就会判「成员不齐」并报 `移动失败：…缺少部分知识库…`（见上文 book_stacks 上限说明）。分组接近或超过 200 个知识库时，别只信工具回执，用 `GET /api/books?stack_id=` 单独核对。
+>
 > ✅ **回查同时校验成员与顺序**：先判成员是否齐全（`mine/sort-book-stack.ts:72-74` 的 `got` 与 `bookIds.every((id) => got.has(id))`），齐了再把每个 `book_id` 在分组 `books` 数组里的下标取出来逐个比较（`mine/sort-book-stack.ts:75-76` 的 `positions` / `inOrder`）——下标必须严格递增，顺序不符就不返回成功。
 
 > 两类失败都返回 `isError`，分别对应两种文本：

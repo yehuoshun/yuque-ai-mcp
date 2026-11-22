@@ -59,6 +59,8 @@ export const mineSortBookStack: McpTool = {
 
     // move 接口成功/失败都返回 200+{}，无法从返回判断真实结果，
     // 因此回查 book_stacks 确认所有知识库都落在目标分组（带重试）。
+    // ⚠️ book_stacks 对每个分组最多返回 200 个知识库（语雀上限）：分组里排在 200 名
+    // 之后的知识库取不到，会被误判为「成员不齐」。
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let got = new Set<number>();
     let actualOrder: number[] = [];
