@@ -11,13 +11,19 @@ import { webRequest } from "../common/web-request.js";
 import { MINE_BASE } from "./common.js";
 
 /**
- * 单个分组（书架）能返回的知识库数量上限。
+ * 单个分组（书架）单次能返回的知识库数量窗口。
  *
- * 语雀 Web 端对分组内的知识库有硬上限 200：GET /api/mine/book_stacks 的 books
- * 数组超过 200 个即被截断为 200，网页端侧栏同样只展示 200 个，其余「默认隐藏」。
- * 实测（2026-11-22）：分组「编程技术」实有 789 个知识库（GET /api/books?stack_id
- * 能列全，v2 OpenAPI 同源），book_stacks 只回 200 个；加 limit / page / per_page
- * 参数都不改变结果，说明是服务端硬上限而非分页。
+ * GET /api/mine/book_stacks 的每个分组 books 数组在服务端被截到 200 条，超出部分
+ * 不返回，网页端侧栏同样只展示 200 个（语雀「超 200 默认隐藏」）；补 limit / page /
+ * per_page 参数都不改变结果。
+ *
+ * 实测（2026-11-22）：分组「编程技术」真实 426 个知识库（账号全站 789 个库），
+ * 该接口恒回 200 条。从组里移走库后窗口会自动补位，删掉新库后先前被挤出的库自己
+ * 回到列表 —— 说明第 201 个库一直在组里、只是不返回，**这是滑动窗口而非容量上限**。
+ * 因此把组拆到 200 以内是为了「让库全部可见」，不是为了「让组装得下」。
+ *
+ * 拿全量组内清单不能靠 GET /api/books?stack_id=<id>：该参数实测被忽略（仍返回全站
+ * 789 条），且 /api/books 的 stack_id 字段陈旧（645/789 为 null），不能用来判归属。
  */
 export const STACK_BOOKS_CAP = 200;
 
@@ -74,8 +80,8 @@ export const mineBookStacks: McpTool = {
 
     const warnings = capped.map(
       (s) =>
-        `分组 ${s.id}「${s.name}」返回 ${s.books_returned} 个知识库，已达语雀单分组上限 ${STACK_BOOKS_CAP}，超出部分默认隐藏；` +
-        `要全量清单请用 GET /api/books?stack_id=${s.id}（v2 OpenAPI，对应 yuque_list_repos）`,
+        `分组 ${s.id}「${s.name}」返回 ${s.books_returned} 个知识库，已触到语雀单次返回窗口 ${STACK_BOOKS_CAP}：该组真实库数可能更多，超出部分既不返回、网页端也看不到；` +
+        `想让库全部可见请把该组拆到 ${STACK_BOOKS_CAP} 个以内（注意 GET /api/books?stack_id 过滤无效且 stack_id 字段陈旧，拿不到全量组内清单）`,
     );
 
     return {
