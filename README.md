@@ -113,7 +113,7 @@ Set `DEBUG=1` to log retry attempts to stderr.
 | **recycle** | 3 | List, restore, destroy (Cookie auth) |
 | **upload** | 1 | File upload to Yuque CDN (Cookie auth) |
 | **board** | 3 | Mindmap, flowchart, architecture diagram |
-| **mine** | 7 | Book stacks (⚠️ max 200 books per stack, extras hidden), editor center, update/sort book stack (Cookie auth) |
+| **mine** | 7 | Book stacks (⚠️ at most 200 books returned per stack — a response window, not a capacity cap: extras stay in the stack but are not returned or shown), editor center, update/sort book stack (Cookie auth) |
 | **web_doc** | 8 | Web API: get/list docs, repos, TOC, move/copy/delete catalog nodes (Cookie auth) |
 | **Total** | **65** | |
 
